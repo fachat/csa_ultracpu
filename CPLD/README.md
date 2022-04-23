@@ -12,8 +12,7 @@ This is an overview on the register set:
 - $e801 (59393)  [Memory map control](#e801-59393-memory-map-control)
 - $e802 (59394)  [Low32k bank / video window map](#e802-59394-low32k-bank)
 - $e803 (59395)  [Speed control](#e803-59395-speed-control)
-
-- $fff0 (65520)  [8296 memory control (8296 memory map only)](#8296-control-port)
+- $e804 (59396)  [bus window](#e804-59396-bus-window)
 
 - $e880/e881 (59520/59521) [CRTC emulation](#crtc-emulation)
   - register 9: pixel rows per char - 1
@@ -28,7 +27,7 @@ There are four control ports at $e800 - $e803. They are currently only writable.
 
 #### $e800 (59392) Video Control
 
-- Bit 0: 0= character display, 1= hires display
+- Bit 0: unused - must be 0
 - Bit 1: 0= 40 column display, 1= 80 column display
 - Bit 2: 0= screen character memory in bank 0, 1= character memory only in video bank (see memory map)
 - Bit 3: 0= double pixel rows, 1= single pixel rows (also 400 px vertical hires)
@@ -36,6 +35,14 @@ There are four control ports at $e800 - $e803. They are currently only writable.
 - Bit 5: unused - must be 0
 - Bit 6: 0= when switching char height, move vsync to keep screen centered. 1= prevent that
 - Bit 7: 0= video enabled; 1= video disabled
+
+Note that if you use 80 columns, AND double pixel rows (+interlace), you get the 80x50 character resolution.
+This mode is, however, not easily manageable by normal code in bank 0. In the $8xxx area the video
+and colour memory can be accessed. The first half accesses the character video memory, the second half
+is reserved for the colour memory. Now, 80x50 character require almost 4k of character video memory,
+more than twice then is available in the reserved space from $8000 to $8800. So, the screen can,
+in this mode, only be managed using long addresses into bank 8 (the video bank), or code running
+in the video bank.
 
 ##### Screen mirror in bank 0
 
@@ -121,20 +128,18 @@ addresses in VRAM bank 0 (CPU bank 8) are $8xxx, $9xxx, $axxx, $bxxx
 - Bit 2-7: unused, must be 0
 
 
-### 8296 control port
+#### $e804 (59396) Bus window
 
-This write only control port at $fff0 (65520) enables the RAM mapping in the upper 32k of bank 0, as implemented
-in the 8296 machine. The address of this port is $FFF0.
-To enable it, bit 3 in the Memory Map Control register must be set.
+The board uses all CPU banks between and including 0 and F, i.e. 1 MByte of RAM.
+The 1 MB CS/A bus is actually mapped into the CPU address space as banks $10-$1F, so
+all the memory is accessible.
 
-- Bit 0: 0= write enable in $8000-$bfff, 1= write protected
-- Bit 1: 0= write enable in $c000-$ffff, 1= write protected
-- Bit 2: select one of two block to map for $8000-$bfff (starts either $010000 or $018000)
-- Bit 3: select one of two block to map for $c000-$ffff (starts either $014000 or $01c000)
-- Bit 4: - unused, must be 0 -
-- Bit 5: 0= RAM in $8xxx, 1= screen peek-through the mapped RAM
-- Bit 6: 0= RAM in $e8xx, 1= I/O peek-through the mapped RAM
-- Bit 7: 0= RAM mapping disabled, 1=enabled
+To allow to use some boards that have space in bank 0 on the CS/A bus that should be used
+in bank 0 of the CPU, two windows of the CS/A bus can be mapped into bank 0 of the CPU:
+
+- Bit 0: map $9xxx of the CS/A bus into $9xxx of CPU bank 0
+- Bit 1: map $Cxxx of the CS/A bus into $Cxxx of CPU bank 0
+- Bit 2-7: unused, must be 0
 
 ## CRTC emulation
 

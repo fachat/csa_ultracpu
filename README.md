@@ -18,11 +18,10 @@ This can be found [here on my CS/A page](http://www.6502.org/users/andre/csa/pet
 
 The board is built with a number of features:
 
-- Commodore 3032 / 4032 / 8032 / (8296 TODO) with options menu to select at boot
+- Commodore 3032 / 4032 / 8032 with options menu to select at boot
   - Boot-menu to select different PET versions to run (BASIC 1, 2, 4)
   - 40 col character display
   - 80 col character display
-  - (8296 memory map emulation TODO)
 - Improved system design:
   - 512k video RAM, plus 512k fast RAM, accessible using banks on the W65816 CPU
   - boot from an SPI Flash ROM
@@ -33,7 +32,7 @@ The board is built with a number of features:
 - Improved Video output:
   - modifyable character set
   - 40/80 column display switchable
-  - 25/50 rows display switch (untested)
+  - 25/50 rows display switch
   - multiple video pages mappable to $8000 video mem address
 
 ## Overview

@@ -26,6 +26,11 @@ SPICTRL	=$e808
 SPIDATA	=$e809
 SPIPEEK	=$e80a
 
+VIA	=$e840
+VIA_PCR	=12
+
+CRTC	=$e880
+
 RUNADDR	=$9000
 
 shift	=$87ff
@@ -38,7 +43,9 @@ SPEED   =$e803
 R8296   =$fff0
 
 ;BOOTCOL	=$15	; dark grey background, light green text
-BOOTCOL	=$1f	; dark grey background, white text
+;BOOTCOL	=$1f	; dark grey background, white text
+;BOOTCOL	=$50	; black text on light green background
+BOOTCOL	=$05	; black background with light green text
 
 	*=$ff00
 vreset	.(
@@ -153,13 +160,13 @@ jmpboot
 
 	; init the CRTC emulation
 	lda #9
-	sta $e880
+	sta CRTC
 	lda #7
-	sta $e881
+	sta CRTC+1
 	lda #12
-	sta $e880
+	sta CRTC
 	lda #$10
-	sta $e881
+	sta CRTC+1
 
 	; init control registers
 	lda #0
@@ -169,6 +176,10 @@ jmpboot
 
 	lda #$20	; for the PET default CRTC base address of $1000
 	sta BANK	; $e802
+
+	; uppercase char
+	lda #12
+	sta VIA+VIA_PCR
 
 	; -----------------------
 	; switch Ethernet - if exists - to low power mode
@@ -337,11 +348,14 @@ b4_orig
 col40
 	; check 8296 bit
 	pla
+#if 0	
+	; 8296 not working
 	and #%00010000
 	beq not_96
 	; 8296
 	lda #%11101000
 	.byt $2c
+#endif
 not_96	lda #%11100000
 
 	; fallthrough
@@ -479,8 +493,8 @@ gotone	; x has number of key
 	beq gotshift
 ;	cpx #11		; right shift (8/5)
 ;	beq gotshift
-	cpx #41		; 4/7 = "6"
-	beq is8296
+;	cpx #41		; 4/7 = "6"	; 8296 not working
+;	beq is8296
 	cpx #18		; 7/6 = "2"
 	beq is2
 	cpx #42		; 4/6 = "4"
@@ -497,8 +511,8 @@ gotone	; x has number of key
 	beq gotshift
 ;	cpx #42		; 4/6 = "4" = Right shift on C64 - clash with N-type
 ;	beq gotshift
-	cpx #22		; 7/2 = "N" = "6" on C64 kbd
-	beq is8296c64
+;	cpx #22		; 7/2 = "N" = "6" on C64 kbd - 8296 not working
+;	beq is8296c64
 ;	cpx #24		; 7/0 = "X" = "2" on C64 kbd - no C64 kbd option
 ;	beq is2c64
 	cpx #23		; 7/1 = "V" = "4" on C64 kbd
@@ -522,8 +536,8 @@ gotshift		; after cpx/beq, so C=1
 	; bit 2/1 - model (01=basic1, 10=basic2, 11=basic4) 
 	; will be shifted right (/2) with ext/base bit in C
 	; must not be all zero (this will be ignored)
-is8296	lda #128+32+6
-	.byt $2c
+;is8296	lda #128+32+6
+;	.byt $2c
 is8	lda #128+6
 	.byt $2c
 is4	lda #6
@@ -532,8 +546,8 @@ is2	lda #4
 	.byt $2c
 is1	lda #2
 	.byt $2c
-is8296c64 lda #128+64+32+6
-	.byt $2c
+;is8296c64 lda #128+64+32+6
+;	.byt $2c
 is8c64	lda #128+64+6
 	.byt $2c
 is4c64	lda #64+6
@@ -576,34 +590,51 @@ selecttext_xl .(
 outl	lda text,x
 	beq endt
 	and #$bf	; to PET Screencode
-	sta $8000,x
+	sta $8000+2*40,x
 	inx
 	bne outl
 endt	
-	; signature color bar (TODO)
-	lda #$80
-	ldx #15
+	; signature color bar 
+	; 5 colours, each 8 chars long
+	; red = 2
+	; light red = 3
+	; blue = 4
+	; green = 8
+	; yellow = 12
+	ldy #0
+	ldx #0
 	sec
-cl	;sta $8800+15*40,x
-	sta VBANK+$d000+15*40,x
-	pha
-	lda #105	; filled triangle
-	sta $8000+15*40,x
-	pla
-	clc
-	adc #$11
-	dex
-	bpl cl
+c0	lda cols,y
+	sta $8800+0*40,x
+	sta $8800+24*40,x
+	inx
+	txa
+	and #%00000111
+	bne c0
+	iny
+	cpy #5
+	bcc c0
+
+	;sta VBANK+$d000+15*40,x
+;	pha
+;	lda #105	; filled triangle
+;	sta $8000+15*40,x
+;	pla
+;	clc
+;	adc #$11
+;	dex
+;	bpl cl
 	rts
+
+cols	.byt 2<<4,3<<4,4<<4,8<<4,12<<4
 	
-text	.asc "                                        "
-	.asc "PRESS KEY FOR BOOT OPTION:              "
+text	.asc "PRESS KEY FOR BOOT OPTION:              "
 	.asc "                                        "
 	.asc "* BASIC ", "1"+$80, " (NO C64 KBD)                  "
 	.asc "* BASIC ", "2"+$80, " (40 COLUMNS, NO C64 KBD)      "
 	.asc "* BASIC 4, ", "4"+$80, "0 COLUMNS                   "
 	.asc "* BASIC 4, ", "8"+$80, "0 COLUMNS                   "
-	.asc "* BASIC 4, 829", "6"+$80, " (80 COLUMNS)            "
+	;.asc "* BASIC 4, 829", "6"+$80, " (80 COLUMNS)            "
         .asc "                                        "
 	.asc "EXTENDED/PATCHED ROMS                   "
 	.asc "USE LEFT-SHIFT FOR ORIG ROM"

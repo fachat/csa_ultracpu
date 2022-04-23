@@ -118,7 +118,7 @@ edit80g:
 	curl -o edit80g $(ARCHIVE)/firmware/computers/pet/edit-4-80-n-50Hz.4016_to_8016.bin
 
 cbm-edit-rom: 
-	git clone https://github.com/sjgray/cbm-edit-rom.git
+	git clone https://github.com/fachat/cbm-edit-rom.git
 	cp cbm-edit-rom/edit.asm cbm-edit-rom/edit.asm.org
 
 ${EDITROMS}: %.bin: %.asm cbm-edit-rom
