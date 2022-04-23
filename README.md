@@ -1,47 +1,46 @@
-# uPET R2
+# Ultra-CPU
 
-This is a re-incarnation of the Commodore PET computer(s) from the later 1970s.
+This is the CPU board for a re-incarnation of the Commodore PET or other computer(s) from the later 1970s.
 
 It is build on a Eurocard board and has only parts that can still be obtained new in 2021.
-The current version is 2.0B.
+It uses the [CS/A bus interface](http://www.6502.org/users/andre/csa/index.html) to use other I/O boards.
 
-![Picture of a MicroPET](images/cover.jpg)
+As the memory mapping is programmable using the CPLD on the board, multiple types of computers can
+potentially re-created. I started with my favourite one, the Commodore PET.
 
-Here is the [Overview video](https://youtu.be/COlfqcaY7rI)
+The reason this board is called Ultra-CPU is because it has colour over the [MicroPET](http://www.6502.org/users/andre/upet/index.html), and it can potentially be used to recreate not only the Commodore PET.
+The downside compared to the Micro-PET is, that it needs a separate I/O board to re-create a Commodore PET.
+This can be found [here on my CS/A page](http://www.6502.org/users/andre/csa/petio/index.html).
 
-Some more videos on the build process can be found here [YT 8-bit times](https://youtube.com/playlist?list=PLi1dzy7kw1iybjcUccgjCV4fhNH4IPWSx)
+![Picture of an Ultra-CPU board with a PETIO](images/cover.jpg)
 
 ## Features
 
 The board is built with a number of features:
 
-- Commodore 3032 / 4032 / 8032 / 8296 with options menu to select at boot
+- Commodore 3032 / 4032 / 8032 / (8296 TODO) with options menu to select at boot
   - Boot-menu to select different PET versions to run (BASIC 1, 2, 4)
   - 40 col character display
   - 80 col character display
-  - 8296 memory map emulation
-  - IEEE488 interface (card edge and 24pin flat ribbon cable)
-  - Tape connector (card edge)
-  - PET graphics keyboard, or alternatively a C64 keyboard
+  - (8296 memory map emulation TODO)
 - Improved system design:
   - 512k video RAM, plus 512k fast RAM, accessible using banks on the W65816 CPU
   - boot from an SPI Flash ROM
   - up to 12.5 MHz mode (via configuration register)
-  - VGA b/w video output
+  - VGA color video output (RGBI in 640x480 mode, up to 640x450 usable)
   - Write protection for the PET ROMs once copied to RAM
   - lower 32k RAM mappable from all of the 512k fast RAM
 - Improved Video output:
-  - Hires graphics mode (using a configuration register)
   - modifyable character set
   - 40/80 column display switchable
-  - 25/50 rows display switch
+  - 25/50 rows display switch (untested)
   - multiple video pages mappable to $8000 video mem address
 
 ## Overview
 
-The system architecture is actually rather simple, as you can see in the following graphics.
+[//]: # The system architecture is actually rather simple, as you can see in the following graphics.
 
-![MicroPET System Architecture](images/upet-system-architecture.png)
+[//]: # ![MicroPET System Architecture](images/upet-system-architecture.png)
 
 The main functionality is "hidden" inside the CPLD. It does:
 
@@ -84,7 +83,6 @@ Here are four subdirectories:
 - [Board](Board/) that contains the board schematics and layout
 - [CPLD](CPLD/) contains the VHDL code to program the CPLD logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) usage
 - [ROM](ROM/) ROM contents to boot
-- [Case](Case/) 3-D printed supports and keyboards to mount board in a C64c case
 
 ### Board
 
@@ -105,7 +103,7 @@ and specific VHDL programming.
 The ROM image can be built using gcc, xa65, and make. Use your favourite EPROM programmer to burn it into the SPI Flash chip.
 
 The ROM contains images of all required ROM images for BASIC 1, 2, and 4, and corresponding editor ROMs, including
-some that have been extended with wedges.
+some that have been extended with wedges and colour-PET functionality.
 
 The updated editor ROMs are from [Steve's Editor ROM project](http://www.6502.org/users/sjgray/projects/editrom/index.html) and can handle C64 keyboards, has a DOS wedge included, and resets into the Micro-PET boot menu.
 For more details see the [ROM description](ROM/README.md)
@@ -115,17 +113,13 @@ For more details see the [ROM description](ROM/README.md)
 
 These are future expansions I want to look into. Not all may be possible to implement.
 
-- n/a
+- Look into using the CPU as part of an Apple II clone?
 
 ## Gallery
 
-![Picture of a MicroPET](images/upet-c64kbd.jpg)
+![A full system with nano488 disk and keyboard](images/system.jpg)
 
-Note: the published schematics and board has the extra wires fixed/included.
+![Boot menu](images/bootmenu.jpg)
 
-![MicroPET with self-printed key caps](images/case-with-caps.jpg)
-
-![MicroPET running the 8296 burnin](images/8296diag.jpg)
-
-![MicroPET before adjusting a C64 case](images/upet.png)
+![debug](images/debug.jpg)
  
