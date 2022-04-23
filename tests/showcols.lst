@@ -1,0 +1,28 @@
+
+1000 print"{clr}";
+1010 print"{down}{down}{down}";
+1020 print"  0    1    2    3    4    5    6    7 ";
+1030 print"{down}{down}{down}";
+1040 print"{down}{down}{down}"
+1050 print"  8    9    a    b    c    d    e    f ";
+1020 gosub 2000:rem colorize
+1100 get a$:if a$="" then 1100
+1110 end
+
+2000 a=32768+2048
+2010 for r=0to7
+2020 for c=0to7
+2030 for x=0to3
+2030 poke a+r*40+c*5+x,c*16
+2040 next
+2050 next
+2060 next
+2110 for r=8to15
+2120 for c=8to15
+2130 for x=0to3
+2130 poke a+r*40+(c-8)*5+x,c*16
+2140 next
+2150 next
+2160 next
+2200 return
+
