@@ -1,5 +1,5 @@
 
-# Board V2.1A
+# Board
 
 The board is a two-layer Eurocard, i.e. 160mm x 100mm.
 
@@ -20,6 +20,9 @@ PNG images created
 - [csa-ultracpu-v1.0b-sch-4.png](csa-ultracpu-v1.0b-sch-4.png) Part 4 - Video and Audio output
 - [csa-ultracpu-v1.0b-sch-5.png](csa-ultracpu-v1.0b-sch-5.png) Part 5 - SPI devices (Eth, USB, RTCC, ...)
 - [csa-ultracpu-v1.0b-sch-6.png](csa-ultracpu-v1.0b-sch-6.png) Part 6 - Video RAM, data fetch and shift register
+
+- [csa-ultracpu-v1.0b-layout.png](csa-ultracpu-v1.0b-layout.png) layout of the chips
+- [csa-ultracpu-v1.0b-brd.png](csa-ultracpu-v1.0b-brd.png) layout of the traces
 
 ## Bill of Material
 
