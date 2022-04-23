@@ -121,6 +121,7 @@ architecture Behavioral of Top is
 	
 	-- Initial program load
 	signal ipl: std_logic;		-- Initial program load from SPI flash
+	signal ipl_d: std_logic;		-- Initial program load from SPI flash
 	constant ipl_addr: std_logic_vector(18 downto 8) := "00011111111";	-- top most RAM page in bank 0
 	signal ipl_state: std_logic;	-- 00 = send addr, 01=read block
 	signal ipl_state_d: std_logic;	-- 00 = send addr, 01=read block
@@ -411,12 +412,7 @@ begin
 	   sr_load
 	);
 
---	reset_p: process(q50m)
---	begin
---		if (rising_edge(q50m)) then
-			reset <= not(nres);
---		end if;
---	end process;
+	reset <= not(nres);
 	
 	-- define CPU slots.
 	-- mode(1 downto 0): 00=1MHz, 01=2MHz, 10=4MHz, 11=Max speed
@@ -937,26 +933,18 @@ begin
 	------------------------------------------------------
 	-- IPL logic
 	
-	ipl_p: process(memclk, reset)
+	ipl_p: process(memclk, reset, ipl)
 	begin
 		if (reset = '1') then 
 			ipl_state <= '0';
 			ipl_cnt <= (others => '0');
-			ipl_out <= '0';
 			ipl <= '1';
-		elsif (falling_edge(memclk) and ipl = '1') then
+		elsif (falling_edge(memclk) and ipl_d = '1') then
 		
 			--ipl <= '0';	-- block IPL to test
 			
 			if (ipl_state_d = '0') then
 				-- initial count and SPI Flash read command
-				if (ipl_cnt >= "000000001011"
-					and ipl_cnt <= "000000001110"
-					) then
-					ipl_out <= '1';
-				else
-					ipl_out <= '0';
-				end if;
 				
 				if (ipl_next = '1') then
 					ipl_state <= '1';
@@ -972,7 +960,6 @@ begin
 				else
 					ipl_cnt <= ipl_cnt + 1;
 				end if;
-				ipl_out <= '0';
 			end if;
 		end if;
 	end process;
@@ -981,18 +968,33 @@ begin
 	begin
 		if (reset = '1') then
 			ipl_state_d <= '0';
+			ipl_next <= '0';
+			ipl_out <= '0';
+			ipl_d <= '1';
 		elsif (rising_edge(memclk)) then
 			ipl_state_d <= ipl_state;
+			ipl_d <= ipl;
 			
 			ipl_next <= '0';
 			if (ipl_state = '0') then
 				if (ipl_cnt = "000001000000") then
 					ipl_next <= '1';
 				end if;
+				
+				if (ipl_cnt >= "000000001011"
+					and ipl_cnt <= "000000001110"
+					) then
+					ipl_out <= '1';
+				else
+					ipl_out <= '0';
+				end if;
+
 			else
 				if (ipl_cnt = "111111111111") then
 					ipl_next <= '1';
 				end if;
+				
+				ipl_out <= '0';
 			end if;
 		end if;
 	end process;
