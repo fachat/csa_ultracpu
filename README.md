@@ -112,9 +112,13 @@ These are future expansions I want to look into. Not all may be possible to impl
 
 ## Gallery
 
-![A full system with nano488 disk and keyboard](images/system.jpg)
+![A full system with nano488 disk and keyboard](images/system2.jpg)
+
+![Another view of a full system with nano488 disk and keyboard](images/system.jpg)
 
 ![Boot menu](images/bootmenu.jpg)
+
+![Colour palette](images/showcols.jpg)
 
 ![debug](images/debug.jpg)
  
