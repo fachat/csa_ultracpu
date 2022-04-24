@@ -112,13 +112,29 @@ These are future expansions I want to look into. Not all may be possible to impl
 
 ## Gallery
 
+### Full system views
+
 ![A full system with nano488 disk and keyboard](images/system2.jpg)
 
 ![Another view of a full system with nano488 disk and keyboard](images/system.jpg)
 
+### Board
+
+![Picture of an Ultra-CPU board](images/board.jpg)
+
+### Boot menu and OS boot screen
+
 ![Boot menu](images/bootmenu.jpg)
 
+![OS Boot screen](images/newrom.jpg)
+
+### Colour palette
+
+Note that this version is without the (optional) "Brown Fix" that is included in version 1.0B of the board.
+
 ![Colour palette](images/showcols.jpg)
+
+### Debugging during development
 
 ![debug](images/debug.jpg)
  
