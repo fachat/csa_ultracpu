@@ -147,57 +147,58 @@ begin
 			-- CS/A bus clocks (phi2, 2phi2, 8phi2)
 			-- which are 1.04MHz, 2.1MHz and 8MHz 
 			-- in a phase locked setup
+			-- clk_cnt(1) = memclk, clk1/2/4m sampled at falling edge of memclk, for one memclk
 			case (clk_cnt) is
-			when "000000" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "000001" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "000010" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "000011" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '1';
-			when "000100" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '1';
-			when "000101" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '1';
-			when "000110" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "000111" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "001000" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "001001" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "001010" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "001011" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "001100" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "001101" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "001110" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "001111" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
+			when "000000" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0'; 
+			when "000001" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "000010" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "000011" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "000100" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "000101" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "000110" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "000111" =>  cphi2 <= '0';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '1';
+			when "001000" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '1';
+			when "001001" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "001010" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "001011" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "001100" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "001101" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "001110" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "001111" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
 
-			when "010000" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "010001" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "010010" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "010011" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "010100" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "010101" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "010110" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "010111" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "011000" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "011001" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "011010" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "011011" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '1';
-			when "011100" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '1';
-			when "011101" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '1';
-			when "011110" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0';
-			when "011111" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0';
+			when "010000" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "010001" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "010010" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "010011" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '1'; clk4m <= '1';
+			when "010100" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '1'; clk4m <= '1';
+			when "010101" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "010110" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "010111" =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011000" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011001" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011010" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011011" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011100" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011101" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011110" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "011111" =>  cphi2 <= '1';	c2phi2 <= '1';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '1';
 
-			when "100000" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "100001" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "100010" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "100011" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "100100" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "100101" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "100110" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "100111" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "101000" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "101001" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "101010" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "101011" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "101100" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0';
-			when "101101" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "101110" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
-			when "101111" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1';
+			when "100000" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '1';
+			when "100001" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "100010" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "100011" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "100100" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "100101" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "100110" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "100111" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "101000" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "101001" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "101010" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "101011" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '1'; clk2m <= '1'; clk4m <= '1';
+			when "101100" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '0'; clk1m <= '1'; clk2m <= '1'; clk4m <= '1';
+			when "101101" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "101110" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
+			when "101111" =>  cphi2 <= '1';	c2phi2 <= '0';	c8phi2 <= '1'; clk1m <= '0'; clk2m <= '0'; clk4m <= '0';
 
 			when others =>  cphi2 <= '0';	c2phi2 <= '0';	c8phi2 <= '0';
 			end case;
@@ -239,52 +240,52 @@ begin
 	
 	memclk <= memclk_int;
 
-	-- count 12 qclk cycles @12 MHz, then transform into clk1m/2m/4m
-	cpu_cnt1_p: process(reset, cpu_cnt1, memclk_int)
-	begin
-		if (reset = '1') then
-			cpu_cnt1 <= "0000";
-		elsif (rising_edge(memclk_int)) then	
-			if (cpu_cnt1 = "1011") then
-				cpu_cnt1 <= "0000";
-			else
-				cpu_cnt1 <= cpu_cnt1 + 1;
-			end if;
-		end if;
-	end process;
-
-	-- generate clk1m/2m/4m
-	-- note: those are sampled at rising edge of memclk
-	-- also note: these clocks are not symmetrical. 
-	-- it's just 4M cycles of 12.5M length
-	cpu_cnt2_p: process(qclk, reset, cpu_cnt1)
-	begin
-		if (reset = '1') then
-			clk4m <= '0';
-			clk2m <= '0';
-			clk1m <= '0';
-		elsif (rising_edge(qclk)) then	
-			clk4m <= '0';
-			clk2m <= '0';
-			clk1m <= '0';
-			case (cpu_cnt1) is
-			when "0000" =>
-				clk1m <= '1';
-				clk2m <= '1';
-				clk4m <= '1';
-			when "0011" =>
-				clk4m <= '1';
-			when "0110" => 
-				clk2m <= '1';
-				clk4m <= '1';
-			when "1001" => 
-				clk4m <= '1';
-			when others =>
-				null;
-			end case;
-			
-		end if;
-	end process;
+--	-- count 12 qclk cycles @12 MHz, then transform into clk1m/2m/4m
+--	cpu_cnt1_p: process(reset, cpu_cnt1, memclk_int)
+--	begin
+--		if (reset = '1') then
+--			cpu_cnt1 <= "0000";
+--		elsif (rising_edge(memclk_int)) then
+--			if (cpu_cnt1 = "1011") then
+--				cpu_cnt1 <= "0000";
+--			else
+--				cpu_cnt1 <= cpu_cnt1 + 1;
+--			end if;
+--		end if;
+--	end process;
+--
+--	-- generate clk1m/2m/4m
+--	-- note: those are sampled at falling edge of memclk
+--	-- also note: these clocks are not symmetrical. 
+--	-- it's just 4M cycles of 12.5M length
+--	cpu_cnt2_p: process(qclk, reset, cpu_cnt1)
+--	begin
+--		if (reset = '1') then
+--			clk4m <= '0';
+--			clk2m <= '0';
+--			clk1m <= '0';
+--		elsif (rising_edge(qclk)) then	
+--			clk4m <= '0';
+--			clk2m <= '0';
+--			clk1m <= '0';
+--			case (cpu_cnt1) is
+--			when "0000" =>
+--				clk1m <= '1';
+--				clk2m <= '1';
+--				clk4m <= '1';
+--			when "0011" =>
+--				clk4m <= '1';
+--			when "0110" => 
+--				clk2m <= '1';
+--				clk4m <= '1';
+--			when "1001" => 
+--				clk4m <= '1';
+--			when others =>
+--				null;
+--			end case;
+--			
+--		end if;
+--	end process;
 			
 end Behavioral;
 
