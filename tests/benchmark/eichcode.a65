@@ -1,0 +1,109 @@
+
+// execute a loop in fast memory 
+// time loop executions and store the result after the code
+
+VIA	=$e840
+VPB	=VIA + 0
+T2L	=VIA + 8
+T2H	=VIA + 9
+ACR	=VIA + 11
+IFR	=VIA + 13
+
+	*=RUNADDR
+
+	php
+	sei
+
+	lda ACR
+	and #%11011111
+	sta ACR
+
+	lda #0	
+	sta crtc+2
+
+	; measure distance between vsync signals using VIA timers
+	; (relation between VIA clock and real world clock)
+	ldy #<-1
+	lda #%00100000	; note vsync input on VIA port B (reg #0) is bit as T2 underflow in IFR
+l0	bit VPB		; wait retrace end
+	bne l0
+l2	bit VPB		; wait for start of vertical retrace
+	beq l2
+	; start of vsync - start timer
+	sty T2L
+	sty T2H		; set to 0, start
+	; wait for vsync end
+l3	bit VPB
+	beq l4		; wait end vertical retrace
+	bit IFR
+	beq l3		; no timer underflow
+	inc crtc+2
+	sty T2H		; clear int flag, restart timer
+	jmp l3
+
+	; wait for vsync start	
+l4	bit VPB
+	bne l5
+	bit IFR
+	beq l4		; wait for start of 2nd vertical retrace
+	inc crtc+2
+	sty T2H		; clear int flag, restart timer
+	jmp l4
+l5
+	; capture timer value
+	lda T2L
+	ldx T2H		; read timer
+	sta crtc
+	stx crtc+1
+
+	; ---------------------
+	; now we are at sync start, but not at where video output
+	; would influence the CPU speed most, i.e. during screen display.
+	; so we have to wait for about 55 rasterlines at 800 pixels.
+
+	ldx #20
+	ldy #0		; 2
+lx	dey		; 256x 2
+	bne lx		; 256x 3 -1
+	dex
+	bne lx
+
+	; ---------------------
+	lda #0
+
+	sta T2L
+	sta T2H		; start timer
+
+	; delay loop to check relation of CPU clock to VIA clock
+	; same as multiplier in benchmark.basic
+	; 8 (const) + 20 (multiplier) x (1279 inner loop + 5 per outer loop) - 1 = 25687
+	; but the memory access is masked by VDA/VPA. So we get effective memory cycles:
+	; 8 (const) + 20 (multiplier) x (256 x 3 + 3) = 15428
+	; Only the actual memory cycles are potentially delayed
+	;
+	; The 25687 cycles are about 64.2 rasterlines, with 400 memory slots in FRAM.
+	; In VRAM 160 cycles are taken to fetch video, so 240 memory slots are left per rasterline
+	;
+	; The 15428 memory cycles would _also_ fit into 64.2 rasterlines, with 240 memory slots.
+	; However, we need to consider wait states for when the CPU does two consecutive accesses.
+	; Those are mainly the branches. So, we have waitstates like 20 x (256 x 1 + 1) + 8
+ 	; 
+	ldy #20		; 2 cy 
+	ldx #0		; 2 cy 
+l1 	dex		;   2 cy - 1 mcy
+	bne l1		;   3 cy - 2 mcy -> inner loop has 1279 cy (255 * 5, 1 * 4 no branch taken)
+	dey		;  2 cy - 1 mcy
+	bne l1		;  3 cy - 2 mcy
+	lda T2L		; 4 cy
+	ldx T2H
+	sta loop
+	stx loop+1
+
+	plp
+	rts
+
+loop	=*	; word data
+crtc	=loop+2	; word data
+tmp	=crtc+3
+
+

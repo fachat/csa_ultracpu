@@ -1,0 +1,14 @@
+
+// clear the color memory used by the actual test
+
+	*=RUNADDR
+
+	lda $8800+999	; col of last char on screen on 40 cols
+
+	ldy #0
+loop	sta $8800,y
+	iny
+	bne loop
+
+	rts
+
