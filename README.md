@@ -108,6 +108,7 @@ For more details see the [ROM description](ROM/README.md)
 
 These are future expansions I want to look into. Not all may be possible to implement.
 
+- Add clamping diodes to the VGA output
 - Look into using the CPU as part of an Apple II clone?
 
 ## Gallery
