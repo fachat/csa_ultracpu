@@ -148,8 +148,8 @@
  13900 rem #########################
  13901 rem print page header
  13902 print chr$(14):rem upper/lower
- 13905 print"{clr}micro pet benchmark";sc$;
- 13910 print"(c) 2021 a. fachat":print
+ 13905 print"{clr}ultra pet benchmark";sc$;
+ 13910 print"(c) 2022 a. fachat":print
  13990 return
  14000 rem #########################
  14010 rem read the next code from the data sections

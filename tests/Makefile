@@ -1,8 +1,8 @@
 
-ASM=low32k virtpet
+ASM=virtpet
 BASIC=readflash rtcc batmem sdcard showcols
 
-all: ${ASM} ${BASIC} bench
+all: ${ASM} ${BASIC} bench2
 
 clean:
 	(cd benchmark; make clean)
@@ -14,7 +14,7 @@ ${ASM}: %: %.a65
 ${BASIC}: %: %.lst
 	petcat -w40 -o $@ $<
 
-bench:
+bench2:
 	(cd benchmark; make)
-	ln -s benchmark/bench
+	ln -sf benchmark/bench
 

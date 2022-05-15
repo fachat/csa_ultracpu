@@ -1,5 +1,8 @@
 
+100 poke 33792,0
+110 wi=40
 1000 print"{clr}";
+1001 if peek(33792) = 32 then wi=80
 1010 print"{down}{down}{down}";
 1020 print"  0    1    2    3    4    5    6    7 ";
 1030 print"{down}{down}{down}";
@@ -13,14 +16,14 @@
 2010 for r=0to7
 2020 for c=0to7
 2030 for x=0to3
-2030 poke a+r*40+c*5+x,c*16
+2030 poke a+r*wi+c*5+x,c*16
 2040 next
 2050 next
 2060 next
 2110 for r=8to15
 2120 for c=8to15
 2130 for x=0to3
-2130 poke a+r*40+(c-8)*5+x,c*16
+2130 poke a+r*wi+(c-8)*5+x,c*16
 2140 next
 2150 next
 2160 next

@@ -59,17 +59,17 @@ loop	sta sp,y	; not used flag
 	cpy #4
 	bne loop
 
-	lda #0+16
+	lda #0+32
 	sta bankreg+0
 	lda #$10
 	sta crtc12+0
 
-	lda #2+32
+	lda #2+64
 	sta bankreg+1
 	lda #$20
 	sta crtc12+1
 
-	lda #3+48
+	lda #3+96
 	sta bankreg+2
 	lda #$30
 	sta crtc12+2
