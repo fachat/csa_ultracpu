@@ -94,4 +94,6 @@ INFO      = 0   ; Add project info to code area 0=NO, 1=Yes,2=Yes+FONT		INFO=2 s
 ;----------------------------------------------------------------------------------------------------------------------------------------
 BUGFIX    = 1   ; Correct Known bugs		0=No, 1=Yes			
 DEBUG 	  = 0	; Add debugging			0=No, 1=Yes
+NOFILL    = 0   ; Disable FILL?                 0=No, 1=Yes                     Lets you test assemble but will NOT generate usable code!!!!!
+
 
