@@ -46,9 +46,7 @@ entity Video is
 	   is_hires : in std_logic;	-- is hires mode?
 	   is_graph : in std_logic;	-- graphic mode (from PET I/O)
 	   is_double: in std_logic;
-	   is_nowrap: in std_logic;	-- (ignored)
 	   interlace: in std_logic;
-	   statusline: in std_logic;
 	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;
@@ -56,8 +54,6 @@ entity Video is
 	   crtc_rwb : in std_logic;
 	   
 	   qclk: in std_logic;		-- Q clock
-	   dotclk : in std_logic;	-- 24MHz in (VGA timing)
-	   dot2clk : in std_logic;
            memclk : in STD_LOGIC;	-- system clock 8MHz
 	   slotclk : in std_logic;
 	   slot2clk : in std_logic;
@@ -135,7 +131,6 @@ architecture Behavioral of Video is
 	signal h_enable : std_logic := '0';	
 	signal v_enable : std_logic := '0';
 	signal enable : std_logic;
-	signal v_lastline: std_logic := '0';
 	
 	-- sync
 	signal h_sync_int : std_logic := '0';	
@@ -156,10 +151,8 @@ architecture Behavioral of Video is
 	signal crom_fetch_int: std_logic;
 	signal pxl_fetch_int : std_logic;
 	signal col_fetch_int : std_logic;
-	signal pxl_fetch_d : std_logic;
 	
 	signal sr_load_d : std_logic;
-	signal dot2clk_d : std_logic;
 	signal mem_addr : std_logic;
 	
 	signal next_row : std_logic;
@@ -340,7 +333,6 @@ begin
 
 			-- venable
 			v_enable <= '0';
-			v_lastline <= '0';
 			if (rline_cnt < 450) then	--468) then
 				v_enable <= '1';
 			end if;
@@ -359,13 +351,9 @@ begin
 
 			-- venable
 			v_enable <= '0';
-			v_lastline <= '0';
 			if (rline_cnt < 400) then	--416) then
 				v_enable <= '1';
 			end if;
---			if (rline_cnt >= 400) then
---				v_lastline <= '1';
---			end if;		    
 		end if; -- crtc_is_9rows
 
 		    -- common for 8/9 pixel rows per char

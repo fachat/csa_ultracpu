@@ -84,7 +84,6 @@ entity Top is
 	-- video out
            pxlld 	: out std_logic;
 	   colorld	: out std_logic;
-	   colorld2	: out std_logic;
 	   nchromaddr	: out std_logic;
 	   nsrload	: out std_logic;
 	   
@@ -144,8 +143,6 @@ architecture Behavioral of Top is
 	signal col_fetch: std_logic;
 	signal sr_load: std_logic;
 	signal VA_select: T_VADDR_SRC;
-	signal nchromaddr_int: std_logic;
-	signal load_window: std_logic;
 	
 	signal memclk: std_logic;
 	signal clk1m: std_logic;
@@ -185,12 +182,10 @@ architecture Behavioral of Top is
 	signal vidblock : std_logic_vector(2 downto 0);
 	signal lockb0 : std_logic;
 	signal forceb0 : std_logic;
-	signal statusline : std_logic;
 	signal movesync : std_logic;
 	
 	-- video
 	signal va_out: std_logic_vector(15 downto 0);
-	signal vd_in: std_logic_vector(7 downto 0);
 	signal vis_enable: std_logic;
 	signal vis_80_in: std_logic;
 	signal vis_hires_in: std_logic;
@@ -202,7 +197,6 @@ architecture Behavioral of Top is
 	signal v_dena: std_logic;
 	signal v_ldsync: std_logic;
 	signal v_ldsync_d: std_logic;
-	signal is_vid_out_x: std_logic;
 	
 	-- cpu
 	signal ca_in: std_logic_vector(15 downto 0);
@@ -212,7 +206,6 @@ architecture Behavioral of Top is
 	signal wait_bus: std_logic;	-- when CPU waits for end of CS/A bus cycle
 	signal wait_setup: std_logic;	-- when CPU needs to wait for setup time
 	signal is_bus: std_logic;
-	signal is_bus_mask: std_logic;	-- mask for bus BE and select lines to not bleed 12MHz signals
 	signal wait_int: std_logic;
 	signal ramrwb_int: std_logic;
 	signal do_cpu : std_logic;
@@ -327,9 +320,7 @@ architecture Behavioral of Top is
 	   is_hires : in std_logic;	-- is hires mode?
 	   is_graph : in std_logic;	-- from PET I/O
 	   is_double: in std_logic;	-- when set, use 50 char rows / 400 pixel rows
-	   is_nowrap: in std_logic;
 	   interlace: in std_logic;
-	   statusline: in std_logic;
 	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;	-- select line for CRTC
@@ -337,8 +328,6 @@ architecture Behavioral of Top is
 	   crtc_rwb : in std_logic;	-- r/-w
 	   
 	   qclk: in std_logic;		-- Q clock
-	   dotclk : in std_logic;	-- 25MHz in (VGA timing)
-	   dot2clk : in std_logic;
            memclk : in STD_LOGIC;	-- system clock 8MHz
 	   slotclk : in std_logic;
 	   slot2clk: in std_logic;
@@ -608,12 +597,6 @@ begin
 	end process;
 	nbe_out <= not( be_out_int );
 	nbe_dout <=  not( be_out_int ) or not(phi2_int);
-
---sync <= do_cpu;
---nbe_out <= wait_bus;
---nbe_dout <= wait_setup;
-
-	--de_out <= .... de_in ... is_bus_mask ...
 	
 	------------------------------------------------------
 	-- video
@@ -632,16 +615,12 @@ begin
 		vis_hires_in,
 		vgraphic,
 		vis_double_in,
-		'1',
 		interlace,
-		statusline,
 		movesync,
 		sel8,
 		ca_in(0),
 		rwb,
 		q50m,		-- Q clock (50MHz)
-		dotclk,
-		dot2clk,
 		memclk,		-- sysclk (~8MHz)
 		slotclk,
 		slot2clk,
@@ -740,7 +719,6 @@ begin
 			vidblock <= (others => '0');
 			boot <= '1';
 			lockb0 <= '0';
-			statusline <= '0';
 			movesync <= '0';
 			bus_window_c <= '0';
 			bus_window_9 <= '0';
@@ -754,14 +732,13 @@ begin
 				screenb0 <= not(D(2));
 				vis_double_in <= D(3);
 				interlace <= D(4);
-				statusline <= D(5);
 				movesync <= D(6);
 				vis_enable <= not(D(7));
 			when "001" =>
 				-- memory map controls
 				lockb0 <= D(0);
 				boot <= D(1);
-				is8296 <= D(3);
+				--is8296 <= D(3);
 				wp_rom9 <= D(4);
 				wp_romA <= D(5);
 				wp_romB <= D(6);
@@ -784,36 +761,19 @@ begin
 	end process;
 
 
-	-- col_fetch is masked for 40/80 handling and overlaps sr_load
-	load_p: process(col_fetch, slotclk)
-	begin
-		if (rising_edge(slotclk)) then
-			load_window <= col_fetch;
-		end if;
-	end process;
-	
-	-- same signal as colorld, see below
-	--nsrload 	<= not(sr_load); -- or not(load_window);
-		
 	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
-			chr_fetch, crom_fetch, pxl_fetch, col_fetch, is_vid_out, sr_load,
+			chr_fetch, crom_fetch, pxl_fetch, col_fetch, is_vid_out,
 			memclk_dd)
 	begin
 		if (reset = '1') then
 			pxlld 		<= '0';
-			--colorld		<= '0';
-			colorld2	<= '0';
 			ramrwb_int	<= '1';
 			memclk_d	<= '0';
 			memclk_ddd	<= '0';
-			--nsrload		<= '1';
 			v_ldsync 	<= '0';
 		elsif (rising_edge(q50m)) then
 			pxlld 		<= not(memclk) or not(chr_fetch or pxl_fetch);
-			--colorld		<= not(memclk) or not(col_fetch);
-			--nsrload		<= not(memclk) or not(col_fetch);
 			v_ldsync	<= not(memclk) or not (col_fetch);
-			--colorld2	<= is_vid_out;	-- TODO debug
 	
 			memclk_d <= memclk;
 			memclk_ddd <= memclk_dd;
@@ -894,11 +854,7 @@ begin
 				
 	FA(19 downto 16) <= 	ma_out(19 downto 16);
 	FA(15) <=		ma_out(15);
-	
-	-- RAM data in for video fetch
-	--vd_in <= x"EA"; --D; --VD;
-	vd_in <= VD;
-		
+			
 	-- data transfer between CPU data bus and video/memory data bus
 	
 	VD <= 	spi_dout	when ipl = '1' 		else	-- IPL

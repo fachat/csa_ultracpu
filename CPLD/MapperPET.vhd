@@ -297,16 +297,16 @@ begin
 	-----------------------------------
 	-- cfg
 	
---	CfgMP: process(reset, phi2, rwb, cfgld, D)
---	begin
---		if (reset ='1') then
---			cfg_mp <= (others => '0');
---		elsif (falling_edge(phi2)) then
---			if (cfgld = '1' and rwb = '0') then
---				cfg_mp <= D;
---			end if;
---		end if;
---	end process;
+	CfgMP: process(reset, phi2, rwb, cfgld, D)
+	begin
+		if (reset ='1') then
+			cfg_mp <= (others => '0');
+		elsif (falling_edge(phi2)) then
+			if (cfgld = '1' and rwb = '0') then
+				cfg_mp <= D;
+			end if;
+		end if;
+	end process;
 	
 	
 end Behavioral;
