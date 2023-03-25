@@ -727,7 +727,7 @@ begin
 			case (ca_in(2 downto 0)) is
 			when "000" =>
 				-- video controls
-				-- vis_hires_in <= D(0);
+				vis_hires_in <= D(0);
 				vis_80_in <= D(1);
 				screenb0 <= not(D(2));
 				vis_double_in <= D(3);
@@ -738,7 +738,7 @@ begin
 				-- memory map controls
 				lockb0 <= D(0);
 				boot <= D(1);
-				--is8296 <= D(3);
+				is8296 <= D(3);
 				wp_rom9 <= D(4);
 				wp_romA <= D(5);
 				wp_romB <= D(6);

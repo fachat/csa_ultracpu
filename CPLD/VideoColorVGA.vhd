@@ -78,7 +78,7 @@ end Video;
 
 architecture Behavioral of Video is
 
-	type T_REGNO is (RNONE, R9, R12);
+	type T_REGNO is (RNONE, R1, R6, R8, R9, R12, R13);
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -491,14 +491,14 @@ begin
 				) then
 			
 			case (CPU_D(3 downto 0)) is
---			when x"8" =>
---				crtc_reg <= R8;
+			when x"8" =>
+				crtc_reg <= R8;
 			when x"9" =>
 				crtc_reg <= R9;
 			when x"c" =>
 				crtc_reg <= R12;
---			when x"d" =>
---				crtc_reg <= R13;
+			when x"d" =>
+				crtc_reg <= R13;
 			when others =>
 				crtc_reg <= RNONE;
 			end case;
@@ -519,20 +519,20 @@ begin
 				and crtc_rwb = '0'
 				) then
 			case (crtc_reg) is
---			when R1 =>
---				-- we only allow to write up to 63, to save one CPLD register
---				-- (bit 7 is constant)
---				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
---			when R6 => 
---				clines_per_screen <= CPU_D(6 downto 0);
+			when R1 =>
+				-- we only allow to write up to 63, to save one CPLD register
+				-- (bit 7 is constant)
+				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+			when R6 => 
+				clines_per_screen <= CPU_D(6 downto 0);
 			when R9 =>
 				rows_per_char(3) <= CPU_D(3);
 				--rows_per_char <= CPU_D(3 downto 0);
 			when R12 =>
 				vpage(1 downto 0) <= (others => '0');
 				vpage(7 downto 2) <= CPU_D(7 downto 2);
---			when R13 =>
---				vpagelo <= CPU_D;
+			when R13 =>
+				vpagelo <= CPU_D;
 			when others =>
 				null;
 			end case;
