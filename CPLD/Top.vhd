@@ -51,7 +51,8 @@ entity Top is
            vda : in  STD_LOGIC;
            vpa : in  STD_LOGIC;
 	   rwb : in std_logic;
-           phi2 : inout  STD_LOGIC;	-- with pull-up to go to 5V
+	   rdy : in std_logic;
+           phi2 : out  STD_LOGIC;	-- with pull-up to go to 5V
 	   rdy_in : in std_logic;	-- is input only (bi-dir on '816, but hardware only allows in)
 	   vpb : in std_logic;
 	   e : in std_logic;
@@ -496,16 +497,17 @@ begin
 	-- split phi2, stretched phi2 for the CPU to accomodate for waits.
 	-- for full speed, don't delay VIA timers
 	phi2_out <= phi2_int; -- or wait_bus or wait_setup;
-	phi2_io_out <= memclk when mode="11" else
-			phi2_int;
+--	phi2_io_out <= memclk when mode="11" else
+--			phi2_int;
 	rdy_out <= '1';
 
 	
 	-- use a pullup and this mechanism to drive a 5V signal from a 3.3V CPLD
 	-- According to UG445 Figure 7: push up until detected high, then let pull up resistor do the rest.
 	-- data_to_pin<= data  when ((data and data_to_pin) ='0') else 'Z';	
-	phi2 <= phi2_out when ((phi2_out and phi2) = '0') else 'Z';
-	phi2_io <= phi2_io_out when ((phi2_io_out and phi2_io) = '0') else 'Z';
+	phi2 <= phi2_out;
+--	phi2 <= phi2_out when ((phi2_out and phi2) = '0') else 'Z';
+--	phi2_io <= phi2_io_out when ((phi2_io_out and phi2_io) = '0') else 'Z';
 		
 	------------------------------------------------------
 	-- CPU memory mapper
@@ -677,6 +679,7 @@ begin
 	-- SPI serial clock
 	spi_clk <= ipl_cnt(0)	when ipl = '1' and ipl_state = '0' else
 		spi_clkx;
+--spi_clk <= q50m;
 		
 	-- SPI select lines
 	-- select flash chip
@@ -688,9 +691,10 @@ begin
 	spi_nsel2 <= '1'	when reset = '1' else
 			'0' 	when spi_sel = "010" else
 			'1';
-	spi_nsel3 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "011" else
-			'1';
+--	spi_nsel3 <= '1'	when reset = '1' else
+--			'0' 	when spi_sel = "011" else
+--			'1';
+spi_nsel3 <= ipl;
 	spi_nsel4 <= '1'	when reset = '1' else
 			'0' 	when spi_sel = "100" else
 			'1';
