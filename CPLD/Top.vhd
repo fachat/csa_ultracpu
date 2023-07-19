@@ -642,7 +642,7 @@ begin
 	
 	dbg_out <= not(crom_fetch);
 	
-	vgraphic <= graphic;
+	vgraphic <= not(graphic);
 	
 	dclk <= not(dotclk) when vis_80_in = '1' else not(dot2clk);
 	
