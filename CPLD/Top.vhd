@@ -187,6 +187,7 @@ architecture Behavioral of Top is
 	
 	-- video
 	signal va_out: std_logic_vector(15 downto 0);
+	signal vd_in: std_logic_vector(7 downto 0);
 	signal vis_enable: std_logic;
 	signal vis_80_in: std_logic;
 	signal vis_hires_in: std_logic;
@@ -309,6 +310,7 @@ architecture Behavioral of Top is
 	  Port ( 
 	   A : out  STD_LOGIC_VECTOR (15 downto 0);
 	   CPU_D : in std_logic_vector (7 downto 0);
+		VRAM_D: in std_logic_vector (7 downto 0);
 	   phi2 : in std_logic;
 	   
 	   dena   : out std_logic;	-- display enable
@@ -514,11 +516,12 @@ begin
 	
 	cd_in <= D;
 	ca_in <= A;
-		
+	vd_in <= VD;
+	
 	mappy: Mapper
 	port map (
 	   ca_in(15 downto 8),
-           cd_in,
+      cd_in,
 	   reset,
 	   phi2_int,
 	   vpa,
@@ -607,6 +610,7 @@ begin
 	port map (
 		va_out,
 		cd_in, 
+		vd_in,
 		phi2_int,
 		v_dena,
 		vsync,
@@ -776,7 +780,7 @@ spi_nsel3 <= ipl;
 			memclk_ddd	<= '0';
 			v_ldsync 	<= '0';
 		elsif (rising_edge(q50m)) then
-			pxlld 		<= not(memclk) or not(chr_fetch or pxl_fetch);
+			pxlld 	<= not(memclk) or not(pxl_fetch);
 			v_ldsync	<= not(memclk) or not (col_fetch);
 	
 			memclk_d <= memclk;
@@ -789,7 +793,8 @@ spi_nsel3 <= ipl;
 				VA_select <= VRA_IPL;
 			elsif (crom_fetch = '1') then
 				-- when crom_fetch is set, pxl_fetch is also set, so this must be first
-				VA_select <= VRA_CHRROM;
+				VA_select <= VRA_VIDEO;
+				--VA_select <= VRA_CHRROM;
 			elsif (chr_fetch = '1' or pxl_fetch = '1' or col_fetch = '1') then
 				VA_select <= VRA_VIDEO;
 			else

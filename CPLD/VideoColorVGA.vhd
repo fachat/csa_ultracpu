@@ -34,15 +34,16 @@ use ieee.numeric_std.all;
 entity Video is
     Port ( A : out  STD_LOGIC_VECTOR (15 downto 0);
 	   CPU_D: in std_logic_vector(7 downto 0);
+		VRAM_D: in std_logic_vector(7 downto 0);
 	   phi2: in std_logic;
 	   
 	   dena   : out std_logic;	-- display enable
-           v_sync : out  STD_LOGIC;
-           h_sync : out  STD_LOGIC;
+      v_sync : out  STD_LOGIC;
+      h_sync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;
-           is_80_in : in std_logic;	-- is 80 column mode?
+      is_80_in : in std_logic;	-- is 80 column mode?
 	   is_hires : in std_logic;	-- is hires mode?
 	   is_graph : in std_logic;	-- graphic mode (from PET I/O)
 	   is_double: in std_logic;
@@ -54,7 +55,7 @@ entity Video is
 	   crtc_rwb : in std_logic;
 	   
 	   qclk: in std_logic;		-- Q clock
-           memclk : in STD_LOGIC;	-- system clock 8MHz
+      memclk : in STD_LOGIC;	-- system clock
 	   slotclk : in std_logic;
 	   slot2clk : in std_logic;
 	   chr_window : in std_logic;
@@ -68,7 +69,7 @@ entity Video is
 
 	   sr_load : in std_logic;
 	   
-           is_vid : out STD_LOGIC;	-- true during video access phase (all, character, chrom, and hires pixel data)
+      is_vid : out STD_LOGIC;	-- true during video access phase (all, character, chrom, and hires pixel data)
 	   
 	   dbg_out : out std_logic;
 	   
@@ -116,6 +117,10 @@ architecture Behavioral of Video is
 	-- computed video memory address at start of line (to re-load chars each raster line)
 	signal vid_addr_hold : std_logic_vector(13 downto 0) := (others => '0');
 	
+	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
+	signal char_index_buf : std_logic_vector(7 downto 0);
+	signal char_buf_ld : std_logic;
+
 	-- geo signals
 	--
 	-- pulse at end of raster line; falling slotclk
@@ -197,7 +202,7 @@ begin
 	-- not hires, and first cycle in streak
 	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace or not(rline_cnt(0))) ;
 
-	-- dot fetch
+	-- col fetch
 	col_fetch_int <= is_enable and (col40 or col80) and (interlace or not(rline_cnt(0)));
 	
 	-- dot fetch
@@ -416,18 +421,30 @@ begin
 	end process;
 
 	-----------------------------------------------------------------------------
-	-- address output
+	-- address calc
+	
+	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk)
+	begin
+		if (rising_edge(qclk)) then
+			char_buf_ld <= not(memclk) or not(chr_fetch_int);
+		end if;
+		
+		if (rising_edge(char_buf_ld)) then
+			char_index_buf <= VRAM_D;
+		end if;
+	end process;
+
 	
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
 	
 	a_out(3 downto 0) <= vid_addr(3 downto 0) when mem_addr ='1' else 
 				rcline_cnt;
 	a_out(11 downto 4) <= vid_addr(11 downto 4) when mem_addr = '1' else 
-				"ZZZZZZZZ";
-	a_out(12) 	<= vid_addr(12) 	when mem_addr ='1' else
+				char_index_buf(7 downto 0);
+	a_out(12) <= vid_addr(12) 	when mem_addr ='1' else
 				is_graph;
 	a_out(13) 	<= vid_addr(13) 	when mem_addr ='1' else
-				vpage(6);	-- charrom
+		  vpage(6);	-- charrom
         a_out(14)       <= vpage(6) when is_hires_int = '1' else        -- hires
                                 vpage(7) when crom_fetch_int = '1' else -- charrom
                                 '0'	 when chr_fetch_int = '1' else  -- character data
