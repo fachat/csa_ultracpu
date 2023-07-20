@@ -107,6 +107,8 @@ entity Top is
 	   spi_nsel4 : out std_logic;	-- in1
 	   spi_nsel5 : out std_logic;	-- in1
 	   
+		pxl_out: out std_logic;
+		
 	-- Debug
 	   dbg_out: out std_logic;
 	   test: out std_logic
@@ -199,6 +201,7 @@ architecture Behavioral of Top is
 	signal v_dena: std_logic;
 	signal v_ldsync: std_logic;
 	signal v_ldsync_d: std_logic;
+	signal v_out: std_logic_vector(3 downto 0);
 	
 	-- cpu
 	signal ca_in: std_logic_vector(15 downto 0);
@@ -331,7 +334,9 @@ architecture Behavioral of Top is
 	   crtc_rwb : in std_logic;	-- r/-w
 	   
 	   qclk: in std_logic;		-- Q clock
-           memclk : in STD_LOGIC;	-- system clock 8MHz
+		dotclk: in std_logic;	-- pixel clock
+		dot2clk: in std_logic;	-- pixel clock
+      memclk : in STD_LOGIC;	-- system clock 12.5MHz
 	   slotclk : in std_logic;
 	   slot2clk: in std_logic;
 	   chr_window : in std_logic;
@@ -343,9 +348,10 @@ architecture Behavioral of Top is
 	   pxl_fetch : out std_logic;
 	   col_fetch : out std_logic;
 	   
-	   sr_load : in std_logic;
-	   
-           is_vid : out STD_LOGIC;	-- true during video access phase
+	   --sr_load : in std_logic;
+	   vid_out : out std_logic_vector(3 downto 0);
+		
+      is_vid : out STD_LOGIC;	-- true during video access phase
 	   reset : in std_logic
 	 );
 	end component;
@@ -627,7 +633,9 @@ begin
 		ca_in(0),
 		rwb,
 		q50m,		-- Q clock (50MHz)
-		memclk,		-- sysclk (~8MHz)
+		dotclk,	-- pixel clock, 25MHz
+		dot2clk,	-- 1/2 pixel clk, 12.5MHz
+		memclk,		-- sysclk (12.5MHz)
 		slotclk,
 		slot2clk,
 		chr_window,
@@ -637,7 +645,8 @@ begin
 		crom_fetch,
 		pxl_fetch,
 		col_fetch,
-		v_ldsync_d,	--sr_load,	-- needed to sync disp_enable with sr_load
+		--v_ldsync_d,	--sr_load,	-- needed to sync disp_enable with sr_load
+		v_out,
 		is_vid_out,
 		reset
 	);
@@ -649,6 +658,8 @@ begin
 	vgraphic <= not(graphic);
 	
 	dclk <= not(dotclk) when vis_80_in = '1' else not(dot2clk);
+	
+	pxl_out <= v_out(0);
 	
 	------------------------------------------------------
 	-- SPI interface

@@ -54,8 +54,10 @@ entity Video is
 	   crtc_rs : in std_logic;
 	   crtc_rwb : in std_logic;
 	   
-	   qclk: in std_logic;		-- Q clock
-      memclk : in STD_LOGIC;	-- system clock
+	   qclk: in std_logic;		-- Q clock (50MHz)
+		dotclk: in std_logic;	-- 25Mhz
+		dot2clk: in std_logic;
+      memclk : in STD_LOGIC;	-- system clock (12.5MHz)
 	   slotclk : in std_logic;
 	   slot2clk : in std_logic;
 	   chr_window : in std_logic;
@@ -67,8 +69,9 @@ entity Video is
 	   pxl_fetch : out std_logic;
 	   col_fetch : out std_logic;
 
-	   sr_load : in std_logic;
-	   
+	   --sr_load : in std_logic;
+	   vid_out: out std_logic_vector(3 downto 0);
+		
       is_vid : out STD_LOGIC;	-- true during video access phase (all, character, chrom, and hires pixel data)
 	   
 	   dbg_out : out std_logic;
@@ -120,6 +123,11 @@ architecture Behavioral of Video is
 	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
 	signal char_index_buf : std_logic_vector(7 downto 0);
 	signal char_buf_ld : std_logic;
+	-- replacements for shift register
+	signal sr : std_logic_vector(7 downto 0);
+	signal nsrload : std_logic;
+	signal sr_load : std_logic;
+	signal srclk: std_logic;
 
 	-- geo signals
 	--
@@ -421,20 +429,43 @@ begin
 	end process;
 
 	-----------------------------------------------------------------------------
-	-- address calc
+	-- replace discrete color circuitry of ultracpu 1.2b
 	
 	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk)
 	begin
 		if (rising_edge(qclk)) then
-			char_buf_ld <= not(memclk) or not(chr_fetch_int);
+			char_buf_ld <= not(memclk) or not(chr_fetch_int or pxl_fetch_int);
+			--col_ld	<= not(memclk) or not (col_fetch);
 		end if;
 		
 		if (rising_edge(char_buf_ld)) then
 			char_index_buf <= VRAM_D;
 		end if;
+		
+		if (rising_edge(qclk)) then
+			nsrload	<= not(memclk) or not (col_fetch_int);
+		end if;
+		if (falling_edge(qclk)) then
+			sr_load 	<= nsrload;
+		end if;
+
+		if (rising_edge(srclk)) then
+			if (nsrload = '0') then
+				-- load
+				sr <= char_index_buf;
+			else 
+				sr(7 downto 1) <= sr(6 downto 0);
+				sr(0) <= '1';
+			end if;
+		end if;
+		
 	end process;
 
+	srclk <= not(dotclk) when is_80_in = '1' else not(dot2clk);
+
+	vid_out <= "1111" when sr(7) = '1' else "0000";
 	
+	-----------------------------------------------------------------------------
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
 	
 	a_out(3 downto 0) <= vid_addr(3 downto 0) when mem_addr ='1' else 
