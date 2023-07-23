@@ -37,7 +37,7 @@ entity Video is
 		VRAM_D: in std_logic_vector(7 downto 0);
 	   phi2: in std_logic;
 	   
-	   dena   : out std_logic;	-- display enable
+	   --dena   : out std_logic;	-- display enable
       v_sync : out  STD_LOGIC;
       h_sync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
@@ -64,16 +64,11 @@ entity Video is
 	   pxl_window : in std_logic;
 	   col_window : in std_logic;
 	   
-	   chr_fetch : out std_logic;
-	   crom_fetch: out std_logic;
-	   pxl_fetch : out std_logic;
-	   col_fetch : out std_logic;
+	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
 	   --sr_load : in std_logic;
 	   vid_out: out std_logic_vector(3 downto 0);
 		
-      is_vid : out STD_LOGIC;	-- true during video access phase (all, character, chrom, and hires pixel data)
-	   
 	   dbg_out : out std_logic;
 	   
 	   reset : in std_logic
@@ -220,16 +215,8 @@ begin
 	pxl_fetch_int <= is_enable and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
 	crom_fetch_int <= pxl_fetch_int and not(is_hires);
 
-		
-	chr_fetch <= chr_fetch_int;
-	pxl_fetch <= pxl_fetch_int;
-	col_fetch <= col_fetch_int;
-
-	-- pull that in front, so address output enable on IC7 is early enough
-	crom_fetch<= crom_fetch_int;
-	
 	-- video access?
-	is_vid <= chr_fetch_int or pxl_fetch_int or col_fetch_int;
+	vid_fetch <= chr_fetch_int or pxl_fetch_int or col_fetch_int or crom_fetch_int;
 
 	-- when do we use plain vid_addr to fetch?
 	mem_addr <= is_hires_int or chr_fetch_int or col_fetch_int;

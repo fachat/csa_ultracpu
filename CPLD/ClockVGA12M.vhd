@@ -52,8 +52,7 @@ entity Clock is
 	   cpu_window	: out std_logic;	-- 1 during CPU window on VRAM
 	   chr_window	: out std_logic;	-- 1 during character fetch window
 	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
-	   col_window	: out std_logic;	-- 1 during color load (end of slot)
-	   sr_load	: out std_logic		-- load pixel SR on falling edge of dotclk, when this is set
+	   col_window	: out std_logic	-- 1 during color load (end of slot)
 	 );
 end Clock;
 
@@ -103,7 +102,6 @@ begin
 			pxl_window <= '0';
 			chr_window <= '0';
 			col_window <= '0';
-			sr_load <= '0';
 
 			c8phi2 <= '0';
 			c2phi2 <= '0';
@@ -115,7 +113,6 @@ begin
 			pxl_window <= '0';
 			chr_window <= '0';
 			col_window <= '0';
-			sr_load <= '0';
 
 			-- memory clock (12.5MHz)
 			memclk_int <= clk_cnt(1);
@@ -136,14 +133,7 @@ begin
 			if (clk_cnt(3 downto 2) = "11") then
 				col_window <= '1';
 			end if;
-			
-			-- load the video shift register
-			-- note: the 74HCT166 needs more than the 20ns for a 25MHz half-clock...
-			-- TODO: real phase?
-			if (clk_cnt(3 downto 1) = "111") then
-				sr_load <= '1';
-			end if;
-			
+						
 			-- CS/A bus clocks (phi2, 2phi2, 8phi2)
 			-- which are 1.04MHz, 2.1MHz and 8MHz 
 			-- in a phase locked setup

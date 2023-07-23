@@ -117,7 +117,7 @@ end Top;
 
 architecture Behavioral of Top is
 
-	type T_VADDR_SRC is (VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_CHRROM);
+	type T_VADDR_SRC is (VRA_IPL, VRA_CPU, VRA_VIDEO);
 		
 	attribute NOREDUCE : string;
 	
@@ -140,11 +140,7 @@ architecture Behavioral of Top is
 	signal chr_window: std_logic;
 	signal col_window: std_logic;
 	signal cpu_window: std_logic;
-	signal pxl_fetch: std_logic;
-	signal chr_fetch: std_logic;
-	signal crom_fetch: std_logic;
-	signal col_fetch: std_logic;
-	signal sr_load: std_logic;
+	signal vid_fetch: std_logic;
 	signal VA_select: T_VADDR_SRC;
 	
 	signal memclk: std_logic;
@@ -194,13 +190,10 @@ architecture Behavioral of Top is
 	signal vis_80_in: std_logic;
 	signal vis_hires_in: std_logic;
 	signal vis_double_in: std_logic;
-	signal is_vid_out: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
 	signal interlace : std_logic;
 	signal v_dena: std_logic;
-	signal v_ldsync: std_logic;
-	signal v_ldsync_d: std_logic;
 	signal v_out: std_logic_vector(3 downto 0);
 	
 	-- cpu
@@ -263,8 +256,7 @@ architecture Behavioral of Top is
 	   cpu_window	: out std_logic;	-- 1 during CPU window on VRAM
 	   chr_window	: out std_logic;	-- 1 during character fetch window
 	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
-	   col_window	: out std_logic;	-- 1 during color fetch (end of slot)
-	   sr_load	: out std_logic		-- load pixel SR on falling edge of dotclk when this is set
+	   col_window	: out std_logic	-- 1 during color fetch (end of slot)
 	 );
 	end component;
 	   
@@ -316,7 +308,7 @@ architecture Behavioral of Top is
 		VRAM_D: in std_logic_vector (7 downto 0);
 	   phi2 : in std_logic;
 	   
-	   dena   : out std_logic;	-- display enable
+	   --dena   : out std_logic;	-- display enable
            v_sync : out  STD_LOGIC;
            h_sync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
@@ -343,15 +335,11 @@ architecture Behavioral of Top is
 	   pxl_window : in std_logic;
 	   col_window : in std_logic;
 	   
-	   chr_fetch : out std_logic;
-	   crom_fetch: out std_logic;
-	   pxl_fetch : out std_logic;
-	   col_fetch : out std_logic;
+	   vid_fetch : out std_logic; 	-- true during video memory fetch by Viccy
 	   
 	   --sr_load : in std_logic;
 	   vid_out : out std_logic_vector(3 downto 0);
 		
-      is_vid : out STD_LOGIC;	-- true during video access phase
 	   reset : in std_logic
 	 );
 	end component;
@@ -406,8 +394,7 @@ begin
 	   cpu_window,
 	   chr_window,
 	   pxl_window,
-	   col_window,
-	   sr_load
+	   col_window
 	);
 
 	reset <= not(nres);
@@ -443,7 +430,7 @@ begin
 	-- is_vid is qualified with rising edge of qclk, but depends on pxl/char_window
 	-- that is created at same falling edge of qclk as when memclk falls low
 	-- so is_vid is early, but goes low at same falling edge as memclk
-	wait_ram <= '1' when m_vramsel_out = '1' and is_vid_out = '1' else	-- video access in RAM
+	wait_ram <= '1' when m_vramsel_out = '1' and vid_fetch = '1' else	-- video access in RAM
 			'0';
 	
 	-- stretch clock such that we approx. one cycle per is_cpu_trigger (1, 2, 4MHz)
@@ -618,7 +605,6 @@ begin
 		cd_in, 
 		vd_in,
 		phi2_int,
-		v_dena,
 		vsync,
 		hsync,
 		pet_vsync,
@@ -641,23 +627,14 @@ begin
 		chr_window,
 		pxl_window,
 		col_window,
-		chr_fetch,
-		crom_fetch,
-		pxl_fetch,
-		col_fetch,
-		--v_ldsync_d,	--sr_load,	-- needed to sync disp_enable with sr_load
+		vid_fetch,
 		v_out,
-		is_vid_out,
 		reset
 	);
 
-	dena <= not(v_dena);
-	
-	dbg_out <= not(crom_fetch);
+	dbg_out <= '0';  --not(crom_fetch);
 	
 	vgraphic <= not(graphic);
-	
---	dclk <= not(dotclk) when vis_80_in = '1' else not(dot2clk);
 	
 	pxl_out <= v_out;
 	
@@ -781,18 +758,14 @@ spi_nsel3 <= ipl;
 
 
 	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
-			chr_fetch, crom_fetch, pxl_fetch, col_fetch, is_vid_out,
+			vid_fetch,
 			memclk_dd)
 	begin
 		if (reset = '1') then
---			pxlld 		<= '0';
 			ramrwb_int	<= '1';
 			memclk_d	<= '0';
 			memclk_ddd	<= '0';
-			v_ldsync 	<= '0';
 		elsif (rising_edge(q50m)) then
---			pxlld 	<= not(memclk) or not(pxl_fetch);
-			v_ldsync	<= not(memclk) or not (col_fetch);
 	
 			memclk_d <= memclk;
 			memclk_ddd <= memclk_dd;
@@ -802,11 +775,7 @@ spi_nsel3 <= ipl;
 
 			if (ipl = '1') then
 				VA_select <= VRA_IPL;
-			elsif (crom_fetch = '1') then
-				-- when crom_fetch is set, pxl_fetch is also set, so this must be first
-				VA_select <= VRA_VIDEO;
-				--VA_select <= VRA_CHRROM;
-			elsif (chr_fetch = '1' or pxl_fetch = '1' or col_fetch = '1') then
+			elsif (vid_fetch = '1') then
 				VA_select <= VRA_VIDEO;
 			else
 				VA_select <= VRA_CPU;
@@ -814,7 +783,7 @@ spi_nsel3 <= ipl;
 			
 			if (ipl = '1') then
 				ramrwb_int <= '0';	-- IPL load writes data to RAM
-			elsif (is_vid_out = '1') then
+			elsif (vid_fetch = '1') then
 				ramrwb_int <= '1';	-- video only reads
 			elsif (m_vramsel_out = '0') then
 				ramrwb_int <= '1';	-- not selected
@@ -829,9 +798,7 @@ spi_nsel3 <= ipl;
 		if (reset = '1') then
 			VA 		<= (others => 'Z');
 			ramrwb		<= '1';
---			nchromaddr	<= '0';
 			memclk_dd	<= '0';
-			v_ldsync_d 	<= '0';
 		elsif (falling_edge(q50m)) then
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
@@ -839,29 +806,17 @@ spi_nsel3 <= ipl;
 
 			memclk_dd <= memclk_d;
 
-			v_ldsync_d 	<= v_ldsync;
-
 			case (VA_select) is
 			when VRA_IPL =>
---				nchromaddr <= '1';
 				VA(7 downto 0) <= ipl_cnt(11 downto 4);
 				VA(18 downto 8) <= ipl_addr(18 downto 8);
 			when VRA_CPU =>
---				nchromaddr <= '1';
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(11 downto 8) <= ma_out (11 downto 8);
 				VA(13 downto 12) <= ma_out (13 downto 12);
 				VA(18 downto 14) <= ma_out (18 downto 14);
-				--VA(18 downto 8) <= "00011111111";
 			when VRA_VIDEO =>  
---				nchromaddr <= '1';
 				VA(15 downto 0) <= va_out(15 downto 0);
-				VA(18 downto 16) <= (others => '0');
-			when VRA_CHRROM =>  
---				nchromaddr <= '0';  -- provide VA(11 downto 4) via HW latch
-				VA(3 downto 0) <= va_out(3 downto 0);
-				VA(11 downto 4) <= (others => 'Z');
-				VA(15 downto 12) <= va_out(15 downto 12);
 				VA(18 downto 16) <= (others => '0');
 			when others =>
 				VA 	<= (others => 'Z');
@@ -869,7 +824,7 @@ spi_nsel3 <= ipl;
 		end if;
 	end process;
 	
-	colorld <= v_ldsync;
+--	colorld <= v_ldsync;
 --	nsrload <= v_ldsync;
 				
 	FA(19 downto 16) <= 	ma_out(19 downto 16);
@@ -902,7 +857,7 @@ spi_nsel3 <= ipl;
 	-- memclk changes at falling edge
 	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
 			'1'	when memclk = '0' else	-- inactive after previous access
-			'0' 	when is_vid_out='1' else
+			'0' 	when vid_fetch='1' else
 			'1' 	when wait_int = '1' else
 			not(m_vramsel_out);
 	
