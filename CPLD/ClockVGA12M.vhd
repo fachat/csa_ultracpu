@@ -223,53 +223,6 @@ begin
 	end process;
 	
 	memclk <= memclk_int;
-
---	-- count 12 qclk cycles @12 MHz, then transform into clk1m/2m/4m
---	cpu_cnt1_p: process(reset, cpu_cnt1, memclk_int)
---	begin
---		if (reset = '1') then
---			cpu_cnt1 <= "0000";
---		elsif (rising_edge(memclk_int)) then
---			if (cpu_cnt1 = "1011") then
---				cpu_cnt1 <= "0000";
---			else
---				cpu_cnt1 <= cpu_cnt1 + 1;
---			end if;
---		end if;
---	end process;
---
---	-- generate clk1m/2m/4m
---	-- note: those are sampled at falling edge of memclk
---	-- also note: these clocks are not symmetrical. 
---	-- it's just 4M cycles of 12.5M length
---	cpu_cnt2_p: process(qclk, reset, cpu_cnt1)
---	begin
---		if (reset = '1') then
---			clk4m <= '0';
---			clk2m <= '0';
---			clk1m <= '0';
---		elsif (rising_edge(qclk)) then	
---			clk4m <= '0';
---			clk2m <= '0';
---			clk1m <= '0';
---			case (cpu_cnt1) is
---			when "0000" =>
---				clk1m <= '1';
---				clk2m <= '1';
---				clk4m <= '1';
---			when "0011" =>
---				clk4m <= '1';
---			when "0110" => 
---				clk2m <= '1';
---				clk4m <= '1';
---			when "1001" => 
---				clk4m <= '1';
---			when others =>
---				null;
---			end case;
---			
---		end if;
---	end process;
 			
 end Behavioral;
 

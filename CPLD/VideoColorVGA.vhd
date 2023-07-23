@@ -66,7 +66,6 @@ entity Video is
 	   
 	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
-	   --sr_load : in std_logic;
 	   vid_out: out std_logic_vector(3 downto 0);
 		
 	   dbg_out : out std_logic;
@@ -123,7 +122,6 @@ architecture Behavioral of Video is
 	-- replacements for shift register
 	signal sr : std_logic_vector(7 downto 0);
 	signal nsrload : std_logic;
-	signal sr_load : std_logic;
 	signal srclk: std_logic;
 	signal dena_int : std_logic;
 
@@ -163,7 +161,6 @@ architecture Behavioral of Video is
 	signal pxl_fetch_int : std_logic;
 	signal col_fetch_int : std_logic;
 	
-	signal sr_load_d : std_logic;
 	signal mem_addr : std_logic;
 	
 	signal next_row : std_logic;
@@ -251,7 +248,7 @@ begin
 			end if;
 			
 			-- sync
-			if (slot_cnt >= 83 and slot_cnt < 95) then
+			if (slot_cnt >= 84 and slot_cnt < 96) then
 				h_sync_int <= '1';
 			else
 				h_sync_int <= '0';
@@ -269,6 +266,7 @@ begin
 			end if;
 			
 		end if;
+		
 	end process;
 
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
@@ -436,11 +434,9 @@ begin
 			col_buf <= VRAM_D;
 		end if;
 		
-		if (rising_edge(qclk)) then
-			nsrload	<= not(memclk) or not (col_fetch_int);
-		end if;
+		-- when do I really need to load the pixel SR?
 		if (falling_edge(qclk)) then
-			sr_load 	<= nsrload;
+			nsrload	<= not(memclk) or not (col_fetch_int);
 		end if;
 
 		if (rising_edge(srclk)) then
@@ -457,9 +453,20 @@ begin
 
 	srclk <= not(dotclk) when is_80_in = '1' else not(dot2clk);
 
-	--vid_out <= "1111" when sr(7) = '1' else "0000";
-	vid_out <= (others => '0') when dena_int = '0' else
-				col_buf(7 downto 4) when sr(7) = '0' else col_buf(3 downto 0);
+	vid_out_p: process (dot2clk)
+	begin
+		if (dena_int = '0') then
+			vid_out <= (others => '0');
+		elsif (falling_edge(dotclk)) then
+			if (sr(7) = '0') then
+				vid_out <= col_buf(7 downto 4);
+			else 
+				vid_out <= col_buf(3 downto 0);
+			end if;
+		end if;
+	end process;
+--	vid_out <= (others => '0') when dena_int = '0' else
+--				col_buf(7 downto 4) when sr(7) = '0' else col_buf(3 downto 0);
 	
 	-----------------------------------------------------------------------------
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
@@ -485,12 +492,12 @@ begin
 	-----------------------------------------------------------------------------
 	-- output sr control
 
-	en_p: process(sr_load_d)
+	en_p: process(nsrload)
 	begin
 		-- sr_load changes on falling edge of qclk
 		-- sr_load_d changes on rising edge of qclk
 		-- in_slot changes at falling edge of slotclk, which itself changes on falling edge of qclk
-		if (rising_edge(sr_load_d)
+		if (rising_edge(nsrload)
 			and (in_slot = '1')) then
 			enable <= h_enable and v_enable
 				and (interlace or not(rline_cnt(0)));
@@ -500,24 +507,17 @@ begin
 	-- without this delay the char behind a line may slightly bleed through
 	-- for just a couple of ns, but this still irritated my monitor's auto-sync
 	-- so it would not correctly detect 640x480
-	en_p2: process(qclk, reset)
-	begin
-		if (reset = '1') then
-			dena_int <= '0';
-		elsif (rising_edge(qclk)) then
-			dena_int <= enable;
-		end if;
-	end process;
+--	en_p2: process(qclk, reset)
+--	begin
+--		if (reset = '1') then
+--			dena_int <= '0';
+--		elsif (rising_edge(qclk)) then
+--			dena_int <= enable;
+--		end if;
+--	end process;
 
-	en_p3: process(qclk, reset)
-	begin
-		if (reset = '1') then
-			sr_load_d <= '0';
-		elsif (rising_edge(qclk)) then
-			sr_load_d <= sr_load;
-		end if;
-	end process;
-
+	dena_int <= enable;
+	
 	--------------------------------------------
 	-- crtc register emulation
 	-- only 8/9 rows per char are emulated right now
