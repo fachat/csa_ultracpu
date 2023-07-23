@@ -49,7 +49,6 @@ entity Clock is
 	   dot2clk	: out std_logic;	-- half the pixel clock
 	   slotclk	: out std_logic;	-- 1 slot = 8 pixel; 
 	   slot2clk	: out std_logic;	-- 1 slot = 16 pixel; 
-	   cpu_window	: out std_logic;	-- 1 during CPU window on VRAM
 	   chr_window	: out std_logic;	-- 1 during character fetch window
 	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
 	   col_window	: out std_logic	-- 1 during color load (end of slot)
@@ -109,7 +108,6 @@ begin
 			chold <= '0';
 			csetup <= '0';
 		elsif (falling_edge(qclk)) then
-			cpu_window <= '0';
 			pxl_window <= '0';
 			chr_window <= '0';
 			col_window <= '0';
@@ -117,10 +115,6 @@ begin
 			-- memory clock (12.5MHz)
 			memclk_int <= clk_cnt(1);
 
-			if (clk_cnt(3 downto 2) = "00") then
-				cpu_window <= '1';
-			end if;
-			
 			-- access windows for pixel data, character data, or chr ROM
 			if (clk_cnt(3 downto 2) = "01") then
 				chr_window <= '1';

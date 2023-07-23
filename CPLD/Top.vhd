@@ -139,7 +139,6 @@ architecture Behavioral of Top is
 	signal pxl_window: std_logic;
 	signal chr_window: std_logic;
 	signal col_window: std_logic;
-	signal cpu_window: std_logic;
 	signal vid_fetch: std_logic;
 	signal VA_select: T_VADDR_SRC;
 	
@@ -253,7 +252,6 @@ architecture Behavioral of Top is
 	   dot2clk	: out std_logic;	-- half the pixel clock
 	   slotclk	: out std_logic;	-- 1 slot = 8 pixel;
 	   slot2clk	: out std_logic;	-- 1 slot = 16 pixel
-	   cpu_window	: out std_logic;	-- 1 during CPU window on VRAM
 	   chr_window	: out std_logic;	-- 1 during character fetch window
 	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
 	   col_window	: out std_logic	-- 1 during color fetch (end of slot)
@@ -391,7 +389,6 @@ begin
 	   dot2clk,
 	   slotclk,
 	   slot2clk,
-	   cpu_window,
 	   chr_window,
 	   pxl_window,
 	   col_window
