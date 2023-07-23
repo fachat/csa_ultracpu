@@ -123,11 +123,14 @@ architecture Behavioral of Video is
 	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
 	signal char_index_buf : std_logic_vector(7 downto 0);
 	signal char_buf_ld : std_logic;
+	signal col_buf : std_logic_vector(7 downto 0);
+	signal col_ld : std_logic;
 	-- replacements for shift register
 	signal sr : std_logic_vector(7 downto 0);
 	signal nsrload : std_logic;
 	signal sr_load : std_logic;
 	signal srclk: std_logic;
+	signal dena_int : std_logic;
 
 	-- geo signals
 	--
@@ -435,11 +438,15 @@ begin
 	begin
 		if (rising_edge(qclk)) then
 			char_buf_ld <= not(memclk) or not(chr_fetch_int or pxl_fetch_int);
-			--col_ld	<= not(memclk) or not (col_fetch);
+			col_ld	<= not(memclk) or not (col_fetch_int);
 		end if;
 		
 		if (rising_edge(char_buf_ld)) then
 			char_index_buf <= VRAM_D;
+		end if;
+
+		if (rising_edge(col_ld)) then
+			col_buf <= VRAM_D;
 		end if;
 		
 		if (rising_edge(qclk)) then
@@ -463,7 +470,9 @@ begin
 
 	srclk <= not(dotclk) when is_80_in = '1' else not(dot2clk);
 
-	vid_out <= "1111" when sr(7) = '1' else "0000";
+	--vid_out <= "1111" when sr(7) = '1' else "0000";
+	vid_out <= (others => '0') when dena_int = '0' else
+				col_buf(7 downto 4) when sr(7) = '0' else col_buf(3 downto 0);
 	
 	-----------------------------------------------------------------------------
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
@@ -507,9 +516,9 @@ begin
 	en_p2: process(qclk, reset)
 	begin
 		if (reset = '1') then
-			dena <= '0';
+			dena_int <= '0';
 		elsif (rising_edge(qclk)) then
-			dena <= enable;
+			dena_int <= enable;
 		end if;
 	end process;
 
@@ -570,6 +579,7 @@ begin
 			when R1 =>
 				-- we only allow to write up to 63, to save one CPLD register
 				-- (bit 7 is constant)
+				-- note: value written is doubled (as in the PET for 80 columns)
 				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
 			when R6 => 
 				clines_per_screen <= CPU_D(6 downto 0);

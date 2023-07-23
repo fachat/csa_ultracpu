@@ -83,14 +83,14 @@ entity Top is
 	   ramrwb : out std_logic;
 
 	-- video out
-           pxlld 	: out std_logic;
+ --          pxlld 	: out std_logic;
 	   colorld	: out std_logic;
-	   nchromaddr	: out std_logic;
-	   nsrload	: out std_logic;
+--	   nchromaddr	: out std_logic;
+--	   nsrload	: out std_logic;
 	   
            vsync : out  STD_LOGIC;
            hsync : out  STD_LOGIC;
-	   dclk : out std_logic;
+--	   dclk : out std_logic;
 	   dena : out std_logic;
 	   pet_vsync: out std_logic;
 	   
@@ -107,7 +107,7 @@ entity Top is
 	   spi_nsel4 : out std_logic;	-- in1
 	   spi_nsel5 : out std_logic;	-- in1
 	   
-		pxl_out: out std_logic;
+		pxl_out: out std_logic_vector(3 downto 0);
 		
 	-- Debug
 	   dbg_out: out std_logic;
@@ -657,9 +657,9 @@ begin
 	
 	vgraphic <= not(graphic);
 	
-	dclk <= not(dotclk) when vis_80_in = '1' else not(dot2clk);
+--	dclk <= not(dotclk) when vis_80_in = '1' else not(dot2clk);
 	
-	pxl_out <= v_out(0);
+	pxl_out <= v_out;
 	
 	------------------------------------------------------
 	-- SPI interface
@@ -785,13 +785,13 @@ spi_nsel3 <= ipl;
 			memclk_dd)
 	begin
 		if (reset = '1') then
-			pxlld 		<= '0';
+--			pxlld 		<= '0';
 			ramrwb_int	<= '1';
 			memclk_d	<= '0';
 			memclk_ddd	<= '0';
 			v_ldsync 	<= '0';
 		elsif (rising_edge(q50m)) then
-			pxlld 	<= not(memclk) or not(pxl_fetch);
+--			pxlld 	<= not(memclk) or not(pxl_fetch);
 			v_ldsync	<= not(memclk) or not (col_fetch);
 	
 			memclk_d <= memclk;
@@ -829,7 +829,7 @@ spi_nsel3 <= ipl;
 		if (reset = '1') then
 			VA 		<= (others => 'Z');
 			ramrwb		<= '1';
-			nchromaddr	<= '0';
+--			nchromaddr	<= '0';
 			memclk_dd	<= '0';
 			v_ldsync_d 	<= '0';
 		elsif (falling_edge(q50m)) then
@@ -843,22 +843,22 @@ spi_nsel3 <= ipl;
 
 			case (VA_select) is
 			when VRA_IPL =>
-				nchromaddr <= '1';
+--				nchromaddr <= '1';
 				VA(7 downto 0) <= ipl_cnt(11 downto 4);
 				VA(18 downto 8) <= ipl_addr(18 downto 8);
 			when VRA_CPU =>
-				nchromaddr <= '1';
+--				nchromaddr <= '1';
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(11 downto 8) <= ma_out (11 downto 8);
 				VA(13 downto 12) <= ma_out (13 downto 12);
 				VA(18 downto 14) <= ma_out (18 downto 14);
 				--VA(18 downto 8) <= "00011111111";
 			when VRA_VIDEO =>  
-				nchromaddr <= '1';
+--				nchromaddr <= '1';
 				VA(15 downto 0) <= va_out(15 downto 0);
 				VA(18 downto 16) <= (others => '0');
 			when VRA_CHRROM =>  
-				nchromaddr <= '0';  -- provide VA(11 downto 4) via HW latch
+--				nchromaddr <= '0';  -- provide VA(11 downto 4) via HW latch
 				VA(3 downto 0) <= va_out(3 downto 0);
 				VA(11 downto 4) <= (others => 'Z');
 				VA(15 downto 12) <= va_out(15 downto 12);
@@ -870,7 +870,7 @@ spi_nsel3 <= ipl;
 	end process;
 	
 	colorld <= v_ldsync;
-	nsrload <= v_ldsync;
+--	nsrload <= v_ldsync;
 				
 	FA(19 downto 16) <= 	ma_out(19 downto 16);
 	FA(15) <=		ma_out(15);
