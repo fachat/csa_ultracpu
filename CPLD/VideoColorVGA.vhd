@@ -55,14 +55,8 @@ entity Video is
 	   crtc_rwb : in std_logic;
 	   
 	   qclk: in std_logic;		-- Q clock (50MHz)
-		dotclk: in std_logic;	-- 25Mhz
-		dot2clk: in std_logic;
+		dotclk: in std_logic_vector(3 downto 0);	-- 25Mhz
       memclk : in STD_LOGIC;	-- system clock (12.5MHz)
-	   slotclk : in std_logic;
-	   slot2clk : in std_logic;
-	   chr_window : in std_logic;
-	   pxl_window : in std_logic;
-	   col_window : in std_logic;
 	   
 	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
@@ -95,7 +89,7 @@ architecture Behavioral of Video is
 
 	signal vpage : std_logic_vector(7 downto 0);
 	signal vpagelo : std_logic_vector(7 downto 0);
-		
+
 	-- count "slots", i.e. 8pixels
 	-- 
 	-- one slot may need none (out of screen), one (hires), or two (character display) 
@@ -147,6 +141,10 @@ architecture Behavioral of Video is
 	
 	-- intermediate
 	signal a_out : std_logic_vector (15 downto 0);
+	signal chr_window : std_logic;
+	signal pxl_window : std_logic;
+	signal col_window : std_logic;
+	signal slotclk : std_logic;
 	
 	-- convenience
 	signal chr40 : std_logic;
@@ -176,6 +174,28 @@ architecture Behavioral of Video is
 
 begin
 
+	slotclk <= dotclk(3);
+	
+	windows_p: process(dotclk)
+	begin
+			chr_window <= '0';
+			pxl_window <= '0';
+			col_window <= '0';
+
+				-- access windows for pixel data, character data, or chr ROM
+			if (dotclk(3 downto 2) = "01") then
+				chr_window <= '1';
+			end if;
+			
+			if (dotclk(3 downto 2) = "10") then
+				pxl_window <= '1';
+			end if;
+			
+			if (dotclk(3 downto 2) = "11") then
+				col_window <= '1';
+			end if;
+	end process;
+	
 	in_slot_cnt_p: process(in_slot, slotclk, reset)
 	begin
 		if (reset = '1') then
@@ -451,13 +471,13 @@ begin
 		
 	end process;
 
-	srclk <= not(dotclk) when is_80_in = '1' else not(dot2clk);
+	srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
 
-	vid_out_p: process (dot2clk)
+	vid_out_p: process (dotclk(0))
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
-		elsif (falling_edge(dotclk)) then
+		elsif (falling_edge(dotclk(0))) then
 			if (sr(7) = '0') then
 				vid_out <= col_buf(7 downto 4);
 			else 
@@ -465,8 +485,6 @@ begin
 			end if;
 		end if;
 	end process;
---	vid_out <= (others => '0') when dena_int = '0' else
---				col_buf(7 downto 4) when sr(7) = '0' else col_buf(3 downto 0);
 	
 	-----------------------------------------------------------------------------
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)

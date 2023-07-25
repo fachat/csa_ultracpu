@@ -132,13 +132,7 @@ architecture Behavioral of Top is
 	signal ipl_next: std_logic;	-- start next phase
 	
 	-- clock
-	signal dotclk: std_logic;
-	signal dot2clk: std_logic;
-	signal slotclk: std_logic;
-	signal slot2clk: std_logic;
-	signal pxl_window: std_logic;
-	signal chr_window: std_logic;
-	signal col_window: std_logic;
+	signal dotclk: std_logic_vector(3 downto 0);
 	signal vid_fetch: std_logic;
 	signal VA_select: T_VADDR_SRC;
 	
@@ -248,13 +242,7 @@ architecture Behavioral of Top is
 	   chold	: out std_logic;
 	   csetup	: out std_logic;
 	   
-	   dotclk	: out std_logic;	-- pixel clock for video
-	   dot2clk	: out std_logic;	-- half the pixel clock
-	   slotclk	: out std_logic;	-- 1 slot = 8 pixel;
-	   slot2clk	: out std_logic;	-- 1 slot = 16 pixel
-	   chr_window	: out std_logic;	-- 1 during character fetch window
-	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
-	   col_window	: out std_logic	-- 1 during color fetch (end of slot)
+	   dotclk	: out std_logic_vector(3 downto 0)	-- pixel clock for video
 	 );
 	end component;
 	   
@@ -324,14 +312,8 @@ architecture Behavioral of Top is
 	   crtc_rwb : in std_logic;	-- r/-w
 	   
 	   qclk: in std_logic;		-- Q clock
-		dotclk: in std_logic;	-- pixel clock
-		dot2clk: in std_logic;	-- pixel clock
+		dotclk: in std_logic_vector(3 downto 0);	-- pixel clock
       memclk : in STD_LOGIC;	-- system clock 12.5MHz
-	   slotclk : in std_logic;
-	   slot2clk: in std_logic;
-	   chr_window : in std_logic;
-	   pxl_window : in std_logic;
-	   col_window : in std_logic;
 	   
 	   vid_fetch : out std_logic; 	-- true during video memory fetch by Viccy
 	   
@@ -385,13 +367,7 @@ begin
 	   cphi2,
 	   chold,
 	   csetup,
-	   dotclk,
-	   dot2clk,
-	   slotclk,
-	   slot2clk,
-	   chr_window,
-	   pxl_window,
-	   col_window
+	   dotclk
 	);
 
 	reset <= not(nres);
@@ -617,13 +593,7 @@ begin
 		rwb,
 		q50m,		-- Q clock (50MHz)
 		dotclk,	-- pixel clock, 25MHz
-		dot2clk,	-- 1/2 pixel clk, 12.5MHz
 		memclk,		-- sysclk (12.5MHz)
-		slotclk,
-		slot2clk,
-		chr_window,
-		pxl_window,
-		col_window,
 		vid_fetch,
 		v_out,
 		reset

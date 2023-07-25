@@ -45,13 +45,7 @@ entity Clock is
 	   chold	: out std_logic;	-- high for duration of Addr hold time
 	   csetup	: out std_logic;
 	   
-	   dotclk	: out std_logic;	-- pixel clock for video
-	   dot2clk	: out std_logic;	-- half the pixel clock
-	   slotclk	: out std_logic;	-- 1 slot = 8 pixel; 
-	   slot2clk	: out std_logic;	-- 1 slot = 16 pixel; 
-	   chr_window	: out std_logic;	-- 1 during character fetch window
-	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
-	   col_window	: out std_logic	-- 1 during color load (end of slot)
+	   dotclk	: out std_logic_vector(3 downto 0) -- 1x, 1/2, 1/4, 1/8 pixel clock for video
 	 );
 end Clock;
 
@@ -60,9 +54,7 @@ architecture Behavioral of Clock is
 	signal clk_cnt : std_logic_vector(5 downto 0);
 	signal cpu_cnt1 : std_logic_vector(3 downto 0);
 	signal memclk_int : std_logic;
-	
-	signal clk_cnt4 : std_logic_vector(0 downto 0);
-	
+		
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
 		if L then
@@ -79,15 +71,11 @@ begin
 	begin
 		if (reset = '1') then 
 			clk_cnt <= (others => '0');
-			clk_cnt4 <= (others => '0');
 		elsif rising_edge(qclk) then
 			if (clk_cnt = "101111") then
 				clk_cnt <= (others => '0');
 			else
 				clk_cnt <= clk_cnt + 1;
-			end if;
-			if (clk_cnt(3 downto 0) = "1111") then
-				clk_cnt4 <= clk_cnt4 + 1;
 			end if;
 		end if;
 	end process;
@@ -97,10 +85,7 @@ begin
 	out_p: process(qclk, reset, clk_cnt, memclk_int)
 	begin
 		if (reset = '1') then
-			memclk_int <= '0';
-			pxl_window <= '0';
-			chr_window <= '0';
-			col_window <= '0';
+			memclk <= '0';
 
 			c8phi2 <= '0';
 			c2phi2 <= '0';
@@ -108,25 +93,9 @@ begin
 			chold <= '0';
 			csetup <= '0';
 		elsif (falling_edge(qclk)) then
-			pxl_window <= '0';
-			chr_window <= '0';
-			col_window <= '0';
 
 			-- memory clock (12.5MHz)
-			memclk_int <= clk_cnt(1);
-
-			-- access windows for pixel data, character data, or chr ROM
-			if (clk_cnt(3 downto 2) = "01") then
-				chr_window <= '1';
-			end if;
-			
-			if (clk_cnt(3 downto 2) = "10") then
-				pxl_window <= '1';
-			end if;
-			
-			if (clk_cnt(3 downto 2) = "11") then
-				col_window <= '1';
-			end if;
+			memclk <= clk_cnt(1);
 						
 			-- CS/A bus clocks (phi2, 2phi2, 8phi2)
 			-- which are 1.04MHz, 2.1MHz and 8MHz 
@@ -215,14 +184,9 @@ begin
 			end if;
 			
 			----------------- 
-			dotclk <= clk_cnt (0);
-			dot2clk <= clk_cnt (1);
-			slotclk <= clk_cnt (3);
-			slot2clk <= clk_cnt4 (0);
+			dotclk <= clk_cnt (3 downto 0);
 		end if;
 	end process;
 	
-	memclk <= memclk_int;
-			
 end Behavioral;
 
