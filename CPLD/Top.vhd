@@ -81,12 +81,6 @@ entity Top is
 	   nvramsel : out STD_LOGIC;
 	   nframsel : out STD_LOGIC;
 	   ramrwb : out std_logic;
-
-	-- video out
- --          pxlld 	: out std_logic;
-	   colorld	: out std_logic;
---	   nchromaddr	: out std_logic;
---	   nsrload	: out std_logic;
 	   
            vsync : out  STD_LOGIC;
            hsync : out  STD_LOGIC;
@@ -101,13 +95,17 @@ entity Top is
 	   spi_in1  : in std_logic;
 	   spi_in3  : in std_logic;
 	   -- selects
-	   nflash : out std_logic;	-- in1
-	   spi_nsel2 : out std_logic;	-- in1
-	   spi_nsel3 : out std_logic;	-- sd card, in3
-	   spi_nsel4 : out std_logic;	-- in1
-	   spi_nsel5 : out std_logic;	-- in1
+	   spisela : out std_logic;	-- in1
+	   spiselb : out std_logic;	-- sd card, in3
+	   spiselc : out std_logic;	-- in1
 	   
 		pxl_out: out std_logic_vector(3 downto 0);
+		
+	-- audio
+		spi_naudio : out std_logic;
+		spi_aclk : out std_logic;
+		spi_amosi : out std_logic;
+		nldac : out std_logic;
 		
 	-- Debug
 	   dbg_out: out std_logic;
@@ -642,25 +640,13 @@ begin
 		
 	-- SPI select lines
 	-- select flash chip
-	nflash <= '1'		when reset = '1' else
+	spisela <= '1'		when reset = '1' else
 			'0' 	when ipl = '1'	else
-			'0'	when spi_sel = "001" else
+			'0'	when spi_sel = "110" else
 			'1';
-		
-	spi_nsel2 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "010" else
-			'1';
---	spi_nsel3 <= '1'	when reset = '1' else
---			'0' 	when spi_sel = "011" else
---			'1';
-spi_nsel3 <= ipl;
-	spi_nsel4 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "100" else
-			'1';
-	spi_nsel5 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "101" else
-			'1';
-		
+	spiselb <= spi_sel(1);
+	spiselc <= spi_sel(2);
+			
 	------------------------------------------------------
 	-- control registers
 	
@@ -897,6 +883,10 @@ spi_nsel3 <= ipl;
 		end if;
 	end process;
 
-
+	nldac <= 'Z';
+	spi_naudio <='Z';
+	spi_amosi <= 'Z';
+	spi_aclk <= 'Z';
+	
 end Behavioral;
 
