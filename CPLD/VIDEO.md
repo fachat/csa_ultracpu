@@ -10,7 +10,10 @@ This means, that anything defined here just paints pixels onto that frame canvas
 
 Currently the Viccys support 640x480@60Hz VGA timing. As 80 character with 8 pixel width already consume
 640 pixels in the horizontal resolution, there are no left and right borders. However, there is a 
-vertical border, depending on the vertical timing setup.
+vertical border, depending on the vertical timing setup. An option to increase the resolution to 768x576@60Hz
+is under investigation.
+
+Note: this is currently under development and subject to change without notice!
 
 ## Overview
 
@@ -133,6 +136,134 @@ Sprite registers:
   - r74: color sprite 6 (VIC-II)
   - r75: color sprite 7 (VIC-II)
 
+## CRTC/VDC emulation
+
+The Video code (partially) emulates only a subset of the CRTC registers, as given 
+in the register short description above.
+
+As usual with the CRTC, you have to write the register number to $e880 (59520),
+the write the value to write to the register to $e881 (59521).
+
+The video code emulates some kind of hybrid between the C128 VDC (which basically includes
+the CRTC registers), the PET CRTC, and the C64 VIC-II. PET CRTC emulation is made as good as possible,
+VDC is partially emulated, and features coming from the VIC-II are separate.
+
+### Video modes
+
+The following video modes are supported
+
+#### Text modes
+
+For all the text modes, the hires bit in r25.7 must be zero.
+
+1. single colour text mode (VDC/CRTC)
+
+In this mode, extended mode and attribute memory are disabled in R33 and R25 respectively.
+
+Each character data is read from character memory, and used as index in the character generator memory.
+The data from the character generator memory is shifted out, using foreground (1-pxiels) or background (0-pixels) colours
+from R26.
+
+This basically emulates a simple b/w screen, just with colours adjustable via R26.
+
+2. attribute colour text mode (VDC)
+
+Together with the character value and attribute value is being read from video memory.
+This attribute byte contains the following bits:
+
+- bit 7: alternate character set
+- bit 6: reverse video attribute bit
+- bit 5: underline attribute bit
+- bit 4: blink attribute bit
+- bit 3-0: foreground colour
+
+Using the additional alternate character set bit from the attribute byte, the character bit value is loaded from memory
+and streamed out. 1-bits get the foreground colour from the attribute byte. 0-bits get the background colour from r26.
+
+Note that the alternate character set bit and the graphics output from the VIA CA2 are XOR'd.
+
+This is the VDC's attribute colour mode. To achieve this, extended mode bit r33.2 must be 0, and attribute enable bit r25.6 must be 1.
+
+3. full colour text mode (ColourPET)
+
+In this mode, again character value and attributes are loaded from memory. The attribute byte contains the following information:
+
+- bits 3-0: foreground colour
+- bits 7-4: background colour
+
+There is no alternate character set bit in the attribute byte, only VIA CA2 is used as usual in the PET. 
+After reading the character bit data, it is streamed out using the foreground colour (for 1-bits) and 
+background colour (for the 0-bits) from the attribute byte.
+
+This is the Colour-PET video mode. To achieve it, the extended mode bit r33.2 must be set, and the attribute enable bit r25.6 must be 0.
+
+4. multicolour mode (partly VIC-II, partly VDC)
+
+This mode is an extension to the C64's multicolour text mode, utilizing the additional bits in the attribute memory compared to the VIC-II's 4-bit video memory.
+
+Character data and attribute data are being fetched. The attribute byte contains the following bits:
+
+- bit 7: alternate character set
+- bit 6: reverse video attribute bit (mc=0)
+- bit 5: multicolour bit (mc)
+- bit 4: blink attribute bit (mc=0)
+- bit 3-0: foreground colour
+
+Note the different meaning of bit 5 - it is not used to disable multicolour for that character, or enable it.
+With disabled multicolour the character is displayed as in attribute colour text mode, except there is no underline bit. 
+With enabled multicolour bit, the character bits are fetched (alternate character set as in attribute colour text mode).
+When streaming, two bits are lumped together and evaluated to give these colours:
+
+- 00: background colour register r26
+- 01: background colour 1 register r34
+- 10: background colour 2 register r34
+- 11: foreground colour from attribute byte
+
+#### High Resolution Modes
+
+For all the text modes, the hires bit in r25.7 must be set.
+
+1. single colour hires mode
+
+In this mode the bitmap is displayed in the two colours from r26.
+
+To use this mode, extended mode bit r33.2 and attribute enable bit r25.6 must be zero.
+
+2. attribute colour hires mode (VDC)
+
+This mode works like the attribute colour text mode, only that not character data is read and displayed,
+but pixel data. The background colour is taken from r26. The foreground colour is taken from the attribute byte.
+
+Note that the attribute byte is read for a full character cell with 8 pixels width and height as defined with r9.
+All bitmap pixels in that cell share the same colour information.
+
+To use this mode, extended mode bit r33.2 is zero, and attribute enable bit r25.6 must be set.
+
+3. full colour hires mode
+
+Similar to the full colour text mode, the attribute byte provides both foreground and background colours
+for all bitmap pixels in the attribute colour cell.
+
+To use this mode, extended mode bit r33.2 is set, and attribute enable bit r25.6 must be clear.
+
+4. multicolour hires mode
+
+In this mode, bitmap data and attribute bytes are loaded from memory. 
+The attribute byte contains the following information:
+
+- bits 3-0: foreground colour
+- bits 7-4: background colour
+
+From the bit map data, every two bits of the pixel data are lumped together and used to determine the colour:
+
+- 00: background colour from attribute byte
+- 01: background colour 1 register r34
+- 10: background colour 2 register r34
+- 11: foreground colour from attribute byte
+ 
+To use this mode, extended mode bit r33.2 is set, and attribute enable bit r25.6 must be set as well.
+
+
 ## Control Ports
 
 ### Micro-PET
@@ -151,6 +282,9 @@ TODO: need to check interference with VDC registers
 - Bit 5: unused - must be 0
 - Bit 6: 0= when switching char height, move vsync to keep screen centered. 1= prevent that
 - Bit 7: 0= video enabled; 1= video disabled
+
+TODO: should bit 1 be replaced with R25.5 "Pixel double width"? It would be incompatible with the Micro-PET
+TODO: should bits 3 and 4 be replaced with R8.1/0 interlace control?
 
 Note that if you use 80 columns, AND double pixel rows (+interlace), you get the 80x50 character resolution.
 This mode is, however, not easily manageable by normal code in bank 0. In the $8xxx area the video
@@ -216,37 +350,6 @@ changed. Then the monitors don't recognize a potential mode change, and thus don
 the screen. It just isn't properly centered anymore.
 
 
-## CRTC/VDC emulation
-
-The Video code (partially) emulates only a subset of the CRTC registers, as given 
-in the register short description above.
-
-As usual with the CRTC, you have to write the register number to $e880 (59520),
-the write the value to write to the register to $e881 (59521).
-
-The video code emulates some kind of hybrid between the C128 VDC (which basically includes
-the CRTC registers), the PET CRTC, and the C64 VIC-II. PET CRTC emulation is made as good as possible,
-VDC is partially emulated, and features coming from the VIC-II are separate.
-
-### Video modes
-
-The following video modes are supported
-
-#### Text modes
-
-1. single color mode
-
-In this mode, extended mode and attribute memory are disabled in R33 and R25 respectively.
-
-Each character data is read from character memory, and used as index in the character generator memory.
-The data from the character generator memory is shifted out, using foreground (1-pxiels) or background (0-pixels) colours
-from R26.
-
-This basically emulates a simple b/w screen, just with colours adjustable via R26.
-
-2. attribute color mode
-
-
 
 ### Video memory mapping
 
@@ -256,25 +359,10 @@ The video memory is defined as follows:
 
 In character mode (see control port below) two memory areas are used:
 
-1. Character memory and
-2. Character pixel data (usually "character ROM")
+1. Character memory (r12/r13) and
+2. Character pixel data (usually "character ROM") (r28)
+3. Character attribute data (r20/r21)
 
-Register 12 is used as follows:
-
-- Bit 0: - unused - must be 0
-- Bit 1: - unused - must be 0
-- Bit 2: A10 of start of character memory
-- Bit 3: A11 of start of character memory 
-- Bit 4: A12 of start of character memory
-- Bit 5: A13 of start of character memory
-- Bit 6: A13 of character pixel data (charrom)
-- Bit 7: A14 of character pixel data (charrom)
-
-As you can see, the character memory can be mapped in 1024 byte pages.
-14/15 of character memory address are set to %10, so character memory
-starts at $8000 in the video bank, and reaches up to $bfff
-
-For 40 column mode this means 16 screen pages, or 8 screen pages in 80 column mode.
 Character memory is mapped to bank 0 at boot, but can be unmapped and only be available in bank 8 (VRAM) using the control port
 
 The character set is 8k in size: two character sets of 4k each, switchable with the 
@@ -287,16 +375,8 @@ Character set data is mapped to the lower half of bank 8 (VRAM bank 0, i.e. A15=
 
 Hires mode is available in 40 as well as 80 "column" mode, i.e. either 320x200 or 640x200 pixels.
 
-Register 12 here is used as follows:
-
-- Bit 0: - unused - must be 0
-- Bit 1: - unused - must be 0
-- Bit 2: A10 of start of hires data
-- Bit 3: A11 of start of hires data
-- Bit 4: A12 of start of hires data
-- Bit 5: A13 of start of hires data
-- Bit 6: A14 of start of hires data
-- Bit 7: A15 of start of hires data
+1. Bitmap data memory (r12/r13) and
+2. Character attribute data (r20/r21)
 
 #### Character generator memory
 
@@ -306,44 +386,44 @@ Each character has 16 consecutive bytes, so that the maximum of 9 pixel rows per
 character can be handled. As a character has 16 bytes, a character set of 256 characters
 has a character generator of 4k.
 
-The Bank Control register allows to select 4 blocks of 8k for the character generator memory,
-located at the lower half of the Video Bank 8.
+The Character set start address register allows to select 8 blocks of 8k for the character generator memory,
+located at the Video Bank 8.
 In each 8k, there are two sets of character generators, of 4k each. The one to use is selected by the
 VIA CA2 output pin as on the PET.
 
 
        Video    +----+ $090000
-       BANK     |    |        
-                |    |	 
-                |    |	 
+                |    |	      r28.7/6/5 -> 111, VIA CA2=1 
+                +----+ $08f000
+                |    |	      r28.7/6/5 -> 111, VIA CA2=0 
                 +----+ $08e000	 
-                |    |	 
-                |    |
-                |    |	 
+                |    |	      r28.7/6/5 -> 110, VIA CA2=1 
+                +----+ $08d000
+                |    |	      r28.7/6/5 -> 110, VIA CA2=0
                 +----+ $08c000
-                |    |
-                |    |
-                |    |
+                |    |	      r28.7/6/5 -> 101, VIA CA2=1
+                +----+ $08b000
+                |    |	      r28.7/6/5 -> 101, VIA CA2=0
                 +----+ $08a000
-                |    |	 
-                |    |
-                |    |	 
+                |    |	      r28.7/6/5 -> 100, VIA CA2=1
+                +----+ $089000
+                |    |	      r28.7/6/5 -> 100, VIA CA2=0
                 +----+ $088000	 
-                |    |	      CRTC12.6/7 -> 11, VIA CA2=1 
+                |    |	      r28.7/6/5 -> 011, VIA CA2=1 
                 +----+ $087000	 
-                |    |	      CRTC12.6/7 -> 11, VIA CA2=0 
+                |    |	      r28.7/6/5 -> 011, VIA CA2=0 
                 +----+ $086000	 
-                |    |	      CRTC12.6/7 -> 10, VIA CA2=1 
+                |    |	      r28.7/6/5 -> 010, VIA CA2=1 
                 +----+ $085000	 
-                |    |	      CRTC12.6/7 -> 10, VIA CA2=0
+                |    |	      r28.7/6/5 -> 010, VIA CA2=0
                 +----+ $084000	 
-                |    |	      CRTC12.6/7 -> 01, VIA CA2=1
+                |    |	      r28.7/6/5 -> 001, VIA CA2=1
                 +----+ $083000	 
-                |    |	      CRTC12.6/7 -> 01, VIA CA2=0
+                |    |	      r28.7/6/5 -> 001, VIA CA2=0
                 +----+ $082000	 
-                |    |	      CRTC12.6/7 -> 00, VIA CA2=1
+                |    |	      r28.7/6/5 -> 000, VIA CA2=1
                 +----+ $081000	 
-                |    |	      CRTC12.6/7 -> 00, VIA CA2=0
+                |    |	      r28.7/6/5 -> 000, VIA CA2=0
                 +----+ $080000
         
 ### Sprites
