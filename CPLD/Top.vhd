@@ -181,7 +181,6 @@ architecture Behavioral of Top is
 	signal vd_in: std_logic_vector(7 downto 0);
 	signal vis_enable: std_logic;
 	signal vis_80_in: std_logic;
-	signal vis_hires_in: std_logic;
 	signal vis_double_in: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
@@ -301,7 +300,6 @@ architecture Behavioral of Top is
 
 	   is_enable: in std_logic;	-- is display enabled
            is_80_in : in STD_LOGIC;	-- is 80 column mode?
-	   is_hires : in std_logic;	-- is hires mode?
 	   is_graph : in std_logic;	-- from PET I/O
 	   is_double: in std_logic;	-- when set, use 50 char rows / 400 pixel rows
 	   interlace: in std_logic;
@@ -583,7 +581,6 @@ begin
 		pet_vsync,
 		vis_enable,
 		vis_80_in,
-		vis_hires_in,
 		vgraphic,
 		vis_double_in,
 		interlace,
@@ -667,7 +664,6 @@ spi_nsel3 <= ipl;
 	Ctrl_P: process(sel0, phi2_int, rwb, reset, ca_in, D)
 	begin
 		if (reset = '1') then
-			vis_hires_in <= '0';
 			vis_80_in <= '0';
 			vis_enable <= '1';
 			vis_double_in <= '0';
@@ -690,7 +686,6 @@ spi_nsel3 <= ipl;
 			case (ca_in(2 downto 0)) is
 			when "000" =>
 				-- video controls
-				vis_hires_in <= D(0);
 				vis_80_in <= D(1);
 				screenb0 <= not(D(2));
 				vis_double_in <= D(3);
