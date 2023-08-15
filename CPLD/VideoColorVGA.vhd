@@ -43,7 +43,7 @@ entity Video is
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;
-           is_80_in : in std_logic;	-- is 80 column mode?
+      is_80_in : in std_logic;	-- is 80 column mode?
 	   is_graph : in std_logic;	-- graphic mode (from PET I/O)
 	   is_double: in std_logic;
 	   interlace: in std_logic;
@@ -54,8 +54,8 @@ entity Video is
 	   crtc_rwb : in std_logic;
 	   
 	   qclk: in std_logic;		-- Q clock (50MHz)
-		dotclk: in std_logic_vector(3 downto 0);	-- 25Mhz
-           memclk : in STD_LOGIC;	-- system clock (12.5MHz)
+		dotclk: in std_logic_vector(3 downto 0);	-- 25Mhz, 1/2, 1/4, 1/8, 1/16
+      memclk : in STD_LOGIC;	-- system clock (12.5MHz)
 	   
 	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
@@ -222,11 +222,11 @@ begin
 			end if;
 			
 			-- note: attributes must be loaded before character set, as attributes contain alternate character bit
-			if (dotclk(3 downto 2) = "11") then
+			if (dotclk(3 downto 2) = "10") then
 				attr_window <= '1';
 			end if;
 
-			if (dotclk(3 downto 2) = "10") then
+			if (dotclk(3 downto 2) = "11") then
 				pxl_window <= '1';
 			end if;			
 	end process;
@@ -462,8 +462,6 @@ begin
 					vid_addr <= vid_addr_hold;
 				end if;
 			end if;
-			
-
 		end if;
 	end process;
 
@@ -497,7 +495,7 @@ begin
 		
 		-- when do I really need to load the pixel SR?
 		if (falling_edge(qclk)) then
-			nsrload	<= not(memclk) or not (attr_fetch_int);
+			nsrload	<= not(memclk) or not (pxl_fetch_int);
 		end if;
 
 		if (rising_edge(srclk)) then
