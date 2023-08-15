@@ -104,6 +104,7 @@ architecture Behavioral of Video is
 	signal cblink_mode: std_logic;			-- character blink mode, R24.5
 	signal cblink_active: std_logic;		-- when set, character blinking is active
 	signal is_reverse : std_logic;			-- when set, invert the pixels; made from blink, underline and cursor logic
+	signal is_underline : std_logic;			-- when set, underline is active in SR
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -221,11 +222,11 @@ begin
 			end if;
 			
 			-- note: attributes must be loaded before character set, as attributes contain alternate character bit
-			if (dotclk(3 downto 2) = "10") then
+			if (dotclk(3 downto 2) = "11") then
 				attr_window <= '1';
 			end if;
 
-			if (dotclk(3 downto 2) = "11") then
+			if (dotclk(3 downto 2) = "10") then
 				pxl_window <= '1';
 			end if;			
 	end process;
@@ -243,8 +244,8 @@ begin
 	--
 	-- pxl40/chr40 are used in both 40 and 80 col mode
 	chr40 <= chr_window  and in_slot 	and not(mode_bitmap)		and is_80;
-	pxl40 <= pxl_window  and in_slot					and is_80;
-	attr40 <= attr_window and in_slot					and is_80;
+	pxl40 <= pxl_window  and in_slot										and is_80;
+	attr40 <= attr_window and in_slot									and is_80;
 	chr80 <= chr_window  and not(in_slot) 	and not(mode_bitmap);
 	pxl80 <= pxl_window  and not(in_slot);
 	attr80 <= attr_window and not(in_slot);
@@ -462,18 +463,23 @@ begin
 				end if;
 			end if;
 			
+
+		end if;
+	end process;
+
+	cam_p: process(crsr_address,vid_addr)
+	begin
 			if (vid_addr = crsr_address) then
 				crsr_addr_match <= '1'; 
 			else
 				crsr_addr_match <= '0';
 			end if;
-		end if;
 	end process;
-
+	
 	-----------------------------------------------------------------------------
 	-- replace discrete color circuitry of ultracpu 1.2b
 	
-	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk)
+	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk, char_buf_ld, attr_ld, srclk, dena_int)
 	begin
 		if (rising_edge(qclk)) then
 			-- note: char_index_buf is re-used to first load the character index, then the character pixel data
@@ -496,23 +502,51 @@ begin
 
 		if (rising_edge(srclk)) then
 			if (nsrload = '0') then
-				-- is reverse
-				if (mode_attrib = '1' and attr_buf(5) = '1' and uline_active = '1') then 	-- underline
-					sr <= x"ff";
-				elsif ((mode_attrib = '1' and attr_buf(6) = '1') 			-- reverse attribute
-					xor (crsr_addr_match = '1' and crsr_active = '1')		-- cursor
-					xor (mode_attrib = '1' and attr_buf(4) = '1' and			-- blink
-						cblink_active = '1')) then
-					sr <= not(char_index_buf);
-				else
-					sr <= char_index_buf;
+				is_reverse <= '0';
+				is_underline <= '0';
+				if (mode_attrib = '0') then
+					-- independent from extended and bitmap
+					if (crsr_addr_match = '1' and crsr_active = '1') then
+						is_reverse <= not(is_reverse);
+					end if;	
+				elsif (mode_extended = '0') then
+					if (attr_buf(6) = '1' 			-- reverse attribute
+						xor (attr_buf(4) = '1' and			-- blink
+							cblink_active = '1')) then
+						is_reverse <= not(is_reverse);
+					end if;
+					if (attr_buf(5) = '1' and uline_active = '1') then
+						is_underline <= '1';
+					end if;
+				else -- extended == 1			
+					if (attr_buf(5) = '0' and ((attr_buf(6) = '1') 			-- reverse attribute
+						xor (attr_buf(4) = '1' and			-- blink
+							cblink_active = '1'))) then
+						is_reverse <= not(is_reverse);
+					end if;
 				end if;
-				sr_attr <= attr_buf;
+				
+				if (is_underline = '1') then
+						sr <= x"ff";
+				else 						
+						sr <= char_index_buf;
+				end if;
+				
+				if (is_reverse = '1') then
+					sr <= not(char_index_buf);
+				end if;
 			else
 				sr(7 downto 1) <= sr(6 downto 0);
 				sr(0) <= '1';
 			end if;
 		end if;		
+	end process;
+
+	attr_p: process(srclk)
+	begin
+		if (falling_edge(srclk)) then
+			sr_attr <= attr_buf;
+		end if;
 	end process;
 
 	srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
@@ -532,13 +566,13 @@ begin
 				if sr(7) = '0' then
 					vid_out <= col_bg0;
 				else
-					vid_out <= sr_attr(3 downto 0);
+					vid_out <= attr_buf(3 downto 0);
 				end if;
 			elsif (mode_extended = '1' and mode_attrib = '0') then
 				if sr(7) = '0' then
-					vid_out <= sr_attr(7 downto 4);
+					vid_out <= attr_buf(7 downto 4);
 				else
-					vid_out <= sr_attr(3 downto 0);
+					vid_out <= attr_buf(3 downto 0);
 				end if;
 			else
 				if (sr(7) = '0') then
@@ -635,6 +669,12 @@ begin
 			clines_per_screen <= "0011001";	-- 25
 			vpage <= x"10"; -- inverted for PET
 			vpagelo <= (others => '0');
+			col_fg <= "1111";
+			col_bg0 <= "0000";
+			col_bg1 <= "0000";
+			col_bg2 <= "0000";
+			col_border <= "0111";
+			uline_scan <= (others => '0');
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
 				and crtc_rs='1' 
@@ -671,8 +711,10 @@ begin
 			when x"1a" => 	-- R26
 				col_fg <= CPU_D(7 downto 4);
 				col_bg0 <= CPU_D(3 downto 0);
+			when x"1d" => 	-- R29
+				uline_scan <= CPU_D(4 downto 0);
 			when x"21" =>	-- R33
-				mode_extended <= CPU_D(4);
+				mode_extended <= CPU_D(2);
 			when x"22" => 	-- R34
 				col_bg1 <= CPU_D(3 downto 0);
 				col_bg2 <= CPU_D(7 downto 4);
