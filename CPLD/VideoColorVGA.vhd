@@ -146,6 +146,8 @@ architecture Behavioral of Video is
 	signal char_buf_ld : std_logic;
 	signal attr_buf : std_logic_vector(7 downto 0);
 	signal attr_ld : std_logic;
+	signal pxl_buf : std_logic_vector(7 downto 0);
+	signal pxl_ld : std_logic;
 	-- replacements for shift register
 	signal sr : std_logic_vector(7 downto 0);
 	signal nsrload : std_logic;
@@ -178,6 +180,7 @@ architecture Behavioral of Video is
 	signal chr_window : std_logic;
 	signal pxl_window : std_logic;
 	signal attr_window : std_logic;
+	signal sr_window : std_logic;
 	signal slotclk : std_logic;
 	
 	-- convenience
@@ -187,11 +190,14 @@ architecture Behavioral of Video is
 	signal pxl80 : std_logic;
 	signal attr40 : std_logic;
 	signal attr80 : std_logic;
+	signal sr40 : std_logic;
+	signal sr80 : std_logic;
 
 	signal chr_fetch_int : std_logic;
 	signal crom_fetch_int: std_logic;
 	signal pxl_fetch_int : std_logic;
 	signal attr_fetch_int : std_logic;
+	signal sr_fetch_int : std_logic;
 	
 	signal mem_addr : std_logic;
 	
@@ -215,19 +221,24 @@ begin
 			chr_window <= '0';
 			pxl_window <= '0';
 			attr_window <= '0';
+			sr_window <= '0';
 
 			-- access windows for pixel data, character data, or chr ROM
-			if (dotclk(3 downto 2) = "01") then
+			if (dotclk(3 downto 2) = "00") then
 				chr_window <= '1';
 			end if;
 			
 			-- note: attributes must be loaded before character set, as attributes contain alternate character bit
-			if (dotclk(3 downto 2) = "10") then
+			if (dotclk(3 downto 2) = "01") then
 				attr_window <= '1';
 			end if;
 
-			if (dotclk(3 downto 2) = "11") then
+			if (dotclk(3 downto 2) = "10") then
 				pxl_window <= '1';
+			end if;			
+			
+			if (dotclk(3 downto 2) = "11") then
+				sr_window <= '1';
 			end if;			
 	end process;
 	
@@ -246,9 +257,11 @@ begin
 	chr40 <= chr_window  and in_slot 	and not(mode_bitmap)		and is_80;
 	pxl40 <= pxl_window  and in_slot										and is_80;
 	attr40 <= attr_window and in_slot									and is_80;
+	sr40 <= sr_window and in_slot											and is_80;
 	chr80 <= chr_window  and not(in_slot) 	and not(mode_bitmap);
 	pxl80 <= pxl_window  and not(in_slot);
 	attr80 <= attr_window and not(in_slot);
+	sr80 <= sr_window and not(in_slot);
 
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
@@ -261,6 +274,9 @@ begin
 	pxl_fetch_int <= is_enable and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
 	crom_fetch_int <= pxl_fetch_int and not(mode_bitmap);
 
+	-- sr load
+	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace or not(rline_cnt(0)));
+	
 	-- video access?
 	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
 
@@ -477,12 +493,13 @@ begin
 	-----------------------------------------------------------------------------
 	-- replace discrete color circuitry of ultracpu 1.2b
 	
-	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk, char_buf_ld, attr_ld, srclk, dena_int)
+	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk, char_buf_ld, attr_ld, pxl_ld, srclk, dena_int)
 	begin
 		if (rising_edge(qclk)) then
 			-- note: char_index_buf is re-used to first load the character index, then the character pixel data
-			char_buf_ld <= not(memclk) or not(chr_fetch_int or pxl_fetch_int);
-			attr_ld	<= not(memclk) or not (attr_fetch_int);
+			char_buf_ld <= not(memclk and chr_fetch_int);
+			attr_ld	<= not( memclk and attr_fetch_int );
+			pxl_ld <= not(memclk and pxl_fetch_int);
 		end if;
 		
 		if (rising_edge(char_buf_ld)) then
@@ -492,14 +509,19 @@ begin
 		if (rising_edge(attr_ld)) then
 			attr_buf <= VRAM_D;
 		end if;
+
+		if (rising_edge(pxl_ld)) then
+			pxl_buf <= VRAM_D;
+		end if;
 		
 		-- when do I really need to load the pixel SR?
 		if (falling_edge(qclk)) then
-			nsrload	<= not(memclk) or not (pxl_fetch_int);
+			nsrload	<= not (memclk and sr_fetch_int );
 		end if;
 
 		if (rising_edge(srclk)) then
 			if (nsrload = '0') then
+				sr_attr <= attr_buf;
 				is_reverse <= '0';
 				is_underline <= '0';
 				if (mode_attrib = '0') then
@@ -527,11 +549,11 @@ begin
 				if (is_underline = '1') then
 						sr <= x"ff";
 				else 						
-						sr <= char_index_buf;
+						sr <= pxl_buf;
 				end if;
 				
 				if (is_reverse = '1') then
-					sr <= not(char_index_buf);
+					sr <= not(pxl_buf);
 				end if;
 			else
 				sr(7 downto 1) <= sr(6 downto 0);
@@ -540,16 +562,16 @@ begin
 		end if;		
 	end process;
 
-	attr_p: process(srclk)
-	begin
-		if (falling_edge(srclk)) then
-			sr_attr <= attr_buf;
-		end if;
-	end process;
+--	attr_p: process(srclk)
+--	begin
+--		if (falling_edge(srclk)) then
+--			sr_attr <= attr_buf;
+--		end if;
+--	end process;
 
 	srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
 
-	vid_out_p: process (dotclk(0))
+	vid_out_p: process (dotclk(0), dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
@@ -564,13 +586,13 @@ begin
 				if sr(7) = '0' then
 					vid_out <= col_bg0;
 				else
-					vid_out <= attr_buf(3 downto 0);
+					vid_out <= sr_attr(3 downto 0);
 				end if;
 			elsif (mode_extended = '1' and mode_attrib = '0') then
 				if sr(7) = '0' then
-					vid_out <= attr_buf(7 downto 4);
+					vid_out <= sr_attr(7 downto 4);
 				else
-					vid_out <= attr_buf(3 downto 0);
+					vid_out <= sr_attr(3 downto 0);
 				end if;
 			else
 				if (sr(7) = '0') then
@@ -726,7 +748,7 @@ begin
 	
 	--- blinker
 
-	blink_p: process(v_sync_int)
+	blink_p: process(v_sync_int, reset, blink_cnt)
 	begin
 		if (reset = '1') then
 			blink_cnt <= (others => '0');
