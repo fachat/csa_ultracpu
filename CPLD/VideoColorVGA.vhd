@@ -103,8 +103,11 @@ architecture Behavioral of Video is
 	---
 	signal cblink_mode: std_logic;			-- character blink mode, R24.5
 	signal cblink_active: std_logic;		-- when set, character blinking is active
-	signal is_reverse : std_logic;			-- when set, invert the pixels; made from blink, underline and cursor logic
-	signal is_underline : std_logic;			-- when set, underline is active in SR
+	signal sr_reverse : std_logic;			-- when set, invert the pixels; made from blink, underline and cursor logic
+	signal sr_reverse_p : std_logic;
+	signal sr_underline : std_logic;			-- when set, underline is active in SR
+	signal sr_underline_p: std_logic;
+	signal is_outbit: std_logic;
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -154,6 +157,8 @@ architecture Behavioral of Video is
 	signal srclk: std_logic;
 	signal dena_int : std_logic;
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
+	signal sr_crsr: std_logic;
+	
 
 	-- geo signals
 	--
@@ -182,6 +187,28 @@ architecture Behavioral of Video is
 	signal attr_window : std_logic;
 	signal sr_window : std_logic;
 	signal slotclk : std_logic;
+	
+	-- clock enables (16 pixels in two slots)
+	signal pxl0_ce: std_logic;
+	signal pxl1_ce: std_logic;
+	signal pxl2_ce: std_logic;
+	signal pxl3_ce: std_logic;
+	signal pxl4_ce: std_logic;
+	signal pxl5_ce: std_logic;
+	signal pxl6_ce: std_logic;
+	signal pxl7_ce: std_logic;
+	signal pxl8_ce: std_logic;
+	signal pxl9_ce: std_logic;
+	signal pxla_ce: std_logic;
+	signal pxlb_ce: std_logic;
+	signal pxlc_ce: std_logic;
+	signal pxld_ce: std_logic;
+	signal pxle_ce: std_logic;
+	signal pxlf_ce: std_logic;
+	
+	signal suppress40: std_logic;	-- set when processing should be suspended for one slot due to 40 col
+	
+	signal fetch_int: std_logic;
 	
 	-- convenience
 	signal chr40 : std_logic;
@@ -239,17 +266,94 @@ begin
 			
 			if (dotclk(3 downto 2) = "11") then
 				sr_window <= '1';
-			end if;			
+			end if;
+			
+	end process;
+
+	ce_p: process(dotclk)
+	begin
+			pxl0_ce <= '0';
+			pxl1_ce <= '0';
+			pxl2_ce <= '0';
+			pxl3_ce <= '0';
+			pxl4_ce <= '0';
+			pxl5_ce <= '0';
+			pxl6_ce <= '0';
+			pxl7_ce <= '0';
+			pxl8_ce <= '0';
+			pxl9_ce <= '0';
+			pxla_ce <= '0';
+			pxlb_ce <= '0';
+			pxlc_ce <= '0';
+			pxld_ce <= '0';
+			pxle_ce <= '0';
+			pxlf_ce <= '0';
+
+			if (dotclk(3 downto 0) = "0000") then
+				pxl0_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0001") then
+				pxl1_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0010") then
+				pxl2_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0011") then
+				pxl3_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0100") then
+				pxl4_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0101") then
+				pxl5_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0110") then
+				pxl6_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "0111") then
+				pxl7_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1000") then
+				pxl8_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1001") then
+				pxl9_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1010") then
+				pxla_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1011") then
+				pxlb_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1100") then
+				pxlc_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1101") then
+				pxld_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1110") then
+				pxle_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1111") then
+				pxlf_ce <= '1';
+			end if;
 	end process;
 	
-	in_slot_cnt_p: process(in_slot, slotclk, reset)
+	in_slot_cnt_p: process(qclk, in_slot, slotclk, reset)
 	begin
 		if (reset = '1') then
 			in_slot <= '0';
-		elsif (falling_edge(slotclk)) then
-			in_slot <= slot_cnt(0);
+--		elsif (falling_edge(slotclk)) then
+		elsif (falling_edge(qclk)) then
+			if (pxlf_ce = '1') then
+				in_slot <= slot_cnt(0);
+			end if;
 		end if;
 	end process;
+
+	suppress40 <= in_slot and not(is_80);
+	
+	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace or not(rline_cnt(0)));
 	
 	-- access indicators
 	--
@@ -492,104 +596,134 @@ begin
 	
 	-----------------------------------------------------------------------------
 	-- replace discrete color circuitry of ultracpu 1.2b
+
+
 	
-	char_buf_p: process(memclk, chr_fetch_int, VRAM_D, qclk, char_buf_ld, attr_ld, pxl_ld, srclk, dena_int)
+	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, char_buf_ld, attr_ld, pxl_ld, srclk, dena_int)
 	begin
-		if (rising_edge(qclk)) then
-			-- note: char_index_buf is re-used to first load the character index, then the character pixel data
-			char_buf_ld <= not(memclk and chr_fetch_int);
-			attr_ld	<= not( memclk and attr_fetch_int );
-			pxl_ld <= not(memclk and pxl_fetch_int);
+--		if (rising_edge(qclk)) then
+--			-- note: char_index_buf is re-used to first load the character index, then the character pixel data
+--			char_buf_ld <= not(memclk and chr_fetch_int);
+--			attr_ld	<= not( memclk and attr_fetch_int );
+--			pxl_ld <= not(memclk and pxl_fetch_int);
+--		end if;
+		
+		if (falling_edge(qclk)) then
+			if (pxl3_ce = '1' and fetch_int = '1') then
+				char_index_buf <= VRAM_D;
+				sr_crsr <= crsr_addr_match and crsr_active;
+			end if;
 		end if;
 		
-		if (rising_edge(char_buf_ld)) then
-			char_index_buf <= VRAM_D;
+		if (falling_edge(qclk)) then
+			if (pxl7_ce = '1' and fetch_int = '1') then
+				attr_buf <= VRAM_D;
+			end if;
 		end if;
 
-		if (rising_edge(attr_ld)) then
-			attr_buf <= VRAM_D;
+		if (falling_edge(qclk)) then
+			if (pxlb_ce = '1' and fetch_int = '1') then
+				pxl_buf <= VRAM_D;
+			end if;
 		end if;
 
-		if (rising_edge(pxl_ld)) then
-			pxl_buf <= VRAM_D;
-		end if;
-		
 		-- when do I really need to load the pixel SR?
 		if (falling_edge(qclk)) then
 			nsrload	<= not (memclk and sr_fetch_int );
 		end if;
 
-		if (rising_edge(srclk)) then
-			if (nsrload = '0') then
-				sr_attr <= attr_buf;
-				is_reverse <= '0';
-				is_underline <= '0';
+		if (falling_edge(qclk)) then
+			if (pxl0_ce = '1' and fetch_int = '1') then
+				sr_reverse_p <= '0';
+				sr_underline_p <= '0';
+			elsif (pxl9_ce = '1' and fetch_int = '1') then
+				
+				sr_reverse_p <= mode_rev;
+				sr_underline_p <= '0';
+				-- independent from extended and bitmap
+				if (sr_crsr = '1') then
+					sr_reverse_p <= not(sr_reverse_p);
+				end if;	
 				if (mode_attrib = '0') then
-					-- independent from extended and bitmap
-					if (crsr_addr_match = '1' and crsr_active = '1') then
-						is_reverse <= not(is_reverse);
-					end if;	
 				elsif (mode_extended = '0') then
 					if (attr_buf(6) = '1' 			-- reverse attribute
 						xor (attr_buf(4) = '1' and			-- blink
 							cblink_active = '1')) then
-						is_reverse <= not(is_reverse);
+						sr_reverse_p <= not(sr_reverse_p);
 					end if;
 					if (attr_buf(5) = '1' and uline_active = '1') then
-						is_underline <= '1';
+						sr_underline_p <= '1';
 					end if;
 				else -- extended == 1			
 					if (attr_buf(5) = '0' and ((attr_buf(6) = '1') 			-- reverse attribute
 						xor (attr_buf(4) = '1' and			-- blink
 							cblink_active = '1'))) then
-						is_reverse <= not(is_reverse);
+						sr_reverse_p <= not(sr_reverse_p);
 					end if;
 				end if;
-				
-				if (is_underline = '1') then
-						sr <= x"ff";
-				else 						
-						sr <= pxl_buf;
-				end if;
-				
-				if (is_reverse = '1') then
-					sr <= not(pxl_buf);
-				end if;
-			else
-				sr(7 downto 1) <= sr(6 downto 0);
-				sr(0) <= '1';
+			end if;
+		end if;
+		
+--		if (rising_edge(srclk)) then
+--			if (nsrload = '0') then
+		if (falling_edge(qclk)) then
+			if (pxlf_ce = '1' and (is_80 = '1' or in_slot = '0')) then
+				sr_attr <= attr_buf;
+				sr <= pxl_buf;
+				sr_reverse <= sr_reverse_p;
+				sr_underline <= sr_underline_p;
+			elsif (dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
+--			else
+--				if (is_80_in = '1' or dotclk(1) = '1') then
+					sr(7 downto 1) <= sr(6 downto 0);
+					sr(0) <= '1';
+--				end if;
 			end if;
 		end if;		
 	end process;
 
---	attr_p: process(srclk)
---	begin
---		if (falling_edge(srclk)) then
---			sr_attr <= attr_buf;
---		end if;
---	end process;
-
-	srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
+	srclk_p: process (qclk, dotclk, is_80_in)
+	begin
+		if (rising_edge(qclk)) then
+			if (is_80_in <= '1') then
+				srclk <= dotclk(0);
+			else
+				srclk <= dotclk(1);
+			end if;
+		end if;
+	end process;
+	--srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
 
 	vid_out_p: process (dotclk(0), dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
-		elsif (falling_edge(dotclk(0))) then
+--		elsif (falling_edge(srclk)) then
+		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
+			if (sr_underline = '1') then
+				is_outbit <= not(sr_reverse);
+			else
+				if (sr_reverse = '1') then
+					is_outbit <= not(sr(7));
+				else
+					is_outbit <= sr(7);
+				end if;
+			end if;
+			
 			if (mode_extended = '0' and mode_attrib = '0') then
-				if sr(7) = '0' then
+				if is_outbit = '0' then
 					vid_out <= col_bg0;
 				else
 					vid_out <= col_fg;
 				end if;
 			elsif (mode_extended = '0' and mode_attrib = '1') then
-				if sr(7) = '0' then
+				if (is_outbit = '0') then
 					vid_out <= col_bg0;
 				else
 					vid_out <= sr_attr(3 downto 0);
 				end if;
 			elsif (mode_extended = '1' and mode_attrib = '0') then
-				if sr(7) = '0' then
+				if is_outbit = '0' then
 					vid_out <= sr_attr(7 downto 4);
 				else
 					vid_out <= sr_attr(3 downto 0);
@@ -639,18 +773,6 @@ begin
 				and (interlace or not(rline_cnt(0)));
 		end if;
 	end process;
-
-	-- without this delay the char behind a line may slightly bleed through
-	-- for just a couple of ns, but this still irritated my monitor's auto-sync
-	-- so it would not correctly detect 640x480
---	en_p2: process(qclk, reset)
---	begin
---		if (reset = '1') then
---			dena_int <= '0';
---		elsif (rising_edge(qclk)) then
---			dena_int <= enable;
---		end if;
---	end process;
 
 	dena_int <= enable;
 	
