@@ -694,22 +694,16 @@ begin
 	end process;
 	--srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
 
+	is_outbit <= '1' when sr_underline = '1' else
+					sr(7) when sr_reverse = '0' else
+					not(sr(7));
+					
 	vid_out_p: process (dotclk(0), dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
---		elsif (falling_edge(srclk)) then
 		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
-			if (sr_underline = '1') then
-				is_outbit <= not(sr_reverse);
-			else
-				if (sr_reverse = '1') then
-					is_outbit <= not(sr(7));
-				else
-					is_outbit <= sr(7);
-				end if;
-			end if;
-			
+
 			if (mode_extended = '0' and mode_attrib = '0') then
 				if is_outbit = '0' then
 					vid_out <= col_bg0;
@@ -729,7 +723,7 @@ begin
 					vid_out <= sr_attr(3 downto 0);
 				end if;
 			else
-				if (sr(7) = '0') then
+				if (is_outbit = '0') then
 					vid_out <= attr_buf(7 downto 4);
 				else 
 					vid_out <= attr_buf(3 downto 0);
