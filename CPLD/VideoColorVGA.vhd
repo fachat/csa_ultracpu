@@ -122,9 +122,10 @@ architecture Behavioral of Video is
 	signal rows_per_char: std_logic_vector(3 downto 0);
 	signal slots_per_line: std_logic_vector(6 downto 0);
 	signal clines_per_screen: std_logic_vector(6 downto 0);
-
-	signal vpage : std_logic_vector(7 downto 0);
-	signal vpagelo : std_logic_vector(7 downto 0);
+	
+	signal vid_base : std_logic_vector(15 downto 0);
+	signal attr_base : std_logic_vector(15 downto 0);
+	signal crom_base : std_logic_vector(7 downto 0);
 
 	-- count "slots", i.e. 8pixels
 	-- 
@@ -140,21 +141,22 @@ architecture Behavioral of Video is
 	signal cline_cnt : std_logic_vector (6 downto 0) := (others => '0');
 	
 	-- computed video memory address
-	signal vid_addr : std_logic_vector (13 downto 0) := (others => '0');
+	signal vid_addr : std_logic_vector (15 downto 0) := (others => '0');
 	-- computed video memory address at start of line (to re-load chars each raster line)
-	signal vid_addr_hold : std_logic_vector(13 downto 0) := (others => '0');
+	signal vid_addr_hold : std_logic_vector(15 downto 0) := (others => '0');
+
+	-- computed attribute memory address
+	signal attr_addr : std_logic_vector (15 downto 0) := (others => '0');
+	-- computed attribute memory address at start of line (to re-load chars each raster line)
+	signal attr_addr_hold : std_logic_vector(15 downto 0) := (others => '0');
 	
 	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
 	signal char_index_buf : std_logic_vector(7 downto 0);
-	signal char_buf_ld : std_logic;
 	signal attr_buf : std_logic_vector(7 downto 0);
-	signal attr_ld : std_logic;
 	signal pxl_buf : std_logic_vector(7 downto 0);
-	signal pxl_ld : std_logic;
 	-- replacements for shift register
 	signal sr : std_logic_vector(7 downto 0);
 	signal nsrload : std_logic;
-	signal srclk: std_logic;
 	signal dena_int : std_logic;
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
 	signal sr_crsr: std_logic;
@@ -206,8 +208,6 @@ architecture Behavioral of Video is
 	signal pxle_ce: std_logic;
 	signal pxlf_ce: std_logic;
 	
-	signal suppress40: std_logic;	-- set when processing should be suspended for one slot due to 40 col
-	
 	signal fetch_int: std_logic;
 	
 	-- convenience
@@ -225,8 +225,6 @@ architecture Behavioral of Video is
 	signal pxl_fetch_int : std_logic;
 	signal attr_fetch_int : std_logic;
 	signal sr_fetch_int : std_logic;
-	
-	signal mem_addr : std_logic;
 	
 	signal next_row : std_logic;
 	
@@ -343,16 +341,14 @@ begin
 	begin
 		if (reset = '1') then
 			in_slot <= '0';
---		elsif (falling_edge(slotclk)) then
-		elsif (falling_edge(qclk)) then
-			if (pxlf_ce = '1') then
+		elsif (falling_edge(slotclk)) then
+--		elsif (falling_edge(qclk)) then
+--			if (pxlf_ce = '1') then
 				in_slot <= slot_cnt(0);
-			end if;
+--			end if;
 		end if;
 	end process;
 
-	suppress40 <= in_slot and not(is_80);
-	
 	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace or not(rline_cnt(0)));
 	
 	-- access indicators
@@ -374,9 +370,11 @@ begin
 	-- col fetch
 	attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace or not(rline_cnt(0)));
 	
-	-- dot fetch
-	pxl_fetch_int <= is_enable and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
-	crom_fetch_int <= pxl_fetch_int and not(mode_bitmap);
+	-- hires fetch
+	pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
+	
+	-- character rom fetch
+	crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
 
 	-- sr load
 	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace or not(rline_cnt(0)));
@@ -384,9 +382,6 @@ begin
 	-- video access?
 	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
 
-	-- when do we use plain vid_addr to fetch?
-	mem_addr <= mode_bitmap or chr_fetch_int or attr_fetch_int;
-	
 	-----------------------------------------------------------------------------
 	-- horizontal geometry calculation
 
@@ -491,7 +486,8 @@ begin
 	begin
 		if (falling_edge(h_sync_int)) then
 			
-		    if (rows_per_char(3) = '1') then
+		  if (rows_per_char(3) = '1') then
+		  
 			-- timing for 9 or more pixel rows per character
 			-- end of character line
 			if ((mode_bitmap = '1' or rcline_cnt = 8) and next_row = '1') then
@@ -506,10 +502,9 @@ begin
 			if (rline_cnt < 450) then	--468) then
 				v_enable <= '1';
 			end if;
---			if (rline_cnt >= 450) then
---				v_enable <= '1';
---			end if;
-		    else
+			
+		  else	-- rows_per_char(3) = '0'
+		  
 			-- timing for 8 pixel rows per character
 			-- end of character line
 			if ((mode_bitmap = '1' or rcline_cnt = rows_per_char) and next_row = '1') then
@@ -524,7 +519,7 @@ begin
 			if (rline_cnt < 400) then	--416) then
 				v_enable <= '1';
 			end if;
-		end if; -- crtc_is_9rows
+		  end if; -- crtc_is_9rows
 
 		    -- common for 8/9 pixel rows per char
 		    
@@ -552,13 +547,12 @@ begin
 		elsif (rising_edge(slotclk)) then
 			if (last_vis_slot_of_line = '1') then
 				if (last_line_of_screen = '1') then
-                                        vid_addr_hold(13) <= vpage(5);
-                                        vid_addr_hold(12) <= vpage(4);
-                                        vid_addr_hold(11 downto 8) <= vpage(3 downto 0);
-                                        vid_addr_hold(7 downto 0) <= vpagelo;
+													vid_addr_hold <= vid_base;
+													attr_addr_hold <= attr_base;
 				else
 					if (last_line_of_char = '1') then
 						vid_addr_hold <= vid_addr;
+						attr_addr_hold <= attr_addr;
 					end if;
 				end if;
 			end if;
@@ -569,17 +563,21 @@ begin
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
+			attr_addr <= (others => '0');
 		elsif (falling_edge(slotclk)) then
 			if (last_line_of_screen = '1' and last_slot_of_line = '1') then
 				vid_addr <= (others => '0');
+				attr_addr <= (others => '0');
 				is_80 <= is_80_in;
 			else
 				if (last_slot_of_line = '0') then
 					if (is_80 = '1' or in_slot = '1') then
 						vid_addr <= vid_addr + 1;
+						attr_addr <= attr_addr + 1;
 					end if;
 				else
 					vid_addr <= vid_addr_hold;
+					attr_addr <= attr_addr_hold;
 				end if;
 			end if;
 		end if;
@@ -599,14 +597,8 @@ begin
 
 
 	
-	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, char_buf_ld, attr_ld, pxl_ld, srclk, dena_int)
+	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int)
 	begin
---		if (rising_edge(qclk)) then
---			-- note: char_index_buf is re-used to first load the character index, then the character pixel data
---			char_buf_ld <= not(memclk and chr_fetch_int);
---			attr_ld	<= not( memclk and attr_fetch_int );
---			pxl_ld <= not(memclk and pxl_fetch_int);
---		end if;
 		
 		if (falling_edge(qclk)) then
 			if (pxl3_ce = '1' and fetch_int = '1') then
@@ -664,8 +656,6 @@ begin
 			end if;
 		end if;
 		
---		if (rising_edge(srclk)) then
---			if (nsrload = '0') then
 		if (falling_edge(qclk)) then
 			if (pxlf_ce = '1' and (is_80 = '1' or in_slot = '0')) then
 				sr_attr <= attr_buf;
@@ -673,32 +663,17 @@ begin
 				sr_reverse <= sr_reverse_p;
 				sr_underline <= sr_underline_p;
 			elsif (dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
---			else
---				if (is_80_in = '1' or dotclk(1) = '1') then
 					sr(7 downto 1) <= sr(6 downto 0);
 					sr(0) <= '1';
---				end if;
 			end if;
 		end if;		
 	end process;
-
-	srclk_p: process (qclk, dotclk, is_80_in)
-	begin
-		if (rising_edge(qclk)) then
-			if (is_80_in <= '1') then
-				srclk <= dotclk(0);
-			else
-				srclk <= dotclk(1);
-			end if;
-		end if;
-	end process;
-	--srclk <= not(dotclk(0)) when is_80_in = '1' else not(dotclk(1));
 
 	is_outbit <= '1' when sr_underline = '1' else
 					sr(7) when sr_reverse = '0' else
 					not(sr(7));
 					
-	vid_out_p: process (dotclk(0), dena_int)
+	vid_out_p: process (qclk, dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
@@ -735,22 +710,26 @@ begin
 	-----------------------------------------------------------------------------
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
 	
-	a_out(3 downto 0) <= vid_addr(3 downto 0) when mem_addr ='1' else 
-				rcline_cnt;
-	a_out(11 downto 4) <= vid_addr(11 downto 4) when mem_addr = '1' else 
-				char_index_buf(7 downto 0);
-	a_out(12) <= vid_addr(12) 	when mem_addr ='1' else
-				is_graph;
-	a_out(13) 	<= vid_addr(13) 	when mem_addr ='1' else
-		  vpage(6);	-- charrom
-        a_out(14)       <= vpage(6) when mode_bitmap = '1' else        -- hires
-                                vpage(7) when crom_fetch_int = '1' else -- charrom
-                                '0'	 when chr_fetch_int = '1' else  -- character data
-				'1';					-- color data
-        a_out(15)       <= vpage(7) when mode_bitmap = '1' else        -- hires
-                                '0' when crom_fetch_int = '1' else           -- charrom
-                                '1';            -- $8000 for PET character data
+	a_out(3 downto 0) <= 
+							attr_addr(3 downto 0) 	when attr_fetch_int = '1' else
+							rcline_cnt 				 	when crom_fetch_int = '1' else
+							vid_addr(3 downto 0);
 
+	a_out(11 downto 4) <= 
+							attr_addr(11 downto 4)	when attr_fetch_int = '1' else
+							char_index_buf				when crom_fetch_int = '1' else
+							vid_addr(11 downto 4);
+
+	a_out(12) 		<= 
+							attr_addr(12)				when attr_fetch_int = '1' else
+							is_graph						when crom_fetch_int = '1' else
+							vid_addr(12);
+
+	a_out(15 downto 13) <= 
+							attr_addr(15 downto 13)	when attr_fetch_int = '1' else
+							crom_base(7 downto 5) 	when crom_fetch_int = '1' else
+							vid_addr(15 downto 13);
+							
 	A <= a_out;
 	
 	-----------------------------------------------------------------------------
@@ -803,8 +782,9 @@ begin
 			rows_per_char <= X"7";
 			slots_per_line <= "1010000";	-- 80
 			clines_per_screen <= "0011001";	-- 25
-			vpage <= x"10"; -- inverted for PET
-			vpagelo <= (others => '0');
+			attr_base <= x"d000";
+			vid_base <= x"9000";
+			crom_base <= x"00";
 			col_fg <= "1111";
 			col_bg0 <= "0000";
 			col_bg1 <= "0000";
@@ -831,13 +811,18 @@ begin
 			when x"0b" => 
 				crsr_end_scan <= CPU_D(4 downto 0);
 			when x"0c" =>
-				vpage <= CPU_D;
+				vid_base(14 downto 8) <= CPU_D(6 downto 0);
+				vid_base(15) <= not(CPU_D(7));
 			when x"0d" =>
-				vpagelo <= CPU_D;
+				vid_base(7 downto 0) <= CPU_D;
 			when x"0e" =>
 				crsr_address(15 downto 8) <= CPU_D;
 			when x"0f" =>	-- R15
 				crsr_address(7 downto 0) <= CPU_D;
+			when x"14" =>	-- R20
+				attr_base(15 downto 8) <= CPU_D;
+			when x"15" =>	-- R21
+				attr_base(7 downto 0) <= CPU_D;
 			when x"18" =>	-- R24
 				cblink_mode <= CPU_D(5);
 				mode_rev <= CPU_D(6);
@@ -847,6 +832,8 @@ begin
 			when x"1a" => 	-- R26
 				col_fg <= CPU_D(7 downto 4);
 				col_bg0 <= CPU_D(3 downto 0);
+			when x"1c" => 	-- R28
+				crom_base <= CPU_D;
 			when x"1d" => 	-- R29
 				uline_scan <= CPU_D(4 downto 0);
 			when x"21" =>	-- R33
