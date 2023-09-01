@@ -35,6 +35,7 @@ entity Video is
     Port ( A : out  STD_LOGIC_VECTOR (15 downto 0);
 	   CPU_D: in std_logic_vector(7 downto 0);
 		VRAM_D: in std_logic_vector(7 downto 0);
+		vd_out: out std_logic_vector(7 downto 0);
 	   phi2: in std_logic;
 	   
 	   --dena   : out std_logic;	-- display enable
@@ -50,7 +51,7 @@ entity Video is
 	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;
-	   crtc_rs : in std_logic;
+	   crtc_rs : in std_logic_vector(3 downto 0);
 	   crtc_rwb : in std_logic;
 	   
 	   qclk: in std_logic;		-- Q clock (50MHz)
@@ -754,18 +755,19 @@ begin
 	-- only 8/9 rows per char are emulated right now
 
 	dbg_out <= '0';
-	
-	regfile: process(memclk, CPU_D, crtc_sel, crtc_rs, reset) 
+
+	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, reset) 
 	begin
 		if (reset = '1') then
 			crtc_reg <= (others => '0');
-		elsif (falling_edge(memclk) 
-				and crtc_sel = '1' 
-				and crtc_rs='0'
-				and crtc_rwb = '0'
-				) then
-			
-			crtc_reg(5 downto 0) <= CPU_D(5 downto 0);
+		elsif (falling_edge(phi2) and crtc_sel = '1' ) then
+		
+			if (crtc_rs=x"3") then
+				crtc_reg <= crtc_reg + 1;
+				crtc_reg(7 downto 6) <= "00";			
+			elsif (crtc_rs=x"0" and crtc_rwb = '0' ) then
+				crtc_reg(5 downto 0) <= CPU_D(5 downto 0);
+			end if;
 		end if;
 	end process;
 	
@@ -793,7 +795,7 @@ begin
 			uline_scan <= (others => '0');
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
-				and crtc_rs='1' 
+				and (crtc_rs=x"1" or crtc_rs=x"3") 
 				and crtc_rwb = '0'
 				) then
 			case (crtc_reg) is
@@ -848,7 +850,79 @@ begin
 			end case;
 		end if;
 	end process;
-	
+
+	readreg: process(crtc_rwb, crtc_sel, crtc_rs, reset) 
+	begin
+		if (reset = '1') then
+			vd_out <= (others => '0');
+		else 
+			vd_out <= (others => '0');
+			
+			if	(crtc_sel = '1'
+				and crtc_rwb = '1'
+				) then
+				
+				if (crtc_rs = x"2") then
+					vd_out <= crtc_reg;
+				elsif (crtc_rs = x"0") then
+					-- TODO: status register at address 0
+				elsif (crtc_rs = x"1" or crtc_rs = x"3") then
+
+					case (crtc_reg) is
+					when x"01" =>
+						-- note: value written is doubled (as in the PET for 80 columns)
+						vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+					when x"06" => 
+						vd_out(6 downto 0) <= clines_per_screen;
+					when x"09" =>
+						vd_out(3) <= rows_per_char(3);
+						--rows_per_char <= CPU_D(3 downto 0);
+					when x"0a" =>
+						vd_out(4 downto 0) <= crsr_start_scan;
+						vd_out(6 downto 5) <= crsr_mode;
+					when x"0b" =>
+						vd_out(4 downto 0) <= crsr_end_scan;
+					when x"0c" =>
+						vd_out(6 downto 0) <= vid_base(14 downto 8);
+						vd_out(7) <= not(vid_base(15));
+					when x"0d" =>
+						vd_out <= vid_base(7 downto 0);
+					when x"0e" =>
+						vd_out <= crsr_address(15 downto 8);
+					when x"0f" =>	-- R15
+						vd_out <= crsr_address(7 downto 0);
+					when x"14" =>	-- R20
+						vd_out <= attr_base(15 downto 8);
+					when x"15" =>	-- R21
+						vd_out <= attr_base(7 downto 0);
+					when x"18" =>	-- R24
+						vd_out(5) <= cblink_mode;
+						vd_out(6) <= mode_rev;
+					when x"19" =>	-- R25
+						vd_out(6) <= mode_attrib;
+						vd_out(7) <= mode_bitmap;
+					when x"1a" => 	-- R26
+						vd_out(7 downto 4) <= col_fg;
+						vd_out(3 downto 0) <= col_bg0;
+					when x"1c" => 	-- R28
+						vd_out <= crom_base;
+					when x"1d" => 	-- R29
+						vd_out(4 downto 0) <= uline_scan;
+					when x"21" =>	-- R33
+						vd_out(2) <= mode_extended;
+					when x"22" => 	-- R34
+						vd_out(3 downto 0) <= col_bg1;
+						vd_out(7 downto 4) <= col_bg2;
+					when x"23" =>	-- R35
+						vd_out(3 downto 0) <= col_border;
+					when others =>
+						null;
+					end case;
+				end if;
+			end if;
+		end if;
+	end process;
+
 	--- blinker
 
 	blink_p: process(v_sync_int, reset, blink_cnt)

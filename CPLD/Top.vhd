@@ -179,6 +179,7 @@ architecture Behavioral of Top is
 	-- video
 	signal va_out: std_logic_vector(15 downto 0);
 	signal vd_in: std_logic_vector(7 downto 0);
+	signal vd_out: std_logic_vector(7 downto 0);
 	signal vis_enable: std_logic;
 	signal vis_80_in: std_logic;
 	signal vis_double_in: std_logic;
@@ -291,22 +292,24 @@ architecture Behavioral of Top is
 	   A : out  STD_LOGIC_VECTOR (15 downto 0);
 	   CPU_D : in std_logic_vector (7 downto 0);
 		VRAM_D: in std_logic_vector (7 downto 0);
+		vd_out: out std_logic_vector(7 downto 0);
+
 	   phi2 : in std_logic;
 	   
 	   --dena   : out std_logic;	-- display enable
-           v_sync : out  STD_LOGIC;
-           h_sync : out  STD_LOGIC;
+      v_sync : out  STD_LOGIC;
+      h_sync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;	-- is display enabled
-           is_80_in : in STD_LOGIC;	-- is 80 column mode?
+      is_80_in : in STD_LOGIC;	-- is 80 column mode?
 	   is_graph : in std_logic;	-- from PET I/O
 	   is_double: in std_logic;	-- when set, use 50 char rows / 400 pixel rows
 	   interlace: in std_logic;
 	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;	-- select line for CRTC
-	   crtc_rs  : in std_logic;	-- register select
+	   crtc_rs  : in std_logic_vector(3 downto 0);	-- register select
 	   crtc_rwb : in std_logic;	-- r/-w
 	   
 	   qclk: in std_logic;		-- Q clock
@@ -575,6 +578,7 @@ begin
 		va_out,
 		cd_in, 
 		vd_in,
+		vd_out,
 		phi2_int,
 		vsync,
 		hsync,
@@ -586,7 +590,7 @@ begin
 		interlace,
 		movesync,
 		sel8,
-		ca_in(0),
+		ca_in(3 downto 0),
 		rwb,
 		q50m,		-- Q clock (50MHz)
 		dotclk,	-- pixel clock, 25MHz
@@ -800,13 +804,17 @@ spi_nsel3 <= ipl;
 		
 	D <= 	VD when VA_select = VRA_CPU
 		--x"EA" when is_vid_out='0'	-- NOP sled
-			and rwb='1' 
-			and m_vramsel_out ='1' 
-			and phi2_int='1' 
-			and is_cpu='1' 	-- do not bleed video access into system bus when waiting but breaks timing
+				and rwb='1' 
+				and m_vramsel_out ='1' 
+				and phi2_int='1' 
+				and is_cpu='1' 	-- do not bleed video access into system bus when waiting but breaks timing
 		else
-		spi_dout when spi_cs = '1'
-			and rwb = '1'
+			spi_dout when spi_cs = '1'
+				and rwb = '1'
+		else
+			vd_out when sel8 = '1'
+				and rwb = '1'
+				and phi2_int = '1'
 		else
 			(others => 'Z');
 		

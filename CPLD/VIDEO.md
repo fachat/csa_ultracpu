@@ -20,121 +20,110 @@ Note: this is currently under development and subject to change without notice!
 This is an overview on the register set. Registers are marked with which chip they should be
 compatible with (roughly). Note, that the VDC is an extension to the CRTC. CRTC register are not additionally marked as VDC.
 
-- $e880/e881 (59520/59521) [CRTC emulation](#crtc-emulation)
-  - r1: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
-  - r6: vertial displayed - the number of character rows displayed in a frame (CRTC)
-  - r9: (bits 3-0) scan lines per character - 1 (CRTC)
-  - r10: cursor start scan line:  (CRTC)
-    - bits 4-0: number of scan line where reverse video cursor starts (0=top)
-    - bits 6-5: 
-      - 00: solid cursor
-      - 01: cursor off
-      - 10: blink at 1/16th of the frame rate
-      - 10: blink at 1/32th of the frame rate
-  - r11: cursor end scan line + 1 (CRTC)
-  - r12: start of video memory high (CRTC)
-  - r13: start of video memory low (CRTC)
-  - r14: cursor position high (CRTC)
-  - r15: cursor position low (CRTC)
-  - r20: attribute start address high (VDC)
-  - r21: attribute start address low (VDC)
-  - r22: character horizontal - define character width total and displayed (VDC)
-    - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
-    - bits 3-0: total: total number of horizontal bits timed for a char, -1.
-  - r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
-  - r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
-    - bits 3-0: number of scan lines to scroll the screen down 
-    - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
-    - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)
-    - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
-  - r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
-    - bits 3-0: number of pixels to shift the output to the right
-    - bit 4: CSEL: if set, extend left border by 7 pixels and right border by 9 pixels
-    - bit 5: semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background)
-    - bit 6: attribute enable (VDC)
-    - bit 7: bitmap mode
-  - r26: default colours (VDC)
-    - bits 3-0: background color
-    - bits 7-4: foreground color
-  - r27: address increment per row: add this to the memory address after each character row (VDC)
-  - r28: character set start address
-    - bits 7-5: character generator address bits A13-A15. (VDC)
-  - r29: underline scan line count (VDC)
-  - r32: rasterline counter low (bits 0-7)
-  - r33: control register
-    - bits 1-0: bits 9/8 of the rasterline counter
-    - bit 2: extended mode (enable full and multicolor text modes)
-    - bit 4: DEN: display enable
-    - bit 7-5: - 
-  - r34: extended background colour 
-    - bits 3-0 background colour 1
-    - bits 7-4 background colour 2
-  - r35: border colour
-    - bits 3-0: border colour
-  - r36 IRQ control (VIC-II)
-    - bit 0: raster match enable
-    - bit 1: sprite/bitmap collision enable
-    - bit 2: sprite/sprite collision enable
-    - bit 7-3: unused
-  - r37 IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
-    - bit 0: raster match occured
-    - bit 1: sprite/bitmap collision occured
-    - bit 2: sprite/sprite collision occured
-    - bit 6-3: unused
-    - bit 7: one when interrupt has occurred
+These are the memory locations seen by the CPU:
 
-Sprite registers:
+- $e880 (59520): status register (read), index register (write only)
+- $e881 (59521): read/write access to register specified in index register
+- $e882 (59522): read/write access to index register (new)
+- $e883 (59523): read/write access to register as in $e881; each access increases index register by one (new)
 
-  - r40: X coordinate sprite 0 (VIC-II)
-  - r41: Y coordinate sprite 0 (VIC-II)
+Note that the last two registers are new and should provide easier access to the register file.
 
-  - r42: X coordinate sprite 1 (VIC-II)
-  - r43: Y coordinate sprite 1 (VIC-II)
+ [CRTC emulation](#crtc-emulation)
 
-  - r44: X coordinate sprite 2 (VIC-II)
-  - r45: Y coordinate sprite 2 (VIC-II)
+The following are the internal Viccy registers:
 
-  - r46: X coordinate sprite 3 (VIC-II)
-  - r47: Y coordinate sprite 3 (VIC-II)
+- r1: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
+- r6: vertial displayed - the number of character rows displayed in a frame (CRTC)
+- r9: (bits 3-0) scan lines per character - 1 (CRTC)
+- r10: cursor start scan line:  (CRTC)
+  - bits 4-0: number of scan line where reverse video cursor starts (0=top)
+  - bits 6-5: 
+    - 00: solid cursor
+    - 01: cursor off
+    - 10: blink at 1/16th of the frame rate
+    - 10: blink at 1/32th of the frame rate
+- r11: cursor end scan line + 1 (CRTC)
+- r12: start of video memory high (CRTC)
+- r13: start of video memory low (CRTC)
+- r14: cursor position high (CRTC)
+- r15: cursor position low (CRTC)
+- r20: attribute start address high (VDC)
+- r21: attribute start address low (VDC)
+- r22: character horizontal - define character width total and displayed (VDC)
+  - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
+  - bits 3-0: total: total number of horizontal bits timed for a char, -1.
+- r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
+- r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
+  - bits 3-0: number of scan lines to scroll the screen down 
+  - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
+  - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)
+  - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
+- r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
+  - bits 3-0: number of pixels to shift the output to the right
+  - bit 4: CSEL: if set, extend left border by 7 pixels and right border by 9 pixels
+  - bit 5: semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background)
+  - bit 6: attribute enable (VDC)
+  - bit 7: bitmap mode
+- r26: default colours (VDC)
+  - bits 3-0: background color
+  - bits 7-4: foreground color
+- r27: address increment per row: add this to the memory address after each character row (VDC)
+- r28: character set start address
+  - bits 7-5: character generator address bits A13-A15. (VDC)
+- r29: underline scan line count (VDC)
+- r32: rasterline counter low (bits 0-7)
+- r33: control register
+  - bits 1-0: bits 9/8 of the rasterline counter
+  - bit 2: extended mode (enable full and multicolor text modes)
+  - bit 4: DEN: display enable
+  - bit 7-5: - 
+- r34: extended background colour 
+  - bits 3-0 background colour 1
+  - bits 7-4 background colour 2
+- r35: border colour
+  - bits 3-0: border colour
+- r36 IRQ control (VIC-II)
+  - bit 0: raster match enable
+  - bit 1: sprite/bitmap collision enable
+  - bit 2: sprite/sprite collision enable
+  - bit 7-3: unused
+- r37 IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
+  - bit 0: raster match occured
+  - bit 1: sprite/bitmap collision occured
+  - bit 2: sprite/sprite collision occured
+  - bit 6-3: unused
+  - bit 7: one when interrupt has occurred
 
-  - r48: X coordinate sprite 4 (VIC-II)
-  - r49: Y coordinate sprite 4 (VIC-II)
+Sprite registers (subject to change):
 
-  - r50: X coordinate sprite 5 (VIC-II)
-  - r51: Y coordinate sprite 5 (VIC-II)
+- r40: X coordinate sprite 0 (VIC-II)
+- r41: Y coordinate sprite 0 (VIC-II)
+- r42: sprite 0 extra
+  - bit 1-0: bits 8-7 of sprite 0 X coordinate
+  - bit 5-4: bits 8-7 of sprite 0 Y coordinate
+- r43: sprite 0 control
+  - bit 0: enable
+  - bit 1: X-expand
+  - bit 2: Y-expand
+  - bit 3: Multicolour flag
+  - bit 4: sprite data priority
+- r44: color sprite 0 (VIC-II)
 
-  - r52: X coordinate sprite 6 (VIC-II)
-  - r53: Y coordinate sprite 6 (VIC-II)
+- r45-r49: sprite 1
+- r50-r54: sprite 2
+- r55-r59: sprite 3
+- r60-r64: sprite 4
+- r65-r69: sprite 5
+- r70-r74: sprite 6
+- r75-r79: sprite 7
 
-  - r54: X coordinate sprite 7 (VIC-II)
-  - r55: Y coordinate sprite 7 (VIC-II)
+- r80: sprite-sprite collision (VIC-II)
+- r81: sprite-data collision (VIC-II)
 
-  - r56: bit 7 of sprite X coordinates (VIC-II)
-  - r57: bit 7 of sprite Y coordinates
-  - r58: bit 8 of sprite X coordinates
+- r82: sprite multicolor 0 (VIC-II)
+- r83: sprite multicolor 1 (VIC-II)
 
-  - r59: sprite enabled (VIC-II)
-
-  - r60: sprite X expansion (VIC-II)
-  - r61: sprite Y expansion (VIC-II)
-
-  - r62: sprite-sprite collision (VIC-II)
-  - r63: sprite-data collision (VIC-II)
-
-  - r64: sprite data priority (VIC-II)
-  - r65: sprite multicolor (VIC-II)
-
-  - r66: sprite multicolor 0 (VIC-II)
-  - r67: sprite multicolor 1 (VIC-II)
-
-  - r68: color sprite 0 (VIC-II)
-  - r69: color sprite 1 (VIC-II)
-  - r70: color sprite 2 (VIC-II)
-  - r71: color sprite 3 (VIC-II)
-  - r72: color sprite 4 (VIC-II)
-  - r73: color sprite 5 (VIC-II)
-  - r74: color sprite 6 (VIC-II)
-  - r75: color sprite 7 (VIC-II)
 
 ## CRTC/VDC emulation
 
