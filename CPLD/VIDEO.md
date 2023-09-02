@@ -108,6 +108,7 @@ Sprite registers (subject to change):
   - bit 2: Y-expand
   - bit 3: Multicolour flag
   - bit 4: sprite data priority
+  - bit 5: sprite border flag (if set, show over border)
 - r44: color sprite 0 (VIC-II)
 
 - r45-r49: sprite 1

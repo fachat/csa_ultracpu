@@ -165,6 +165,9 @@ architecture Behavioral of Video is
 
 	-- geo signals
 	--
+   signal x_addr: std_logic_vector(9 downto 0);    -- x coordinate in pixels
+   signal y_addr: std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
+
 	-- pulse at end of raster line; falling slotclk
 	signal last_slot_of_line : std_logic := '0'; 
 	-- pulse for last visible character/slot; falling slotclk
@@ -237,7 +240,26 @@ architecture Behavioral of Video is
 			return('0');
 		end if;
 	end function To_Std_Logic;
-	
+
+	-- VGA canvas (fixed timing, ?_addr start with 0/0 on upper left edge, outside visible area)
+	component Canvas is
+    	Port (
+           qclk: in std_logic;          -- Q clock (50MHz)
+           dotclk: in std_logic_vector(3 downto 0);     -- 25Mhz, 1/2, 1/4, 1/8, 1/16
+
+           h_sync : out  STD_LOGIC;
+           v_sync : out  STD_LOGIC;
+
+           h_enable : out std_logic;
+           v_enable : out std_logic;
+
+           x_addr: out std_logic_vector(9 downto 0);    -- x coordinate in pixels
+           y_addr: out std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
+
+           reset : in std_logic
+        );
+	end component;
+
 begin
 
 	slotclk <= dotclk(3);
@@ -386,6 +408,19 @@ begin
 	-----------------------------------------------------------------------------
 	-- horizontal geometry calculation
 
+	vgacanvas: Canvas
+	port map (
+		qclk,
+		dotclk,
+		h_sync_int,
+		v_sync_int,
+		h_enable,
+		v_enable,
+		x_addr,
+		y_addr,
+		reset
+	);
+
 	-- note: needs to be synchronized, as otherwise bouncing would appear from 
 	-- different signal path lengths in different bits, resulting in line counter running
 	-- twice the speed it should.
@@ -413,19 +448,19 @@ begin
 			end if;
 			
 			-- sync
-			if (slot_cnt >= 84 and slot_cnt < 96) then
-				h_sync_int <= '1';
-			else
-				h_sync_int <= '0';
-			end if;
+--			if (slot_cnt >= 84 and slot_cnt < 96) then
+--				h_sync_int <= '1';
+--			else
+--				h_sync_int <= '0';
+--			end if;
 			
 			-- last visible slot (visible from 0 to 80,
 			-- but during slot 0 SR is empty, and only fetches take place)
 			if (slot_cnt = slots_per_line) then
-				h_enable <= '0';
+--				h_enable <= '0';
 				last_vis_slot_of_line <= '1';
 			elsif (slot_cnt = 0) then
-				h_enable <= '1';
+--				h_enable <= '1';
 			else 
 				last_vis_slot_of_line <= '0';
 			end if;
@@ -464,22 +499,22 @@ begin
 				end if;
 			end if;
 			
-			if (rows_per_char(3) = '1' or movesync = '1') then
-				-- 9 pixel rows per char, i.e. 450 pixel rows used
-				-- moves first displayed PET row into VGA pixel row 24
-				-- last displayed PET row is VGA pixel row 473
-				if (rline_cnt >= 475 and rline_cnt < 477) then
-					v_sync_int <= '1';
-				else
-					v_sync_int <= '0';
-				end if;
-			else
-				if (rline_cnt >= 450 and rline_cnt < 452) then
-					v_sync_int <= '1';
-				else
-					v_sync_int <= '0';
-				end if;
-			end if;
+--			if (rows_per_char(3) = '1' or movesync = '1') then
+--				-- 9 pixel rows per char, i.e. 450 pixel rows used
+--				-- moves first displayed PET row into VGA pixel row 24
+--				-- last displayed PET row is VGA pixel row 473
+--				if (rline_cnt >= 475 and rline_cnt < 477) then
+--					v_sync_int <= '1';
+--				else
+--					v_sync_int <= '0';
+--				end if;
+--			else
+--				if (rline_cnt >= 450 and rline_cnt < 452) then
+--					v_sync_int <= '1';
+--				else
+--					v_sync_int <= '0';
+--				end if;
+--			end if;
 		end if;
 	end process;
 
@@ -499,10 +534,10 @@ begin
 			end if;
 
 			-- venable
-			v_enable <= '0';
-			if (rline_cnt < 450) then	--468) then
-				v_enable <= '1';
-			end if;
+--			v_enable <= '0';
+--			if (rline_cnt < 450) then	--468) then
+--				v_enable <= '1';
+--			end if;
 			
 		  else	-- rows_per_char(3) = '0'
 		  
@@ -515,11 +550,11 @@ begin
 				last_line_of_char <= '0';
 			end if;
 
-			-- venable
-			v_enable <= '0';
-			if (rline_cnt < 400) then	--416) then
-				v_enable <= '1';
-			end if;
+--			-- venable
+--			v_enable <= '0';
+--			if (rline_cnt < 400) then	--416) then
+--				v_enable <= '1';
+--			end if;
 		  end if; -- crtc_is_9rows
 
 		    -- common for 8/9 pixel rows per char
