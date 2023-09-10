@@ -101,6 +101,10 @@ architecture Behavioral of Video is
 	signal uline_scan : std_logic_vector(4 downto 0);
 	signal uline_active: std_logic;			-- set when underline is active in scanline (but still needs attribute to be set)
 
+	--- new geo
+	signal x_state: std_logic_vector(1 downto 0);
+	signal x_border: std_logic;
+	signal x_start: std_logic;
 	---
 	signal cblink_mode: std_logic;			-- character blink mode, R24.5
 	signal cblink_active: std_logic;		-- when set, character blinking is active
@@ -123,6 +127,7 @@ architecture Behavioral of Video is
 	signal rows_per_char: std_logic_vector(3 downto 0);
 	signal slots_per_line: std_logic_vector(6 downto 0);
 	signal clines_per_screen: std_logic_vector(6 downto 0);
+	signal hsync_pos: std_logic_vector(6 downto 0);
 	
 	signal vid_base : std_logic_vector(15 downto 0);
 	signal attr_base : std_logic_vector(15 downto 0);
@@ -168,6 +173,11 @@ architecture Behavioral of Video is
    signal x_addr: std_logic_vector(9 downto 0);    -- x coordinate in pixels
    signal y_addr: std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
 
+	-- border
+	signal h_shift: std_logic_vector(3 downto 0);
+	signal h_extborder: std_logic;
+	signal is_preload: std_logic;
+	
 	-- pulse at end of raster line; falling slotclk
 	signal last_slot_of_line : std_logic := '0'; 
 	-- pulse for last visible character/slot; falling slotclk
@@ -194,7 +204,7 @@ architecture Behavioral of Video is
 	signal sr_window : std_logic;
 	signal slotclk : std_logic;
 	
-	-- clock enables (16 pixels in two slots)
+	-- clock phases (16 half-pixels in one slot)
 	signal pxl0_ce: std_logic;
 	signal pxl1_ce: std_logic;
 	signal pxl2_ce: std_logic;
@@ -260,6 +270,25 @@ architecture Behavioral of Video is
         );
 	end component;
 
+	component VBorder is
+		Port (
+			qclk: in std_logic;
+			dotclk: in std_logic_vector(3 downto 0);
+			x_addr: in std_logic_vector(9 downto 0);    -- x coordinate in pixels
+			
+			hsync_pos: in std_logic_vector(6 downto 0);
+			slots_per_line: in std_logic_vector(6 downto 0);
+			h_shift: in std_logic_vector(3 downto 0);
+			h_extborder: in std_logic;
+			is_80: in std_logic;
+			
+			is_preload: out std_logic;		-- one slot before end of border
+			is_border: out std_logic;			
+			
+			reset : in std_logic
+		);
+	end component;
+	
 begin
 
 	slotclk <= dotclk(3);
@@ -406,8 +435,10 @@ begin
 	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
 
 	-----------------------------------------------------------------------------
-	-- horizontal geometry calculation
+	-- geometry calculation
 
+	-------------------------------------------
+	-- VGA canvas, incl. fixed enable output
 	vgacanvas: Canvas
 	port map (
 		qclk,
@@ -421,15 +452,35 @@ begin
 		reset
 	);
 
+	-------------------------------------------
+	-- border calculations and display state
+
+	v_border: VBorder
+	port map (
+			qclk,
+			dotclk,
+			x_addr,
+			hsync_pos,
+			slots_per_line,
+			h_shift,
+			h_extborder,			
+			is_preload,
+			is_80,
+			x_border,
+			reset
+	);
+
+	x_start <= is_preload;
+
 	-- note: needs to be synchronized, as otherwise bouncing would appear from 
 	-- different signal path lengths in different bits, resulting in line counter running
 	-- twice the speed it should.
-	CharCnt: process(slotclk, last_slot_of_line, slot_cnt, reset)
+	CharCnt: process(slotclk, x_start, slot_cnt, reset)
 	begin
 		if (reset = '1') then
 			slot_cnt <= (others => '0');
 		elsif (rising_edge(slotclk)) then
-			if (last_slot_of_line = '1') then
+			if (x_start = '1') then
 				slot_cnt <= (others => '0');
 			else
 				slot_cnt <= slot_cnt + 1;
@@ -441,17 +492,10 @@ begin
 	begin
 		if (falling_edge(slotclk)) then
 			-- end of line
-			if(slot_cnt = 99) then
-				last_slot_of_line <= '1';
-			else
-				last_slot_of_line <= '0';
-			end if;
-			
-			-- sync
---			if (slot_cnt >= 84 and slot_cnt < 96) then
---				h_sync_int <= '1';
+--			if(slot_cnt = 99) then
+--				last_slot_of_line <= '1';
 --			else
---				h_sync_int <= '0';
+--				last_slot_of_line <= '0';
 --			end if;
 			
 			-- last visible slot (visible from 0 to 80,
@@ -499,22 +543,6 @@ begin
 				end if;
 			end if;
 			
---			if (rows_per_char(3) = '1' or movesync = '1') then
---				-- 9 pixel rows per char, i.e. 450 pixel rows used
---				-- moves first displayed PET row into VGA pixel row 24
---				-- last displayed PET row is VGA pixel row 473
---				if (rline_cnt >= 475 and rline_cnt < 477) then
---					v_sync_int <= '1';
---				else
---					v_sync_int <= '0';
---				end if;
---			else
---				if (rline_cnt >= 450 and rline_cnt < 452) then
---					v_sync_int <= '1';
---				else
---					v_sync_int <= '0';
---				end if;
---			end if;
 		end if;
 	end process;
 
@@ -533,11 +561,6 @@ begin
 				last_line_of_char <= '0';
 			end if;
 
-			-- venable
---			v_enable <= '0';
---			if (rline_cnt < 450) then	--468) then
---				v_enable <= '1';
---			end if;
 			
 		  else	-- rows_per_char(3) = '0'
 		  
@@ -550,11 +573,6 @@ begin
 				last_line_of_char <= '0';
 			end if;
 
---			-- venable
---			v_enable <= '0';
---			if (rline_cnt < 400) then	--416) then
---				v_enable <= '1';
---			end if;
 		  end if; -- crtc_is_9rows
 
 		    -- common for 8/9 pixel rows per char
@@ -576,7 +594,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- address calculations
 	
-	AddrHold: process(slotclk, last_slot_of_line, last_line_of_screen, vid_addr, reset) 
+	AddrHold: process(slotclk, last_line_of_screen, vid_addr, reset) 
 	begin
 		if (reset ='1') then
 			vid_addr_hold <= (others => '0');
@@ -595,18 +613,18 @@ begin
 		end if;
 	end process;
 	
-	AddrCnt: process(last_slot_of_line, last_line_of_screen, vid_addr, vid_addr_hold, is_80, in_slot, slotclk, reset)
+	AddrCnt: process(x_start, last_line_of_screen, vid_addr, vid_addr_hold, is_80, in_slot, slotclk, reset)
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
 			attr_addr <= (others => '0');
 		elsif (falling_edge(slotclk)) then
-			if (last_line_of_screen = '1' and last_slot_of_line = '1') then
+			if (last_line_of_screen = '1' and x_start = '1') then
 				vid_addr <= (others => '0');
 				attr_addr <= (others => '0');
 				is_80 <= is_80_in;
 			else
-				if (last_slot_of_line = '0') then
+				if (x_start = '0') then
 					if (is_80 = '1' or in_slot = '1') then
 						vid_addr <= vid_addr + 1;
 						attr_addr <= attr_addr + 1;
@@ -715,7 +733,9 @@ begin
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
 
-			if (mode_extended = '0' and mode_attrib = '0') then
+			if (x_border = '1') then
+				vid_out <= col_border;
+			elsif (mode_extended = '0' and mode_attrib = '0') then
 				if is_outbit = '0' then
 					vid_out <= col_bg0;
 				else
@@ -791,15 +811,14 @@ begin
 
 	dbg_out <= '0';
 
-	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, reset) 
+	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, reset) 
 	begin
 		if (reset = '1') then
 			crtc_reg <= (others => '0');
 		elsif (falling_edge(phi2) and crtc_sel = '1' ) then
 		
 			if (crtc_rs=x"3") then
-				crtc_reg <= crtc_reg + 1;
-				crtc_reg(7 downto 6) <= "00";			
+				crtc_reg(5 downto 0) <= crtc_reg(5 downto 0) + 1;
 			elsif (crtc_rs=x"0" and crtc_rwb = '0' ) then
 				crtc_reg(5 downto 0) <= CPU_D(5 downto 0);
 			end if;
@@ -818,6 +837,7 @@ begin
 			crsr_address <= (others => '0');
 			rows_per_char <= X"7";
 			slots_per_line <= "1010000";	-- 80
+			hsync_pos <= "1011000";	-- 88
 			clines_per_screen <= "0011001";	-- 25
 			attr_base <= x"d000";
 			vid_base <= x"9000";
@@ -837,6 +857,9 @@ begin
 			when x"01" =>
 				-- note: value written is doubled (as in the PET for 80 columns)
 				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+			when x"02" => 
+				-- horizontal sync
+				hsync_pos(6 downto 1) <= CPU_D(5 downto 0);
 			when x"06" => 
 				clines_per_screen <= CPU_D(6 downto 0);
 			when x"09" =>
@@ -864,6 +887,8 @@ begin
 				cblink_mode <= CPU_D(5);
 				mode_rev <= CPU_D(6);
 			when x"19" =>	-- R25
+				h_shift <= CPU_D(3 downto 0);
+				h_extborder <= CPU_D(4);
 				mode_attrib <= CPU_D(6);
 				mode_bitmap <= CPU_D(7);
 			when x"1a" => 	-- R26
@@ -886,7 +911,7 @@ begin
 		end if;
 	end process;
 
-	readreg: process(crtc_rwb, crtc_sel, crtc_rs, reset) 
+	readreg: process(crtc_rwb, crtc_sel, crtc_rs, crtc_reg, reset) 
 	begin
 		if (reset = '1') then
 			vd_out <= (others => '0');
@@ -907,6 +932,8 @@ begin
 					when x"01" =>
 						-- note: value written is doubled (as in the PET for 80 columns)
 						vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+					when x"02" =>
+						vd_out(5 downto 0) <= hsync_pos(6 downto 1);
 					when x"06" => 
 						vd_out(6 downto 0) <= clines_per_screen;
 					when x"09" =>

@@ -60,6 +60,7 @@ architecture Behavioral of Canvas is
 	-- all values in pixels
 	-- note: cummulative, starting with back porch
 	-- reason: can be used as sprite coordinate, with full pixel being inside left/upper border at 0/0
+	-- note: back/p and width 8 lower than actual, as h_enable is delayed one slot
 	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned(48  						-1, 10));
 	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned(48 + 640	 				-1, 10));
 	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned(48 + 640 + 16 			-1, 10));
@@ -99,9 +100,10 @@ begin
 			h_state <= "00";
 			h_sync <= '0';
 			h_enable_int <= '0';
-		elsif (falling_edge(qclk) and dotclk(0) = '1') then
+		elsif (falling_edge(qclk) and dotclk(0) = '0') then
 
-			if (h_limit = '1' and h_state = "11") then
+			if (h_limit = '1' and h_state = "11" and dotclk(3 downto 1) = "111") then
+				-- sync with slotcnt / memclk by setting to zero on dotclk="1110"
 				h_cnt <= (others => '0');
 			else
 				h_cnt <= h_cnt + 1;
@@ -128,7 +130,7 @@ begin
 	begin 
 		if (reset = '1') then
 			h_limit <= '0';
-		elsif (falling_edge(qclk) and dotclk(0) = '0') then
+		elsif (falling_edge(qclk) and dotclk(0) = '1') then
 
 			h_limit <= '0';
 
@@ -146,7 +148,7 @@ begin
 						h_limit <= '1';
 					end if;
 				when "11" =>	-- sync
-					if (h_cnt = h_sync_width) then
+					if (h_cnt >= h_sync_width) then
 						h_limit <= '1';
 					end if;
 				when others =>
