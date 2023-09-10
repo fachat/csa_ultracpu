@@ -464,8 +464,8 @@ begin
 			slots_per_line,
 			h_shift,
 			h_extborder,			
-			is_preload,
 			is_80,
+			is_preload,
 			x_border,
 			reset
 	);

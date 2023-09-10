@@ -72,16 +72,17 @@ begin
 			if (dotclk(0) = '1') then
 				if (x_addr = 0) then			-- start of line
 					x_state <= "00";			
-				elsif ((is_80 = '0' and x_addr = 48)
-						or (is_80 = '1' and x_addr = 56)) then	-- 8 pixels before border ends
+				elsif ((is_80 = '0' and x_addr = 48)	-- works and has no offset per line, but misses three chars at start
+						or (is_80 = '1' and x_addr = 56)) then	-- has one char offset per line
 					x_state <= "01";			-- pre-fetch first char
 					is_preload <= '1';
-				elsif (x_addr = 64) then
+				elsif ((is_80 = '0' and x_addr = 64)
+						or (is_80 = '1' and x_addr = 64)) then
 --				elsif (x_addr(9 downto 3) = hsync_pos-80) then	-- left border ends
 					x_state <= "10";			-- display
 					is_border <= '0';
 					is_preload <= '0';
-				elsif (x_addr = 672) then
+				elsif (x_addr = 672) then -- 8 pixels before screen end border starts
 --				elsif (x_addr(9 downto 3) = (hsync_pos - 80) + slots_per_line) then
 					x_state <= "11";			-- right border starts
 					is_border <= '1';
