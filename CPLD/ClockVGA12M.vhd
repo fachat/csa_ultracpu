@@ -52,8 +52,6 @@ end Clock;
 architecture Behavioral of Clock is
 
 	signal clk_cnt : std_logic_vector(5 downto 0);
-	signal cpu_cnt1 : std_logic_vector(3 downto 0);
-	signal memclk_int : std_logic;
 		
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
@@ -82,7 +80,7 @@ begin
 	
 	-- We have 16 pixels with 40ns each (at 80 cols). 
 	-- We run the CPU with 80ns clock cycle, i.e. 12.5 MHz
-	out_p: process(qclk, reset, clk_cnt, memclk_int)
+	out_p: process(qclk, reset, clk_cnt)
 	begin
 		if (reset = '1') then
 			memclk <= '0';

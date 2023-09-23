@@ -102,7 +102,6 @@ architecture Behavioral of Video is
 	signal uline_active: std_logic;			-- set when underline is active in scanline (but still needs attribute to be set)
 
 	--- new geo
-	signal x_state: std_logic_vector(1 downto 0);
 	signal x_border: std_logic;
 	signal x_start: std_logic;
 	---
@@ -138,7 +137,9 @@ architecture Behavioral of Video is
 	-- one slot may need none (out of screen), one (hires), or two (character display) 
 	-- memory accesses. At 16MHz pixel, a slot has four potential memory accesses at 8MHz
 	-- up to 127 slots/line
-	signal slot_cnt : std_logic_vector (6 downto 0) := (others => '0');
+	--
+	-- now see ClockBorder.vhd
+	
 	-- count raster lines
 	signal rline_cnt : std_logic_vector (9 downto 0) := (others => '0');
 	-- count raster lines per character lines
@@ -178,8 +179,6 @@ architecture Behavioral of Video is
 	signal h_extborder: std_logic;
 	signal is_preload: std_logic;
 	
-	-- pulse at end of raster line; falling slotclk
-	signal last_slot_of_line : std_logic := '0'; 
 	-- pulse for last visible character/slot; falling slotclk
 	signal last_vis_slot_of_line : std_logic := '0';
 	-- pulse at end of character line; falling slotclk
@@ -197,6 +196,7 @@ architecture Behavioral of Video is
 	signal v_sync_int : std_logic := '0';
 	
 	-- intermediate
+	signal h_zero: std_logic;
 	signal a_out : std_logic_vector (15 downto 0);
 	signal chr_window : std_logic;
 	signal pxl_window : std_logic;
@@ -260,6 +260,7 @@ architecture Behavioral of Video is
            h_sync : out  STD_LOGIC;
            v_sync : out  STD_LOGIC;
 
+			  h_zero : out std_logic;
            h_enable : out std_logic;
            v_enable : out std_logic;
 
@@ -273,9 +274,9 @@ architecture Behavioral of Video is
 	component VBorder is
 		Port (
 			qclk: in std_logic;
-			dotclk: in std_logic_vector(3 downto 0);
-			x_addr: in std_logic_vector(9 downto 0);    -- x coordinate in pixels
+			dotclk: in std_logic_vector(3 downto 0);			
 			
+			h_zero: in std_logic;
 			hsync_pos: in std_logic_vector(6 downto 0);
 			slots_per_line: in std_logic_vector(6 downto 0);
 			h_shift: in std_logic_vector(3 downto 0);
@@ -284,6 +285,8 @@ architecture Behavioral of Video is
 			
 			is_preload: out std_logic;		-- one slot before end of border
 			is_border: out std_logic;			
+			is_last_vis: out std_logic;
+			in_slot: out std_logic;
 			
 			reset : in std_logic
 		);
@@ -389,17 +392,6 @@ begin
 			end if;
 	end process;
 	
-	in_slot_cnt_p: process(qclk, in_slot, slotclk, reset)
-	begin
-		if (reset = '1') then
-			in_slot <= '0';
-		elsif (falling_edge(slotclk)) then
---		elsif (falling_edge(qclk)) then
---			if (pxlf_ce = '1') then
-				in_slot <= slot_cnt(0);
---			end if;
-		end if;
-	end process;
 
 	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace or not(rline_cnt(0)));
 	
@@ -445,6 +437,7 @@ begin
 		dotclk,
 		h_sync_int,
 		v_sync_int,
+		h_zero,
 		h_enable,
 		v_enable,
 		x_addr,
@@ -459,7 +452,7 @@ begin
 	port map (
 			qclk,
 			dotclk,
-			x_addr,
+			h_zero,
 			hsync_pos,
 			slots_per_line,
 			h_shift,
@@ -467,51 +460,13 @@ begin
 			is_80,
 			is_preload,
 			x_border,
+			last_vis_slot_of_line,
+			in_slot,
 			reset
 	);
 
 	x_start <= is_preload;
 
-	-- note: needs to be synchronized, as otherwise bouncing would appear from 
-	-- different signal path lengths in different bits, resulting in line counter running
-	-- twice the speed it should.
-	CharCnt: process(slotclk, x_start, slot_cnt, reset)
-	begin
-		if (reset = '1') then
-			slot_cnt <= (others => '0');
-		elsif (rising_edge(slotclk)) then
-			if (x_start = '1') then
-				slot_cnt <= (others => '0');
-			else
-				slot_cnt <= slot_cnt + 1;
-			end if;
-		end if;
-	end process;
-
-	SlotProx: process(slot_cnt, slotclk) 
-	begin
-		if (falling_edge(slotclk)) then
-			-- end of line
---			if(slot_cnt = 99) then
---				last_slot_of_line <= '1';
---			else
---				last_slot_of_line <= '0';
---			end if;
-			
-			-- last visible slot (visible from 0 to 80,
-			-- but during slot 0 SR is empty, and only fetches take place)
-			if (slot_cnt = slots_per_line) then
---				h_enable <= '0';
-				last_vis_slot_of_line <= '1';
-			elsif (slot_cnt = 0) then
---				h_enable <= '1';
-			else 
-				last_vis_slot_of_line <= '0';
-			end if;
-			
-		end if;
-		
-	end process;
 
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
 	
@@ -797,7 +752,8 @@ begin
 		-- sr_load_d changes on rising edge of qclk
 		-- in_slot changes at falling edge of slotclk, which itself changes on falling edge of qclk
 		if (rising_edge(nsrload)
-			and (in_slot = '1')) then
+			--and (in_slot = '1')
+			) then
 			enable <= h_enable and v_enable
 				and (interlace or not(rline_cnt(0)));
 		end if;
@@ -837,7 +793,7 @@ begin
 			crsr_address <= (others => '0');
 			rows_per_char <= X"7";
 			slots_per_line <= "1010000";	-- 80
-			hsync_pos <= "1011000";	-- 88
+			hsync_pos <= "0001010";	-- 10
 			clines_per_screen <= "0011001";	-- 25
 			attr_base <= x"d000";
 			vid_base <= x"9000";
@@ -859,7 +815,7 @@ begin
 				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
 			when x"02" => 
 				-- horizontal sync
-				hsync_pos(6 downto 1) <= CPU_D(5 downto 0);
+				--hsync_pos(6 downto 1) <= CPU_D(5 downto 0);
 			when x"06" => 
 				clines_per_screen <= CPU_D(6 downto 0);
 			when x"09" =>

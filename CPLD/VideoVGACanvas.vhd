@@ -40,13 +40,14 @@ entity Canvas is
 	   dotclk: in std_logic_vector(3 downto 0);	-- 25Mhz, 1/2, 1/4, 1/8, 1/16
 
 	   v_sync : out  STD_LOGIC;
-           h_sync : out  STD_LOGIC;
+      h_sync : out  STD_LOGIC;
 
-    	   h_enable : out std_logic;
-    	   v_enable : out std_logic;
+		h_zero : out std_logic;
+    	h_enable : out std_logic;
+    	v_enable : out std_logic;
 
 	   x_addr: out std_logic_vector(9 downto 0);	-- x coordinate in pixels
-           y_addr: out std_logic_vector(9 downto 0);	-- y coordinate in rasterlines
+      y_addr: out std_logic_vector(9 downto 0);	-- y coordinate in rasterlines
 
 	   reset : in std_logic
 	   );
@@ -60,11 +61,12 @@ architecture Behavioral of Canvas is
 	-- all values in pixels
 	-- note: cummulative, starting with back porch
 	-- reason: can be used as sprite coordinate, with full pixel being inside left/upper border at 0/0
-	-- note: back/p and width 8 lower than actual, as h_enable is delayed one slot
-	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned(48  						-1, 10));
-	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned(48 + 640	 				-1, 10));
-	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned(48 + 640 + 16 			-1, 10));
-	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned(48 + 640 + 16 + 96 	-1, 10));
+	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned((48  						-16)/8	-1, 10));
+	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((48 + 640	 				-16)/8	-1, 10));
+	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 			)/8		-1, 10));
+	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 	)/8		-1, 10));
+	-- zero for pixel coordinates is 80 pixels left of default borders
+	constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 - (80-48))	-2, 10));
 
 	-- all values in rasterlines
 	constant v_back_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33							-1, 10));
@@ -87,26 +89,31 @@ architecture Behavioral of Canvas is
 	signal v_cnt: std_logic_vector(9 downto 0);
 
 	signal h_enable_int: std_logic;
+	signal h_zero_int: std_logic;
+
+	signal x_addr_int: std_logic_vector(9 downto 0);
 
 begin
 
 	-----------------------------------------------------------------------------
 	-- horizontal geometry calculation
 
+	h_cnt(2 downto 0) <= dotclk(2 downto 0);
+	
 	pxl: process(qclk, dotclk, h_cnt, h_limit, reset)
 	begin 
 		if (reset = '1') then
-			h_cnt <= (others => '0');
+			h_cnt(9 downto 4) <= (others => '0');
 			h_state <= "00";
 			h_sync <= '0';
 			h_enable_int <= '0';
-		elsif (falling_edge(qclk) and dotclk(0) = '0') then
+		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "1111") then
 
-			if (h_limit = '1' and h_state = "11" and dotclk(3 downto 1) = "111") then
+			if (h_limit = '1' and h_state = "11") then
 				-- sync with slotcnt / memclk by setting to zero on dotclk="1110"
-				h_cnt <= (others => '0');
+				h_cnt(9 downto 3) <= (others => '0');
 			else
-				h_cnt <= h_cnt + 1;
+				h_cnt(9 downto 3) <= h_cnt(9 downto 3) + 1;
 			end if;
 
 			if (h_limit = '1') then
@@ -125,30 +132,29 @@ begin
 		end if;
 	end process;
 
-
 	h_limit_p: process(qclk, dotclk, h_cnt, reset)
 	begin 
 		if (reset = '1') then
 			h_limit <= '0';
-		elsif (falling_edge(qclk) and dotclk(0) = '1') then
+		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "0111") then
 
 			h_limit <= '0';
 
 			case h_state is
 				when "00" =>	-- back porch
-					if (h_cnt = h_back_porch) then
+					if (h_cnt(9 downto 3) = h_back_porch) then
 						h_limit <= '1';
 					end if;
 				when "01" =>	-- data
-					if (h_cnt = h_width) then
+					if (h_cnt(9 downto 3) = h_width) then
 						h_limit <= '1';
 					end if;
 				when "10" =>	-- front porch
-					if (h_cnt = h_front_porch) then
+					if (h_cnt(9 downto 3) = h_front_porch) then
 						h_limit <= '1';
 					end if;
 				when "11" =>	-- sync
-					if (h_cnt >= h_sync_width) then
+					if (h_cnt(9 downto 3) = h_sync_width) then
 						h_limit <= '1';
 					end if;
 				when others =>
@@ -156,8 +162,35 @@ begin
 		end if;
 	end process;
 
+	hz: process(qclk, dotclk, h_cnt, reset)
+	begin 
+		if (reset = '1') then
+			h_zero_int <= '0';
+		elsif (falling_edge(qclk) and dotclk(2 downto 0) = "110") then
+			if (h_cnt(9 downto 0) = h_zero_pos) then
+				h_zero_int <= '1';
+			else 
+				h_zero_int <= '0';
+			end if;
+		end if;
+	end process;
+
 	h_enable <= h_enable_int;
-	x_addr <= h_cnt;
+	h_zero <= h_zero_int;
+	
+	xa: process(qclk, dotclk, h_zero_int, x_addr_int)
+	begin
+		if (falling_edge(qclk) and dotclk(0) = '1') then
+			if (h_zero_int = '1') then
+				x_addr_int <= (others => '0');
+			else
+				x_addr_int <= x_addr_int + 1;
+			end if;
+		end if;
+	end process;
+	
+	x_addr <= x_addr_int;
+	--x_addr <= h_cnt;
 
 	-----------------------------------------------------------------------------
 	-- vertical geometry calculation
