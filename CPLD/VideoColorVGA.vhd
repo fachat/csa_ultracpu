@@ -120,7 +120,6 @@ architecture Behavioral of Video is
 	signal is_80: std_logic;
 	
 	-- crtc register emulation
-	-- only 8/9 rows per char are emulated right now
 	signal crtc_reg: std_logic_vector(7 downto 0);
 	
 	signal rows_per_char: std_logic_vector(3 downto 0);
@@ -793,7 +792,7 @@ begin
 			crsr_address <= (others => '0');
 			rows_per_char <= X"7";
 			slots_per_line <= "1010000";	-- 80
-			hsync_pos <= "0001010";	-- 10
+			hsync_pos <= "0001000";	-- 8
 			clines_per_screen <= "0011001";	-- 25
 			attr_base <= x"d000";
 			vid_base <= x"9000";
@@ -814,8 +813,6 @@ begin
 				-- note: value written is doubled (as in the PET for 80 columns)
 				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
 			when x"02" => 
-				-- horizontal sync
-				--hsync_pos(6 downto 1) <= CPU_D(5 downto 0);
 			when x"06" => 
 				clines_per_screen <= CPU_D(6 downto 0);
 			when x"09" =>
@@ -854,13 +851,17 @@ begin
 				crom_base <= CPU_D;
 			when x"1d" => 	-- R29
 				uline_scan <= CPU_D(4 downto 0);
-			when x"21" =>	-- R33
+				
+			when x"27" =>	-- R39
 				mode_extended <= CPU_D(2);
-			when x"22" => 	-- R34
+			when x"28" => 	-- R40
 				col_bg1 <= CPU_D(3 downto 0);
 				col_bg2 <= CPU_D(7 downto 4);
-			when x"23" =>	-- R35
+			when x"29" =>	-- R41
 				col_border <= CPU_D(3 downto 0);
+			when x"2c" =>	-- R44
+				-- horizontal sync
+				hsync_pos(6 downto 0) <= CPU_D(6 downto 0);
 			when others =>
 				null;
 			end case;
@@ -889,7 +890,6 @@ begin
 						-- note: value written is doubled (as in the PET for 80 columns)
 						vd_out(5 downto 0) <= slots_per_line(6 downto 1);
 					when x"02" =>
-						vd_out(5 downto 0) <= hsync_pos(6 downto 1);
 					when x"06" => 
 						vd_out(6 downto 0) <= clines_per_screen;
 					when x"09" =>
@@ -926,13 +926,16 @@ begin
 						vd_out <= crom_base;
 					when x"1d" => 	-- R29
 						vd_out(4 downto 0) <= uline_scan;
-					when x"21" =>	-- R33
+						
+					when x"27" =>	-- R39
 						vd_out(2) <= mode_extended;
-					when x"22" => 	-- R34
+					when x"28" => 	-- R40
 						vd_out(3 downto 0) <= col_bg1;
 						vd_out(7 downto 4) <= col_bg2;
-					when x"23" =>	-- R35
+					when x"29" =>	-- R41
 						vd_out(3 downto 0) <= col_border;
+					when x"2c" =>	-- R44
+						vd_out(5 downto 0) <= hsync_pos(6 downto 1);
 					when others =>
 						null;
 					end case;

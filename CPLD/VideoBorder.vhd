@@ -69,6 +69,8 @@ architecture Behavioral of VBorder is
 	signal is_preload_int_d: std_logic;
 	signal is_preload_int_dd: std_logic;
 
+	signal is_border_int: std_logic;
+	
 	-- up to 127 slots/line
 	signal vh_cnt : std_logic_vector (6 downto 0) := (others => '0');
 
@@ -80,9 +82,12 @@ begin
 			vh_cnt <= (others => '0');
 			h_state <= '0';
 		elsif (falling_edge(qclk) and dotclk = "1111") then
-			if (h_zero = '1' or h_start = '1') then
+			if (h_zero = '1') then
 				vh_cnt <= (others => '0');
-				h_state <= h_start;
+				h_state <= '0';
+			elsif (h_start = '1') then
+				vh_cnt <= "0000001";
+				h_state <= '1';
 			else
 				vh_cnt <= vh_cnt + 1;
 			end if;
@@ -91,12 +96,14 @@ begin
 
 	Preload: process (qclk, vh_cnt, h_state, hsync_pos)
 	begin		
-			if (h_state = '0' and vh_cnt = 9) then --hsync_pos) then
+		if (falling_edge(qclk) and dotclk = "0000") then
+			if (h_state = '0' and vh_cnt = hsync_pos) then
 				is_preload_int <= '1';
 			else
 				is_preload_int <= '0';
 			end if;
-			
+		end if;
+		
 		if (falling_edge(qclk) and dotclk = "1111") then
 			is_preload_int_d <= is_preload_int;
 			is_preload_int_dd <= is_preload_int_d;
@@ -112,14 +119,17 @@ begin
 		if (falling_edge(qclk) and dotclk = "1111") then
 			is_last_vis <= '0';
 			--if (h_state = '0' and ((h_extborder = '0' and is_preload_int_d = '1') or is_preload_int_dd = '1')) then
-			if ((h_extborder = '0' and is_preload_int_d = '1') or is_preload_int_dd = '1') then
-					is_border <= '0';
-			elsif (h_state = '1' and vh_cnt = 80) then --slots_per_line) then
-					is_border <= '1';			
+			if ((h_extborder = '0' and is_preload_int = '1') or (is_80 = '1' and is_preload_int_d = '1') or (is_80 = '0' and is_preload_int_dd = '1')) then
+					is_border_int <= '0';
+			elsif (h_state = '1' and vh_cnt = slots_per_line) then
+					is_border_int <= '1';			
 					is_last_vis <= '1';
 			end if;
+			
+			is_border <= is_border_int;
 		end if;
 	end process;
+	
 	
 	in_slot_cnt_p: process(qclk, vh_cnt, reset)
 	begin

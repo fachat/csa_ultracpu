@@ -72,58 +72,73 @@ The following are the internal Viccy registers:
 - r28: character set start address
   - bits 7-5: character generator address bits A13-A15. (VDC)
 - r29: underline scan line count (VDC)
-- r32: rasterline counter low (bits 0-7)
-- r33: control register
+
+- (r30) block copy/fill word count
+- (r31) data register
+- (r32) block copy source (a15-a8)
+- (r33) block copy source (a7-a0)
+- (r34) display enable begin
+- (r35) display enable end
+- (r36) DRAM refresh cycles per rasterline
+
+- r37: sync status
+  - bit 5: vsync
+  - bit 6: hsync
+
+- r38: rasterline counter low (bits 0-7)
+- r39: control register
   - bits 1-0: bits 9/8 of the rasterline counter
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
   - bit 7-5: - 
-- r34: extended background colour 
+- r40: extended background colour 
   - bits 3-0 background colour 1
   - bits 7-4 background colour 2
-- r35: border colour
+- r41: border colour
   - bits 3-0: border colour
-- r36 IRQ control (VIC-II)
+- r42 IRQ control (VIC-II)
   - bit 0: raster match enable
   - bit 1: sprite/bitmap collision enable
   - bit 2: sprite/sprite collision enable
   - bit 7-3: unused
-- r37 IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
+- r43 IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
   - bit 0: raster match occured
   - bit 1: sprite/bitmap collision occured
   - bit 2: sprite/sprite collision occured
   - bit 6-3: unused
   - bit 7: one when interrupt has occurred
+- r44 horizontal position (in chars); replaces r2
+  - bit 0-6, defaults to 8
 
 Sprite registers (subject to change):
 
-- r40: X coordinate sprite 0 (VIC-II)
-- r41: Y coordinate sprite 0 (VIC-II)
-- r42: sprite 0 extra
+- r50: X coordinate sprite 0 (VIC-II)
+- r51: Y coordinate sprite 0 (VIC-II)
+- r52: sprite 0 extra
   - bit 1-0: bits 8-7 of sprite 0 X coordinate
   - bit 5-4: bits 8-7 of sprite 0 Y coordinate
-- r43: sprite 0 control
+- r53: sprite 0 control
   - bit 0: enable
   - bit 1: X-expand
   - bit 2: Y-expand
   - bit 3: Multicolour flag
   - bit 4: sprite data priority
   - bit 5: sprite border flag (if set, show over border)
-- r44: color sprite 0 (VIC-II)
+- r54: color sprite 0 (VIC-II)
 
-- r45-r49: sprite 1
-- r50-r54: sprite 2
-- r55-r59: sprite 3
-- r60-r64: sprite 4
-- r65-r69: sprite 5
-- r70-r74: sprite 6
-- r75-r79: sprite 7
+- r55-: sprite 1
+- r60-: sprite 2
+- r65-: sprite 3
+- r70-: sprite 4
+- r75-: sprite 5
+- r80-: sprite 6
+- r85-: sprite 7
 
-- r80: sprite-sprite collision (VIC-II)
-- r81: sprite-data collision (VIC-II)
+- r90: sprite-sprite collision (VIC-II)
+- r91: sprite-data collision (VIC-II)
 
-- r82: sprite multicolor 0 (VIC-II)
-- r83: sprite multicolor 1 (VIC-II)
+- r92: sprite multicolor 0 (VIC-II)
+- r93: sprite multicolor 1 (VIC-II)
 
 
 ## CRTC/VDC emulation
