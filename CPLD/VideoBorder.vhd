@@ -118,15 +118,26 @@ begin
 		
 		if (falling_edge(qclk) and dotclk = "1111") then
 			is_last_vis <= '0';
+			is_border <= is_border_int;
 			--if (h_state = '0' and ((h_extborder = '0' and is_preload_int_d = '1') or is_preload_int_dd = '1')) then
-			if ((h_extborder = '0' and is_preload_int = '1') or (is_80 = '1' and is_preload_int_d = '1') or (is_80 = '0' and is_preload_int_dd = '1')) then
+			if ((h_extborder = '0' and is_preload_int = '1') 
+					or (is_80 = '1' and is_preload_int_d = '1') 
+					or (is_80 = '0' and is_preload_int_dd = '1')) 
+					then
 					is_border_int <= '0';
-			elsif (h_state = '1' and vh_cnt = slots_per_line) then
-					is_border_int <= '1';			
-					is_last_vis <= '1';
+			elsif (h_state = '1') then
+					if (vh_cnt = slots_per_line) then
+							is_last_vis <= '1';
+							is_border_int <= '1';
+							if (h_extborder = '1') then
+									is_border <= '1';
+							end if;
+					end if;
+					if (is_80 = '0' and h_extborder = '1' and vh_cnt = slots_per_line -1) then
+							is_border <= '1';
+					end if;
 			end if;
 			
-			is_border <= is_border_int;
 		end if;
 	end process;
 	

@@ -61,8 +61,8 @@ architecture Behavioral of Canvas is
 	-- all values in pixels
 	-- note: cummulative, starting with back porch
 	-- reason: can be used as sprite coordinate, with full pixel being inside left/upper border at 0/0
-	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned((48  						-16)/8	-1, 10));
-	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((48 + 640	 				-16)/8	-1, 10));
+	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned((48  						-8)/8	-1, 10));
+	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((48 + 640	 				-8)/8	-1, 10));
 	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 			)/8		-1, 10));
 	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 	)/8		-1, 10));
 	-- zero for pixel coordinates is 80 pixels left of default borders
