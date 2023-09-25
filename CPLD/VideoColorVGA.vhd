@@ -106,6 +106,8 @@ architecture Behavioral of Video is
 	signal x_border: std_logic;
 	signal x_start: std_logic;
 	signal y_border: std_logic;
+	signal rline_cnt0: std_logic;
+
 	---
 	signal cblink_mode: std_logic;			-- character blink mode, R24.5
 	signal cblink_active: std_logic;		-- when set, character blinking is active
@@ -180,6 +182,7 @@ architecture Behavioral of Video is
 	signal h_shift: std_logic_vector(3 downto 0);
 	signal h_extborder: std_logic;
 	signal is_preload: std_logic;
+	signal v_extborder: std_logic;
 	
 	-- pulse for last visible character/slot; falling slotclk
 	signal last_vis_slot_of_line : std_logic := '0';
@@ -296,6 +299,27 @@ architecture Behavioral of Video is
 			reset : in std_logic
 		);
 	end component;
+
+	component VBorder is
+		Port (
+			h_sync: in std_logic;
+			
+			v_zero: in std_logic;
+			vsync_pos: in std_logic_vector(7 downto 0);
+			rows_per_char: in std_logic_vector(3 downto 0);
+			clines_per_screen: in std_logic_vector(6 downto 0);
+			v_extborder: in std_logic;			
+			is_double: in std_logic;
+			
+			is_border: out std_logic;			
+			is_last_row_of_char: out std_logic;
+			is_last_row_of_screen: out std_logic;
+			rcline_cnt: out std_logic_vector(3 downto 0);
+			rline_cnt0: out std_logic;
+			
+			reset : in std_logic
+		);
+	end component;
 	
 begin
 
@@ -398,7 +422,7 @@ begin
 	end process;
 	
 
-	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace or not(rline_cnt(0)));
+	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace or not(rline_cnt0));
 	
 	-- access indicators
 	--
@@ -414,19 +438,19 @@ begin
 
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
-	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace or not(rline_cnt(0))) ;
+	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace or not(rline_cnt0)) ;
 
 	-- col fetch
-	attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace or not(rline_cnt(0)));
+	attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace or not(rline_cnt0));
 	
 	-- hires fetch
-	pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
+	pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace or not(rline_cnt0));
 	
 	-- character rom fetch
-	crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
+	crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace or not(rline_cnt0));
 
 	-- sr load
-	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace or not(rline_cnt(0)));
+	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace or not(rline_cnt0));
 	
 	-- video access?
 	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
@@ -473,83 +497,101 @@ begin
 
 	x_start <= is_preload;
 
-
+	v_border: VBorder
+	port map (
+			h_sync_int,	
+			v_zero,
+			vsync_pos,
+			rows_per_char,
+			clines_per_screen,
+			v_extborder,
+			is_double,
+			y_border,
+			last_line_of_char,
+			last_line_of_screen,
+			rcline_cnt,
+			rline_cnt0,
+			reset
+	);
+	
+--	rline_cnt0 <= rline_cnt(0);
+	
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
+	
+	is_80 <= is_80_in;
 	
 	-----------------------------------------------------------------------------
 	-- vertical geometry calculation
-
-	y_border <= '0';
 	
-	next_row <= rline_cnt(0) or is_double;
-
-	LineCnt: process(h_sync_int, last_line_of_screen, rline_cnt, rcline_cnt, reset)
-	begin
-		if (reset = '1') then
-			rline_cnt <= (others => '0');
-			rcline_cnt <= (others => '0');
-			cline_cnt <= (others => '0');
-		elsif (rising_edge(h_sync_int)) then
-			if (v_zero = '1') then
-				rline_cnt <= (others => '0');
-				rcline_cnt <= (others => '0');
-				cline_cnt <= (others => '0');
-			else
-				rline_cnt <= rline_cnt + 1;
-				
-				if (last_line_of_char = '1') then
-					rcline_cnt <= (others => '0');
-					cline_cnt <= cline_cnt + 1;
-				elsif (next_row = '1') then
-					-- display each char line twice
-					rcline_cnt <= rcline_cnt + 1;
-				end if;
-			end if;
-			
-		end if;
-	end process;
-
-	LineProx: process(h_sync_int)
-	begin
-		if (falling_edge(h_sync_int)) then
-			
-		  if (rows_per_char(3) = '1') then
-		  
-			-- timing for 9 or more pixel rows per character
-			-- end of character line
-			if ((mode_bitmap = '1' or rcline_cnt = 8) and next_row = '1') then
-				-- if hires, everyone
-				last_line_of_char <= '1';
-			else
-				last_line_of_char <= '0';
-			end if;
-
-			
-		  else	-- rows_per_char(3) = '0'
-		  
-			-- timing for 8 pixel rows per character
-			-- end of character line
-			if ((mode_bitmap = '1' or rcline_cnt = rows_per_char) and next_row = '1') then
-				-- if hires, everyone
-				last_line_of_char <= '1';
-			else
-				last_line_of_char <= '0';
-			end if;
-
-		  end if; -- crtc_is_9rows
-
-		    -- common for 8/9 pixel rows per char
-		    
-			-- end of screen
-			if (rline_cnt = 524) then
-				last_line_of_screen <= '1';
-			else
-				last_line_of_screen <= '0';
-			end if;
-	
-		
-		end if; -- rising edge...
-	end process;
+--	next_row <= rline_cnt0 or is_double;
+--
+--	LineCnt: process(h_sync_int, last_line_of_screen, rline_cnt, rcline_cnt, reset)
+--	begin
+--		if (reset = '1') then
+--			rline_cnt <= (others => '0');
+--			rcline_cnt <= (others => '0');
+--			cline_cnt <= (others => '0');
+--		elsif (rising_edge(h_sync_int)) then
+--			if (v_zero = '1') then
+--				rline_cnt <= (others => '0');
+--				rcline_cnt <= (others => '0');
+--				cline_cnt <= (others => '0');
+--			else
+--				rline_cnt <= rline_cnt + 1;
+--				
+--				if (last_line_of_char = '1') then
+--					rcline_cnt <= (others => '0');
+--					cline_cnt <= cline_cnt + 1;
+--				elsif (next_row = '1') then
+--					-- display each char line twice
+--					rcline_cnt <= rcline_cnt + 1;
+--				end if;
+--			end if;
+--			
+--		end if;
+--	end process;
+--
+--	LineProx: process(h_sync_int)
+--	begin
+--		if (falling_edge(h_sync_int)) then
+--			
+--		  if (rows_per_char(3) = '1') then
+--		  
+--			-- timing for 9 or more pixel rows per character
+--			-- end of character line
+--			if ((mode_bitmap = '1' or rcline_cnt = 8) and next_row = '1') then
+--				-- if hires, everyone
+--				last_line_of_char <= '1';
+--			else
+--				last_line_of_char <= '0';
+--			end if;
+--
+--			
+--		  else	-- rows_per_char(3) = '0'
+--		  
+--			-- timing for 8 pixel rows per character
+--			-- end of character line
+--			if ((mode_bitmap = '1' or rcline_cnt = rows_per_char) and next_row = '1') then
+--				-- if hires, everyone
+--				last_line_of_char <= '1';
+--			else
+--				last_line_of_char <= '0';
+--			end if;
+--
+--		  end if; -- crtc_is_9rows
+--
+--		    -- common for 8/9 pixel rows per char
+--		    
+--			-- end of screen
+--			if (rline_cnt = 524) then
+--				last_line_of_screen <= '1';
+--			else
+--				last_line_of_screen <= '0';
+--			end if;
+--	
+--		
+--		end if; -- rising edge...
+--	end process;
 
 	v_sync <= not(v_sync_int);
 	pet_vsync <= v_sync_int;
@@ -564,8 +606,8 @@ begin
 		elsif (rising_edge(slotclk)) then
 			if (last_vis_slot_of_line = '1') then
 				if (last_line_of_screen = '1') then
-													vid_addr_hold <= vid_base;
-													attr_addr_hold <= attr_base;
+					vid_addr_hold <= vid_base;
+					attr_addr_hold <= attr_base;
 				else
 					if (last_line_of_char = '1') then
 						vid_addr_hold <= vid_addr;
@@ -582,11 +624,11 @@ begin
 			vid_addr <= (others => '0');
 			attr_addr <= (others => '0');
 		elsif (falling_edge(slotclk)) then
-			if (last_line_of_screen = '1' and x_start = '1') then
-				vid_addr <= (others => '0');
-				attr_addr <= (others => '0');
-				is_80 <= is_80_in;
-			else
+--			if (last_line_of_screen = '1' and x_start = '1') then
+--				vid_addr <= (others => '0');
+--				attr_addr <= (others => '0');
+--				is_80 <= is_80_in;
+--			else
 				if (x_start = '0') then
 					if (is_80 = '1' or in_slot = '1') then
 						vid_addr <= vid_addr + 1;
@@ -596,7 +638,7 @@ begin
 					vid_addr <= vid_addr_hold;
 					attr_addr <= attr_addr_hold;
 				end if;
-			end if;
+--			end if;
 		end if;
 	end process;
 
@@ -763,7 +805,7 @@ begin
 			--and (in_slot = '1')
 			) then
 			enable <= h_enable and v_enable
-				and (interlace or not(rline_cnt(0)));
+				and (interlace or not(rline_cnt0));
 		end if;
 	end process;
 
@@ -816,6 +858,7 @@ begin
 			col_border <= "0111";
 			uline_scan <= (others => '0');
 			h_extborder <= '0';
+			v_extborder <= '0';
 			h_shift <= (others => '0');
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
@@ -862,6 +905,7 @@ begin
 			when x"15" =>	-- R21
 				attr_base(7 downto 0) <= CPU_D;
 			when x"18" =>	-- R24
+				v_extborder <= CPU_D(4);
 				cblink_mode <= CPU_D(5);
 				mode_rev <= CPU_D(6);
 			when x"19" =>	-- R25

@@ -281,7 +281,7 @@ begin
 
 	v_zero <= v_zero_int;
 	
-	ya: process(qclk, dotclk, v_zero_int, y_addr_int)
+	ya: process(qclk, dotclk, v_zero_int, y_addr_int, h_sync_int)
 	begin
 		if (rising_edge(h_sync_int)) then
 			if (h_zero_int = '1') then
