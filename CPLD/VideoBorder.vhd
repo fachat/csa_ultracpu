@@ -35,7 +35,7 @@ use ieee.numeric_std.all;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity VBorder is
+entity HBorder is
 		Port (
 			qclk: in std_logic;
 			dotclk: in std_logic_vector(3 downto 0);
@@ -57,9 +57,9 @@ entity VBorder is
 			reset : in std_logic
 		);
 
-end VBorder;
+end HBorder;
 
-architecture Behavioral of VBorder is
+architecture Behavioral of HBorder is
 
 	-- signal defs
 	signal h_state: std_logic;

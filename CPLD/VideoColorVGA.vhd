@@ -40,7 +40,7 @@ entity Video is
 	   
 	   --dena   : out std_logic;	-- display enable
 	   v_sync : out  STD_LOGIC;
-           h_sync : out  STD_LOGIC;
+      h_sync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;
@@ -74,8 +74,9 @@ architecture Behavioral of Video is
 	signal mode_attrib: std_logic;			-- r25.6, enable attribute use
 	signal mode_extended: std_logic;		-- r33.2, enables full and multicolor modes
 	signal mode_bitmap: std_logic;
-	
+	signal mode_upet: std_logic;			-- when Micro-PET compat, r1 and others behave differently
 	signal mode_rev: std_logic;			-- r24.6, reverse the screen
+	signal dispen: std_logic;
 	
 	--- colours
 	signal col_fg: std_logic_vector(3 downto 0);
@@ -104,6 +105,7 @@ architecture Behavioral of Video is
 	--- new geo
 	signal x_border: std_logic;
 	signal x_start: std_logic;
+	signal y_border: std_logic;
 	---
 	signal cblink_mode: std_logic;			-- character blink mode, R24.5
 	signal cblink_active: std_logic;		-- when set, character blinking is active
@@ -126,6 +128,7 @@ architecture Behavioral of Video is
 	signal slots_per_line: std_logic_vector(6 downto 0);
 	signal clines_per_screen: std_logic_vector(6 downto 0);
 	signal hsync_pos: std_logic_vector(6 downto 0);
+	signal vsync_pos: std_logic_vector(7 downto 0);
 	
 	signal vid_base : std_logic_vector(15 downto 0);
 	signal attr_base : std_logic_vector(15 downto 0);
@@ -196,6 +199,7 @@ architecture Behavioral of Video is
 	
 	-- intermediate
 	signal h_zero: std_logic;
+	signal v_zero: std_logic;
 	signal a_out : std_logic_vector (15 downto 0);
 	signal chr_window : std_logic;
 	signal pxl_window : std_logic;
@@ -260,6 +264,8 @@ architecture Behavioral of Video is
            v_sync : out  STD_LOGIC;
 
 			  h_zero : out std_logic;
+			  v_zero : out std_logic;
+			  
            h_enable : out std_logic;
            v_enable : out std_logic;
 
@@ -270,7 +276,7 @@ architecture Behavioral of Video is
         );
 	end component;
 
-	component VBorder is
+	component HBorder is
 		Port (
 			qclk: in std_logic;
 			dotclk: in std_logic_vector(3 downto 0);			
@@ -437,6 +443,7 @@ begin
 		h_sync_int,
 		v_sync_int,
 		h_zero,
+		v_zero,
 		h_enable,
 		v_enable,
 		x_addr,
@@ -447,7 +454,7 @@ begin
 	-------------------------------------------
 	-- border calculations and display state
 
-	v_border: VBorder
+	h_border: HBorder
 	port map (
 			qclk,
 			dotclk,
@@ -472,6 +479,8 @@ begin
 	-----------------------------------------------------------------------------
 	-- vertical geometry calculation
 
+	y_border <= '0';
+	
 	next_row <= rline_cnt(0) or is_double;
 
 	LineCnt: process(h_sync_int, last_line_of_screen, rline_cnt, rcline_cnt, reset)
@@ -481,7 +490,7 @@ begin
 			rcline_cnt <= (others => '0');
 			cline_cnt <= (others => '0');
 		elsif (rising_edge(h_sync_int)) then
-			if (last_line_of_screen = '1') then
+			if (v_zero = '1') then
 				rline_cnt <= (others => '0');
 				rcline_cnt <= (others => '0');
 				cline_cnt <= (others => '0');
@@ -687,7 +696,7 @@ begin
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
 
-			if (x_border = '1') then
+			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				vid_out <= col_border;
 			elsif (mode_extended = '0' and mode_attrib = '0') then
 				if is_outbit = '0' then
@@ -788,11 +797,14 @@ begin
 			mode_attrib <= '0';
 			mode_extended <= '0';
 			mode_bitmap <= '0';
+			mode_upet <= '1';
+			dispen <= '1';
 			crsr_mode <= (others => '0');
 			crsr_address <= (others => '0');
 			rows_per_char <= X"7";
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= "0001000";	-- 8
+			vsync_pos <= "01001110"; -- 78
 			clines_per_screen <= "0011001";	-- 25
 			attr_base <= x"d000";
 			vid_base <= x"9000";
@@ -803,6 +815,8 @@ begin
 			col_bg2 <= "0000";
 			col_border <= "0111";
 			uline_scan <= (others => '0');
+			h_extborder <= '0';
+			h_shift <= (others => '0');
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
 				and (crtc_rs=x"1" or crtc_rs=x"3") 
@@ -810,14 +824,25 @@ begin
 				) then
 			case (crtc_reg) is
 			when x"01" =>
-				-- note: value written is doubled (as in the PET for 80 columns)
-				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+				-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+				if (mode_upet = '1' or is_80 = '0') then
+					slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+					slots_per_line(0) <= '0';
+				else
+					slots_per_line(6 downto 0) <= CPU_D(6 downto 0);
+				end if;
 			when x"02" => 
 			when x"06" => 
 				clines_per_screen <= CPU_D(6 downto 0);
 			when x"09" =>
-				rows_per_char(3) <= CPU_D(3);
-				--rows_per_char <= CPU_D(3 downto 0);
+				rows_per_char <= CPU_D(3 downto 0);
+				if (mode_upet = '1') then
+					if (rows_per_char(3) = '1') then
+						vsync_pos <= std_logic_vector(to_unsigned(53,10));
+					else
+						vsync_pos <= std_logic_vector(to_unsigned(78,10));
+					end if;
+				end if;
 			when x"0a" =>
 				crsr_start_scan <= CPU_D(4 downto 0);
 				crsr_mode <= CPU_D(6 downto 5);
@@ -854,6 +879,8 @@ begin
 				
 			when x"27" =>	-- R39
 				mode_extended <= CPU_D(2);
+				dispen <= CPU_D(4);
+				mode_upet <= CPU_D(7);
 			when x"28" => 	-- R40
 				col_bg1 <= CPU_D(3 downto 0);
 				col_bg2 <= CPU_D(7 downto 4);
@@ -887,8 +914,12 @@ begin
 
 					case (crtc_reg) is
 					when x"01" =>
-						-- note: value written is doubled (as in the PET for 80 columns)
-						vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+						-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+						if (mode_upet = '1' or is_80 = '0') then
+							vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+						else
+							vd_out(6 downto 0) <= slots_per_line(6 downto 0);
+						end if;
 					when x"02" =>
 					when x"06" => 
 						vd_out(6 downto 0) <= clines_per_screen;
@@ -929,6 +960,8 @@ begin
 						
 					when x"27" =>	-- R39
 						vd_out(2) <= mode_extended;
+						vd_out(4) <= dispen;
+						vd_out(7) <= mode_upet;
 					when x"28" => 	-- R40
 						vd_out(3 downto 0) <= col_bg1;
 						vd_out(7 downto 4) <= col_bg2;

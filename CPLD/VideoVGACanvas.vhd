@@ -43,6 +43,8 @@ entity Canvas is
       h_sync : out  STD_LOGIC;
 
 		h_zero : out std_logic;
+		v_zero : out std_logic;
+		
     	h_enable : out std_logic;
     	v_enable : out std_logic;
 
@@ -73,6 +75,10 @@ architecture Behavioral of Canvas is
 	constant v_width: std_logic_vector(9 downto 0)			:=std_logic_vector(to_unsigned(33 + 480					-1, 10));
 	constant v_front_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33 + 480 + 10				-1, 10));
 	constant v_sync_width: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33 + 480 + 10 + 2		-1, 10));
+	-- zero for pixel coordinates is 42 pixels up of default borders
+	constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(33 + 480 + 10 + 2 - (42-33) - 1, 10));
+	-- this starts first rasterline at start of screen
+	--constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(33 +6 -1, 10));
 
 	-- runtime counters
 
@@ -91,8 +97,12 @@ architecture Behavioral of Canvas is
 	signal h_enable_int: std_logic;
 	signal h_zero_int: std_logic;
 
+	signal v_zero_int: std_logic;
+	signal h_sync_int: std_logic;
+	
 	signal x_addr_int: std_logic_vector(9 downto 0);
-
+	signal y_addr_int: std_logic_vector(9 downto 0);
+	
 begin
 
 	-----------------------------------------------------------------------------
@@ -105,7 +115,7 @@ begin
 		if (reset = '1') then
 			h_cnt(9 downto 4) <= (others => '0');
 			h_state <= "00";
-			h_sync <= '0';
+			h_sync_int <= '0';
 			h_enable_int <= '0';
 		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "1111") then
 
@@ -125,13 +135,15 @@ begin
 				h_enable_int <= '1';
 			end if;
 
-			h_sync <= '0';
+			h_sync_int <= '0';
 			if (h_state = "11") then
-				h_sync <= '1';
+				h_sync_int <= '1';
 			end if;
 		end if;
 	end process;
 
+	h_sync <= h_sync_int;
+	
 	h_limit_p: process(qclk, dotclk, h_cnt, reset)
 	begin 
 		if (reset = '1') then
@@ -167,7 +179,7 @@ begin
 		if (reset = '1') then
 			h_zero_int <= '0';
 		elsif (falling_edge(qclk) and dotclk(2 downto 0) = "110") then
-			if (h_cnt(9 downto 0) = h_zero_pos) then
+			if (h_cnt = h_zero_pos) then
 				h_zero_int <= '1';
 			else 
 				h_zero_int <= '0';
@@ -190,7 +202,6 @@ begin
 	end process;
 	
 	x_addr <= x_addr_int;
-	--x_addr <= h_cnt;
 
 	-----------------------------------------------------------------------------
 	-- vertical geometry calculation
@@ -258,10 +269,30 @@ begin
 					end if;
 				when others =>
 			end case;
+			
+			if (v_cnt = v_zero_pos) then
+				v_zero_int <= '1';
+			else 
+				v_zero_int <= '0';
+			end if;
+			
 		end if;
 	end process;
 
-	y_addr <= v_cnt;
+	v_zero <= v_zero_int;
+	
+	ya: process(qclk, dotclk, v_zero_int, y_addr_int)
+	begin
+		if (rising_edge(h_sync_int)) then
+			if (h_zero_int = '1') then
+				y_addr_int <= (others => '0');
+			else
+				y_addr_int <= y_addr_int + 1;
+			end if;
+		end if;
+	end process;
+	
+	y_addr <= y_addr_int;
 	
 end Behavioral;
 

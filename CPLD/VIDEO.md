@@ -34,8 +34,10 @@ Note that the last two registers are new and should provide easier access to the
 The following are the internal Viccy registers:
 
 - r1: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
+  - note: if upet compatibility (r39.7) is set, this is always for 40 columns even if in 80 column mode.
 - r6: vertial displayed - the number of character rows displayed in a frame (CRTC)
 - r9: (bits 3-0) scan lines per character - 1 (CRTC)
+  - note: in upet compat mode, also sets vertical position (r45)
 - r10: cursor start scan line:  (CRTC)
   - bits 4-0: number of scan line where reverse video cursor starts (0=top)
   - bits 6-5: 
@@ -90,7 +92,8 @@ The following are the internal Viccy registers:
   - bits 1-0: bits 9/8 of the rasterline counter
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
-  - bit 7-5: - 
+  - bit 6-5: - 
+  - bit 7: Micro-PET compatible (see r1)
 - r40: extended background colour 
   - bits 3-0 background colour 1
   - bits 7-4 background colour 2
@@ -109,6 +112,8 @@ The following are the internal Viccy registers:
   - bit 7: one when interrupt has occurred
 - r44 horizontal position (in chars); replaces r2
   - bit 0-6, defaults to 8
+- r45 vertical position (in rasterlines) of start of raster screen; replaces r7
+  - bit 0-7, defaults to 78 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
 
 Sprite registers (subject to change):
 
