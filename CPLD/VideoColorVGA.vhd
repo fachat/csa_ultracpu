@@ -183,6 +183,7 @@ architecture Behavioral of Video is
 	signal h_extborder: std_logic;
 	signal is_preload: std_logic;
 	signal v_extborder: std_logic;
+	signal v_shift: std_logic_vector(3 downto 0);
 	
 	-- pulse for last visible character/slot; falling slotclk
 	signal last_vis_slot_of_line : std_logic := '0';
@@ -314,6 +315,7 @@ architecture Behavioral of Video is
 			clines_per_screen: in std_logic_vector(6 downto 0);
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
+			v_shift: in std_logic_vector(3 downto 0);
 			
 			is_border: out std_logic;			
 			is_last_row_of_char: out std_logic;
@@ -508,6 +510,7 @@ begin
 			clines_per_screen,
 			v_extborder,
 			is_double_int,
+			v_shift,
 			y_border,
 			last_line_of_char,
 			last_line_of_screen,
@@ -839,6 +842,7 @@ begin
 			when x"15" =>	-- R21
 				attr_base(7 downto 0) <= CPU_D;
 			when x"18" =>	-- R24
+				v_shift <= CPU_D(3 downto 0);
 				v_extborder <= CPU_D(4);
 				cblink_mode <= CPU_D(5);
 				mode_rev <= CPU_D(6);
@@ -927,9 +931,13 @@ begin
 					when x"15" =>	-- R21
 						vd_out <= attr_base(7 downto 0);
 					when x"18" =>	-- R24
+						vd_out(3 downto 0) <= v_shift;
+						vd_out(4) <= v_extborder;
 						vd_out(5) <= cblink_mode;
 						vd_out(6) <= mode_rev;
 					when x"19" =>	-- R25
+						vd_out(3 downto 0) <= h_shift;
+						vd_out(4) <= h_extborder;
 						vd_out(6) <= mode_attrib;
 						vd_out(7) <= mode_bitmap;
 					when x"1a" => 	-- R26
