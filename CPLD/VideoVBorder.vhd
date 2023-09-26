@@ -66,6 +66,7 @@ architecture Behavioral of VBorder is
 	signal is_border_int: std_logic;
 	signal is_last_row_of_char_int: std_logic;
 	signal is_last_row_of_screen_int: std_logic;
+	signal is_first_row_of_screen_int: std_logic;
 	
 	signal vh_cnt : std_logic_vector (6 downto 0) := (others => '0');
 	signal rcline_cnt_int: std_logic_vector(3 downto 0);
@@ -89,6 +90,7 @@ begin
 				vh_cnt <= (others => '0');
 				rcline_cnt_int <= (others => '0');
 				v_state <= '0';
+				
 			else 
 			
 				rline_cnt0_int <= not(rline_cnt0_int);
@@ -98,7 +100,7 @@ begin
 					if (v_next = '0') then
 						vh_cnt <= vh_cnt + 1;
 					else -- v_next = '1'
-						vh_cnt <= (others => '0');
+						vh_cnt <= std_logic_vector(to_unsigned(1,10)); --(others => '0');
 						is_border_int <= '0';
 						rline_cnt0_int <= '0';
 						rcline_cnt_int <= (others => '0');
@@ -131,16 +133,18 @@ begin
 
 			is_last_row_of_char_int <= '0';
 			is_last_row_of_screen_int <= '0';
+			is_first_row_of_screen_int <= '0';
 			
-			if (v_state = '0' and vh_cnt = 78) then -- vsync_pos) then
+			if (v_state = '0' and vh_cnt = vsync_pos) then -- vsync_pos) then
 				v_next <= '1';
+				is_first_row_of_screen_int <= '1';
 			end if;
 			
 			if (v_state = '1') then
-				if (rcline_cnt_int = 7 and next_row = '1') then -- rows_per_char) then
+				if (rcline_cnt_int = rows_per_char and next_row = '1') then -- rows_per_char
 				
 					is_last_row_of_char_int <= '1';
-					if (vh_cnt = 25) then -- clines_per_screen) then
+					if (vh_cnt = clines_per_screen) then -- clines_per_screen) then
 						is_last_row_of_screen_int <= '1';
 					end if;
 				end if;
@@ -153,77 +157,10 @@ begin
 	rline_cnt0 <= rline_cnt0_int;
 	
 	is_last_row_of_char <= is_last_row_of_char_int;
-	is_last_row_of_screen <= is_last_row_of_screen_int;
+	is_last_row_of_screen <= is_first_row_of_screen_int;
 	
 	is_border <= is_border_int;
 	
---	LineCnt: process(h_sync_int, last_line_of_screen, rline_cnt, rcline_cnt, reset)
---	begin
---		if (reset = '1') then
---			rline_cnt <= (others => '0');
---			rcline_cnt <= (others => '0');
---			cline_cnt <= (others => '0');
---		elsif (rising_edge(h_sync_int)) then
---			if (v_zero = '1') then
---				rline_cnt <= (others => '0');
---				rcline_cnt <= (others => '0');
---				cline_cnt <= (others => '0');
---			else
---				rline_cnt <= rline_cnt + 1;
---				
---				if (last_line_of_char = '1') then
---					rcline_cnt <= (others => '0');
---					cline_cnt <= cline_cnt + 1;
---				elsif (next_row = '1') then
---					-- display each char line twice
---					rcline_cnt <= rcline_cnt + 1;
---				end if;
---			end if;
---			
---		end if;
---	end process;
---
---	LineProx: process(h_sync_int)
---	begin
---		if (falling_edge(h_sync_int)) then
---			
---		  if (rows_per_char(3) = '1') then
---		  
---			-- timing for 9 or more pixel rows per character
---			-- end of character line
---			if ((mode_bitmap = '1' or rcline_cnt = 8) and next_row = '1') then
---				-- if hires, everyone
---				last_line_of_char <= '1';
---			else
---				last_line_of_char <= '0';
---			end if;
---
---			
---		  else	-- rows_per_char(3) = '0'
---		  
---			-- timing for 8 pixel rows per character
---			-- end of character line
---			if ((mode_bitmap = '1' or rcline_cnt = rows_per_char) and next_row = '1') then
---				-- if hires, everyone
---				last_line_of_char <= '1';
---			else
---				last_line_of_char <= '0';
---			end if;
---
---		  end if; -- crtc_is_9rows
---
---		    -- common for 8/9 pixel rows per char
---		    
---			-- end of screen
---			if (rline_cnt = 524) then
---				last_line_of_screen <= '1';
---			else
---				last_line_of_screen <= '0';
---			end if;
---	
---		
---		end if; -- rising edge...
---	end process;
 
 end Behavioral;
 

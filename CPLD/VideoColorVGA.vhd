@@ -44,11 +44,8 @@ entity Video is
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;
-      is_80_in : in std_logic;	-- is 80 column mode?
+		is_80_in: in std_logic;
 	   is_graph : in std_logic;	-- graphic mode (from PET I/O)
-	   is_double: in std_logic;
-	   interlace: in std_logic;
-	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;
 	   crtc_rs : in std_logic_vector(3 downto 0);
@@ -77,6 +74,9 @@ architecture Behavioral of Video is
 	signal mode_upet: std_logic;			-- when Micro-PET compat, r1 and others behave differently
 	signal mode_rev: std_logic;			-- r24.6, reverse the screen
 	signal dispen: std_logic;
+	signal mode_double: std_logic;
+	signal mode_interlace: std_logic;
+	signal mode_80: std_logic;
 	
 	--- colours
 	signal col_fg: std_logic_vector(3 downto 0);
@@ -247,6 +247,10 @@ architecture Behavioral of Video is
 	signal sr_fetch_int : std_logic;
 	
 	signal next_row : std_logic;
+	
+	-- temporary
+	signal is_double_int: std_logic;
+	signal interlace_int: std_logic;
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
@@ -422,7 +426,7 @@ begin
 	end process;
 	
 
-	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace or not(rline_cnt0));
+	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
 	
 	-- access indicators
 	--
@@ -438,19 +442,19 @@ begin
 
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
-	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace or not(rline_cnt0)) ;
+	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace_int or not(rline_cnt0)) ;
 
 	-- col fetch
-	attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace or not(rline_cnt0));
+	attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace_int or not(rline_cnt0));
 	
 	-- hires fetch
-	pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace or not(rline_cnt0));
+	pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
 	
 	-- character rom fetch
-	crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace or not(rline_cnt0));
+	crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
 
 	-- sr load
-	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace or not(rline_cnt0));
+	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace_int or not(rline_cnt0));
 	
 	-- video access?
 	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
@@ -488,14 +492,12 @@ begin
 			h_shift,
 			h_extborder,			
 			is_80,
-			is_preload,
+			x_start,
 			x_border,
 			last_vis_slot_of_line,
 			in_slot,
 			reset
 	);
-
-	x_start <= is_preload;
 
 	v_border: VBorder
 	port map (
@@ -505,7 +507,7 @@ begin
 			rows_per_char,
 			clines_per_screen,
 			v_extborder,
-			is_double,
+			is_double_int,
 			y_border,
 			last_line_of_char,
 			last_line_of_screen,
@@ -514,85 +516,11 @@ begin
 			reset
 	);
 	
---	rline_cnt0 <= rline_cnt(0);
 	
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
 	
-	is_80 <= is_80_in;
+	is_80 <= mode_80 xor is_80_in;
 	
-	-----------------------------------------------------------------------------
-	-- vertical geometry calculation
-	
---	next_row <= rline_cnt0 or is_double;
---
---	LineCnt: process(h_sync_int, last_line_of_screen, rline_cnt, rcline_cnt, reset)
---	begin
---		if (reset = '1') then
---			rline_cnt <= (others => '0');
---			rcline_cnt <= (others => '0');
---			cline_cnt <= (others => '0');
---		elsif (rising_edge(h_sync_int)) then
---			if (v_zero = '1') then
---				rline_cnt <= (others => '0');
---				rcline_cnt <= (others => '0');
---				cline_cnt <= (others => '0');
---			else
---				rline_cnt <= rline_cnt + 1;
---				
---				if (last_line_of_char = '1') then
---					rcline_cnt <= (others => '0');
---					cline_cnt <= cline_cnt + 1;
---				elsif (next_row = '1') then
---					-- display each char line twice
---					rcline_cnt <= rcline_cnt + 1;
---				end if;
---			end if;
---			
---		end if;
---	end process;
---
---	LineProx: process(h_sync_int)
---	begin
---		if (falling_edge(h_sync_int)) then
---			
---		  if (rows_per_char(3) = '1') then
---		  
---			-- timing for 9 or more pixel rows per character
---			-- end of character line
---			if ((mode_bitmap = '1' or rcline_cnt = 8) and next_row = '1') then
---				-- if hires, everyone
---				last_line_of_char <= '1';
---			else
---				last_line_of_char <= '0';
---			end if;
---
---			
---		  else	-- rows_per_char(3) = '0'
---		  
---			-- timing for 8 pixel rows per character
---			-- end of character line
---			if ((mode_bitmap = '1' or rcline_cnt = rows_per_char) and next_row = '1') then
---				-- if hires, everyone
---				last_line_of_char <= '1';
---			else
---				last_line_of_char <= '0';
---			end if;
---
---		  end if; -- crtc_is_9rows
---
---		    -- common for 8/9 pixel rows per char
---		    
---			-- end of screen
---			if (rline_cnt = 524) then
---				last_line_of_screen <= '1';
---			else
---				last_line_of_screen <= '0';
---			end if;
---	
---		
---		end if; -- rising edge...
---	end process;
-
 	v_sync <= not(v_sync_int);
 	pet_vsync <= v_sync_int;
 	
@@ -618,17 +546,12 @@ begin
 		end if;
 	end process;
 	
-	AddrCnt: process(x_start, last_line_of_screen, vid_addr, vid_addr_hold, is_80, in_slot, slotclk, reset)
+	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, slotclk, reset)
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
 			attr_addr <= (others => '0');
 		elsif (falling_edge(slotclk)) then
---			if (last_line_of_screen = '1' and x_start = '1') then
---				vid_addr <= (others => '0');
---				attr_addr <= (others => '0');
---				is_80 <= is_80_in;
---			else
 				if (x_start = '0') then
 					if (is_80 = '1' or in_slot = '1') then
 						vid_addr <= vid_addr + 1;
@@ -638,7 +561,6 @@ begin
 					vid_addr <= vid_addr_hold;
 					attr_addr <= attr_addr_hold;
 				end if;
---			end if;
 		end if;
 	end process;
 
@@ -805,7 +727,7 @@ begin
 			--and (in_slot = '1')
 			) then
 			enable <= h_enable and v_enable
-				and (interlace or not(rline_cnt0));
+				and (interlace_int or not(rline_cnt0));
 		end if;
 	end process;
 
@@ -817,6 +739,9 @@ begin
 
 	dbg_out <= '0';
 
+	is_double_int <= mode_double;
+	interlace_int <= mode_interlace;
+	
 	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, reset) 
 	begin
 		if (reset = '1') then
@@ -840,13 +765,16 @@ begin
 			mode_extended <= '0';
 			mode_bitmap <= '0';
 			mode_upet <= '1';
+			mode_double <= '0';
+			mode_interlace <= '0';
+			mode_80 <= '0';
 			dispen <= '1';
 			crsr_mode <= (others => '0');
 			crsr_address <= (others => '0');
-			rows_per_char <= X"7";
+			rows_per_char <= "0111"; -- 7
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= "0001000";	-- 8
-			vsync_pos <= "01001110"; -- 78
+			vsync_pos <= std_logic_vector(to_unsigned(84,10));
 			clines_per_screen <= "0011001";	-- 25
 			attr_base <= x"d000";
 			vid_base <= x"9000";
@@ -877,13 +805,19 @@ begin
 			when x"02" => 
 			when x"06" => 
 				clines_per_screen <= CPU_D(6 downto 0);
+			when x"08" =>
+				-- b1: interlace, b0: double (if b1=1)
+				mode_interlace <= CPU_D(1);
+				mode_double <= CPU_D(0) and CPU_D(1);
+				mode_80 <= CPU_D(7);
 			when x"09" =>
 				rows_per_char <= CPU_D(3 downto 0);
 				if (mode_upet = '1') then
-					if (rows_per_char(3) = '1') then
-						vsync_pos <= std_logic_vector(to_unsigned(53,10));
+					if (CPU_D(3) = '1') then
+						vsync_pos <= std_logic_vector(to_unsigned(59,10));
+						rows_per_char <= "1000";	-- limit to 8
 					else
-						vsync_pos <= std_logic_vector(to_unsigned(78,10));
+						vsync_pos <= std_logic_vector(to_unsigned(84,10));
 					end if;
 				end if;
 			when x"0a" =>
@@ -967,6 +901,10 @@ begin
 					when x"02" =>
 					when x"06" => 
 						vd_out(6 downto 0) <= clines_per_screen;
+					when x"08" =>
+						vd_out(0) <= mode_double;
+						vd_out(1) <= mode_interlace;
+						vd_out(7) <= mode_80;
 					when x"09" =>
 						vd_out(3) <= rows_per_char(3);
 						--rows_per_char <= CPU_D(3 downto 0);

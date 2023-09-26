@@ -36,6 +36,12 @@ The following are the internal Viccy registers:
 - r1: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
   - note: if upet compatibility (r39.7) is set, this is always for 40 columns even if in 80 column mode.
 - r6: vertial displayed - the number of character rows displayed in a frame (CRTC)
+- r8: mode register
+  - bit 7: 1=80 columns
+  - bit 1-0: 
+    - 0x= normal display
+    - 10= interlace (show every scanline twice, i.e. r9 is effectivly twice its value)
+    - 11= double vertical resolution
 - r9: (bits 3-0) scan lines per character - 1 (CRTC)
   - note: in upet compat mode, also sets vertical position (r45)
 - r10: cursor start scan line:  (CRTC)

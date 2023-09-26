@@ -174,7 +174,6 @@ architecture Behavioral of Top is
 	signal vidblock : std_logic_vector(2 downto 0);
 	signal lockb0 : std_logic;
 	signal forceb0 : std_logic;
-	signal movesync : std_logic;
 	
 	-- video
 	signal va_out: std_logic_vector(15 downto 0);
@@ -182,10 +181,8 @@ architecture Behavioral of Top is
 	signal vd_out: std_logic_vector(7 downto 0);
 	signal vis_enable: std_logic;
 	signal vis_80_in: std_logic;
-	signal vis_double_in: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
-	signal interlace : std_logic;
 	signal v_dena: std_logic;
 	signal v_out: std_logic_vector(3 downto 0);
 	
@@ -302,11 +299,8 @@ architecture Behavioral of Top is
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;	-- is display enabled
-      is_80_in : in STD_LOGIC;	-- is 80 column mode?
+		is_80_in: in std_logic;
 	   is_graph : in std_logic;	-- from PET I/O
-	   is_double: in std_logic;	-- when set, use 50 char rows / 400 pixel rows
-	   interlace: in std_logic;
-	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;	-- select line for CRTC
 	   crtc_rs  : in std_logic_vector(3 downto 0);	-- register select
@@ -586,9 +580,6 @@ begin
 		vis_enable,
 		vis_80_in,
 		vgraphic,
-		vis_double_in,
-		interlace,
-		movesync,
 		sel8,
 		ca_in(3 downto 0),
 		rwb,
@@ -651,10 +642,9 @@ begin
 	spi_nsel2 <= '1'	when reset = '1' else
 			'0' 	when spi_sel = "010" else
 			'1';
---	spi_nsel3 <= '1'	when reset = '1' else
---			'0' 	when spi_sel = "011" else
---			'1';
-spi_nsel3 <= ipl;
+	spi_nsel3 <= '1'	when reset = '1' else
+			'0' 	when spi_sel = "011" else
+			'1';
 	spi_nsel4 <= '1'	when reset = '1' else
 			'0' 	when spi_sel = "100" else
 			'1';
@@ -670,8 +660,6 @@ spi_nsel3 <= ipl;
 		if (reset = '1') then
 			vis_80_in <= '0';
 			vis_enable <= '1';
-			vis_double_in <= '0';
-			interlace <= '0';
 			mode <= "00";
 			screenb0 <= '1';
 			wp_rom9 <= '0';
@@ -682,7 +670,6 @@ spi_nsel3 <= ipl;
 			vidblock <= (others => '0');
 			boot <= '1';
 			lockb0 <= '0';
-			movesync <= '0';
 			bus_window_c <= '0';
 			bus_window_9 <= '0';
 		elsif (falling_edge(phi2_int) and sel0='1' and rwb='0' and ca_in(3) = '0') then
@@ -692,9 +679,6 @@ spi_nsel3 <= ipl;
 				-- video controls
 				vis_80_in <= D(1);
 				screenb0 <= not(D(2));
-				vis_double_in <= D(3);
-				interlace <= D(4);
-				movesync <= D(6);
 				vis_enable <= not(D(7));
 			when "001" =>
 				-- memory map controls

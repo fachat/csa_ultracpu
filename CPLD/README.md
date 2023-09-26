@@ -30,10 +30,10 @@ There are four control ports at $e800 - $e803. They are currently only writable.
 - Bit 0: unused - must be 0
 - Bit 1: 0= 40 column display, 1= 80 column display
 - Bit 2: 0= screen character memory in bank 0, 1= character memory only in video bank (see memory map)
-- Bit 3: 0= double pixel rows, 1= single pixel rows (also 400 px vertical hires)
-- Bit 4: 0= interlace mode (only every second rasterline), 1= duplicate rasterlines
+- Bit 3: unused - must be 0
+- Bit 4: unused - must be 0
 - Bit 5: unused - must be 0
-- Bit 6: 0= when switching char height, move vsync to keep screen centered. 1= prevent that
+- Bit 6: unused - must be 0
 - Bit 7: 0= video enabled; 1= video disabled
 
 Note that if you use 80 columns, AND double pixel rows (+interlace), you get the 80x50 character resolution.
@@ -60,15 +60,15 @@ window at $8xxx.
 
 ##### Interlace and 50 row mode
 
-In normal mode (after reset), the VGA video circuit runs in interlace mode,
+In normal mode (after reset), the VGA video circuit runs in normal mode,
 i.e. only every second raster line is displayed with video data.
-Writing a "1" into Video Control register bit 4, interlace is switched off, and every
+Writing a "1" into Viccy register 8, bit 1, interlace is switched on, and every
 single line is displayed with video data. 
 
-As long as bit 3 is 0, every rasterline is 
+As long as Viccy r8 bit 0 is 0, every rasterline is 
 displayed twice, to get to the same height as in interlace mode.
-If bit 3 is 1, then every rasterline is a new rasterline.
-So, setting bit 3=1 and bit 4=1 gives double the number of character rows
+If r8 bit 0 is 1, then every rasterline is a new rasterline.
+So, setting bit 0=1 and bit 1=1 gives double the number of character rows
 (or raster rows in bitmap mode). I.e. with this you can enable 50 character row
 screens.
 
@@ -87,18 +87,8 @@ Now, if the character height is changed, the height of the displayed data is cha
 keep the this area vertically centered, the position of the vertical sync in relation to the 
 first rasterline is moved. 
 
-However, as there just isn't enough space in the CPLD, when this happens, the distance between
-two vertical sync signals changes for one displayed frame. Some monitors may have difficulties
-with this, trying to find a new video mode and switching the display off during that search 
-attempt. 
-
-In normal operation that does not matter, as this mode should be set once and then left as it is.
-But for programs that may switch character height more often, this may be irritating. So,
-with bit 6 you can disable moving the vertical sync. The displayed data will stay relatively
-high on the screen, and just the lower border moves up and down when the character height is
-changed. Then the monitors don't recognize a potential mode change, and thus don't blank
-the screen. It just isn't properly centered anymore.
-
+While, due to limited resources in the previously used CPLD, this was a problem and disturbed 
+the video timing, this is fixed in the FPGA implementation.
 
 #### $e801 (59393) Memory Map Control
 
