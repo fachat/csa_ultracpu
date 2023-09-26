@@ -109,6 +109,8 @@ entity Top is
 	   
 		pxl_out: out std_logic_vector(3 downto 0);
 		
+		irq_out: out std_logic;
+		
 	-- Debug
 	   dbg_out: out std_logic;
 	   test: out std_logic
@@ -314,6 +316,8 @@ architecture Behavioral of Top is
 	   
 	   --sr_load : in std_logic;
 	   vid_out : out std_logic_vector(3 downto 0);
+	
+		irq_out : out std_logic;
 		
 	   reset : in std_logic
 	 );
@@ -588,6 +592,7 @@ begin
 		memclk,		-- sysclk (12.5MHz)
 		vid_fetch,
 		v_out,
+		irq_out,
 		reset
 	);
 

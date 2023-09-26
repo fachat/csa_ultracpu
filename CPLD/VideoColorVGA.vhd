@@ -59,6 +59,8 @@ entity Video is
 
 	   vid_out: out std_logic_vector(3 downto 0);
 		
+		irq_out: out std_logic;
+		
 	   dbg_out : out std_logic;
 	   
 	   reset : in std_logic
@@ -176,7 +178,8 @@ architecture Behavioral of Video is
 	--
    signal x_addr: std_logic_vector(9 downto 0);    -- x coordinate in pixels
    signal y_addr: std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
-
+	signal y_addr_latch: std_logic_vector(9 downto 8); 	-- latch upper two bits when reading lower bits from r38
+	
 	-- border
 	signal h_shift: std_logic_vector(3 downto 0);
 	signal h_extborder: std_logic;
@@ -199,6 +202,13 @@ architecture Behavioral of Video is
 	-- sync
 	signal h_sync_int : std_logic := '0';	
 	signal v_sync_int : std_logic := '0';
+	
+	-- raster interrupt
+	signal raster_match: std_logic_vector(9 downto 0);
+	signal is_raster_match: std_logic;
+	
+	signal irq_raster_ack: std_logic;
+	signal irq_raster: std_logic;
 	
 	-- intermediate
 	signal h_zero: std_logic;
@@ -768,6 +778,51 @@ begin
 	end process;
 
 	dena_int <= enable;
+
+	--------------------------------------------
+	-- raster interrupt handling
+	
+	RasterMatch: process(h_sync_int, raster_match, y_addr)
+	begin
+		
+		if (falling_edge(h_sync_int)) then
+			if (raster_match = y_addr) then
+				is_raster_match <= '1';
+			else
+				is_raster_match <= '0';
+			end if;
+		end if;
+	end process;
+	
+	RasterIrq: process(phi2, crtc_reg, crtc_sel, crtc_rs)
+	begin
+		if (falling_edge(phi2)) then
+			
+			if (is_raster_match = '0') then
+				irq_raster_ack <= '0';
+			end if;
+			
+			if (crtc_sel = '1' and crtc_rs(1) = '1' and crtc_reg = x"2b") then
+				if (CPU_D(0) = '1') then
+					irq_raster_ack <= '1';
+				end if;
+			end if;
+			
+		end if;
+
+		if (reset = '1') then
+			irq_raster <= '0';
+		elsif (falling_edge(phi2)) then
+			if (irq_raster_ack = '1') then
+				irq_raster <= '0';
+			elsif (is_raster_match = '1') then
+				irq_raster <= '1';
+			end if;
+		end if;
+		
+	end process;
+	
+	irq_out <= irq_raster; -- or irq_sprite_bg or irq_sprite_sprite or ...
 	
 	--------------------------------------------
 	-- crtc register emulation
@@ -785,9 +840,9 @@ begin
 		elsif (falling_edge(phi2) and crtc_sel = '1' ) then
 		
 			if (crtc_rs=x"3") then
-				crtc_reg(5 downto 0) <= crtc_reg(5 downto 0) + 1;
+				crtc_reg(6 downto 0) <= crtc_reg(6 downto 0) + 1;
 			elsif (crtc_rs=x"0" and crtc_rwb = '0' ) then
-				crtc_reg(5 downto 0) <= CPU_D(5 downto 0);
+				crtc_reg(6 downto 0) <= CPU_D(6 downto 0);
 			end if;
 		end if;
 	end process;
@@ -825,6 +880,7 @@ begin
 			v_extborder <= '0';
 			h_shift <= (others => '0');
 			va_offset <= (others => '0');
+			raster_match <= (others => '0');
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
 				and (crtc_rs=x"1" or crtc_rs=x"3") 
@@ -894,7 +950,6 @@ begin
 				crom_base <= CPU_D;
 			when x"1d" => 	-- R29
 				uline_scan <= CPU_D(4 downto 0);
-				
 			when x"27" =>	-- R39
 				mode_extended <= CPU_D(2);
 				dispen <= CPU_D(4);
@@ -919,6 +974,7 @@ begin
 	begin
 		if (reset = '1') then
 			vd_out <= (others => '0');
+			y_addr_latch <= (others => '0');
 		else 
 			vd_out <= (others => '0');
 			
@@ -987,8 +1043,11 @@ begin
 						vd_out <= crom_base;
 					when x"1d" => 	-- R29
 						vd_out(4 downto 0) <= uline_scan;
-						
+					when x"26" => 	-- R38
+						vd_out <= y_addr(7 downto 0);
+						y_addr_latch(9 downto 8) <= y_addr(9 downto 8);
 					when x"27" =>	-- R39
+						vd_out(1 downto 0) <= y_addr_latch(9 downto 8);
 						vd_out(2) <= mode_extended;
 						vd_out(4) <= dispen;
 						vd_out(7) <= mode_upet;
