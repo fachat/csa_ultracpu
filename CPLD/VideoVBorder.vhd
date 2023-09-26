@@ -186,10 +186,13 @@ begin
 						and next_row = '1'
 						--and not(vh_cnt = 1) 
 						) then
-					is_last_row_of_char_ext <= '1';
---					if (not(vh_cnt = 1)) then
+					if (v_shift = 0) then
 						is_last_row_of_char_ext_2 <= '1';
---					end if;
+						is_last_row_of_char_ext <= '1';
+					elsif(not(vh_cnt = 1)) then
+						is_last_row_of_char_ext_2 <= '1';
+						is_last_row_of_char_ext <= '1';
+					end if;
 				end if;
 			end if;
 					

@@ -870,7 +870,9 @@ begin
 				col_border <= CPU_D(3 downto 0);
 			when x"2c" =>	-- R44
 				-- horizontal sync
-				hsync_pos(6 downto 0) <= CPU_D(6 downto 0);
+				hsync_pos <= CPU_D(6 downto 0);
+			when x"2d" =>	-- R45
+				vsync_pos <= CPU_D;
 			when others =>
 				null;
 			end case;
@@ -958,7 +960,9 @@ begin
 					when x"29" =>	-- R41
 						vd_out(3 downto 0) <= col_border;
 					when x"2c" =>	-- R44
-						vd_out(5 downto 0) <= hsync_pos(6 downto 1);
+						vd_out(6 downto 0) <= hsync_pos;
+					when x"2d" =>	-- R45
+						vd_out(7 downto 0) <= vsync_pos;
 					when others =>
 						null;
 					end case;
