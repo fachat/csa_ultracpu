@@ -166,7 +166,7 @@ architecture Behavioral of Video is
 	signal attr_buf : std_logic_vector(7 downto 0);
 	signal pxl_buf : std_logic_vector(7 downto 0);
 	-- replacements for shift register
-	signal sr : std_logic_vector(7 downto 0);
+	signal sr : std_logic_vector(15 downto 0);
 	signal nsrload : std_logic;
 	signal dena_int : std_logic;
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
@@ -642,20 +642,49 @@ begin
 		
 		if (falling_edge(qclk)) then
 			if (pxlf_ce = '1' and (is_80 = '1' or in_slot = '0')) then
+				sr(15 downto 8) <= sr(14 downto 7); 
 				sr_attr <= attr_buf;
-				sr <= pxl_buf;
+				sr(7 downto 0) <= pxl_buf;
 				sr_reverse <= sr_reverse_p;
 				sr_underline <= sr_underline_p;
 			elsif (dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
-					sr(7 downto 1) <= sr(6 downto 0);
+					sr(15 downto 1) <= sr(14 downto 0);
 					sr(0) <= '1';
 			end if;
 		end if;		
 	end process;
 
-	is_outbit <= '1' when sr_underline = '1' else
-					sr(7) when sr_reverse = '0' else
-					not(sr(7));
+	outbit_p: process(sr, sr_underline, sr_reverse)
+	begin
+		if(sr_underline = '1') then
+			is_outbit <= '1';
+		else
+			case (h_shift(2 downto 0)) is
+			when "000" =>
+				is_outbit <= sr(7) xor sr_reverse;
+			when "001" =>
+				is_outbit <= sr(8) xor sr_reverse;
+			when "010" =>
+				is_outbit <= sr(9) xor sr_reverse;
+			when "011" =>
+				is_outbit <= sr(10) xor sr_reverse;
+			when "100" =>
+				is_outbit <= sr(11) xor sr_reverse;
+			when "101" =>
+				is_outbit <= sr(12) xor sr_reverse;
+			when "110" =>
+				is_outbit <= sr(13) xor sr_reverse;
+			when "111" =>
+				is_outbit <= sr(14) xor sr_reverse;
+			when others =>
+				is_outbit <= '0';
+			end case;
+		end if;
+	end process;
+	
+--	is_outbit <= '1' when sr_underline = '1' else
+--					sr(7) when sr_reverse = '0' else
+--					not(sr(7));
 					
 	vid_out_p: process (qclk, dena_int)
 	begin
