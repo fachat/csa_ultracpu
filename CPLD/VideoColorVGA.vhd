@@ -540,8 +540,17 @@ begin
 					attr_addr_hold <= attr_base;
 				else
 					if (last_line_of_char = '1') then
-						vid_addr_hold <= vid_addr + va_offset;
 						attr_addr_hold <= attr_addr + va_offset;
+					end if;
+					if (mode_bitmap = '0') then
+						if (last_line_of_char = '1') then
+							vid_addr_hold <= vid_addr + va_offset;
+						end if;
+					else
+						-- bitmap
+						if (rline_cnt0 = '1' or is_double_int = '1') then
+							vid_addr_hold <= vid_addr + va_offset;
+						end if;
 					end if;
 				end if;
 			end if;
@@ -680,11 +689,7 @@ begin
 			end case;
 		end if;
 	end process;
-	
---	is_outbit <= '1' when sr_underline = '1' else
---					sr(7) when sr_reverse = '0' else
---					not(sr(7));
-					
+						
 	vid_out_p: process (qclk, dena_int)
 	begin
 		if (dena_int = '0') then

@@ -72,7 +72,7 @@ The following are the internal Viccy registers:
   - bit 4: CSEL: if set, extend left border by 7 pixels and right border by 9 pixels
   - bit 5: semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background)
   - bit 6: attribute enable (VDC)
-  - bit 7: bitmap mode
+  - bit 7: bitmap mode (hires)
 - r26: default colours (VDC)
   - bits 3-0: background color
   - bits 7-4: foreground color
