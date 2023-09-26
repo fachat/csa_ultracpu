@@ -144,12 +144,11 @@ architecture Behavioral of Video is
 	--
 	-- now see ClockBorder.vhd
 	
-	-- count raster lines
-	signal rline_cnt : std_logic_vector (9 downto 0) := (others => '0');
 	-- count raster lines per character lines
 	signal rcline_cnt : std_logic_vector (3 downto 0) := (others => '0');
-	-- count character lines
-	signal cline_cnt : std_logic_vector (6 downto 0) := (others => '0');
+
+	-- vdc r27
+	signal va_offset: std_logic_vector(7 downto 0);
 	
 	-- computed video memory address
 	signal vid_addr : std_logic_vector (15 downto 0) := (others => '0');
@@ -541,8 +540,8 @@ begin
 					attr_addr_hold <= attr_base;
 				else
 					if (last_line_of_char = '1') then
-						vid_addr_hold <= vid_addr;
-						attr_addr_hold <= attr_addr;
+						vid_addr_hold <= vid_addr + va_offset;
+						attr_addr_hold <= attr_addr + va_offset;
 					end if;
 				end if;
 			end if;
@@ -820,6 +819,7 @@ begin
 			h_extborder <= '0';
 			v_extborder <= '0';
 			h_shift <= (others => '0');
+			va_offset <= (others => '0');
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
 				and (crtc_rs=x"1" or crtc_rs=x"3") 
@@ -883,6 +883,8 @@ begin
 			when x"1a" => 	-- R26
 				col_fg <= CPU_D(7 downto 4);
 				col_bg0 <= CPU_D(3 downto 0);
+			when x"1b" => -- R27
+				va_offset <= CPU_D;
 			when x"1c" => 	-- R28
 				crom_base <= CPU_D;
 			when x"1d" => 	-- R29
@@ -974,6 +976,8 @@ begin
 					when x"1a" => 	-- R26
 						vd_out(7 downto 4) <= col_fg;
 						vd_out(3 downto 0) <= col_bg0;
+					when x"1b" => 	-- R27
+						vd_out <= va_offset;
 					when x"1c" => 	-- R28
 						vd_out <= crom_base;
 					when x"1d" => 	-- R29
