@@ -38,6 +38,7 @@ The following are the internal Viccy registers:
 - r6: vertial displayed - the number of character rows displayed in a frame (CRTC)
 - r8: mode register
   - bit 7: 1=80 columns
+    - TODO: see r22
   - bit 1-0: 
     - 0x= normal display
     - 10= interlace (show every scanline twice, i.e. r9 is effectivly twice its value)
@@ -60,17 +61,23 @@ The following are the internal Viccy registers:
 - r21: attribute start address low (VDC)
 - r22: (not used: character horizontal - define character width total and displayed (VDC)
   - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
-  - bits 3-0: total: total number of horizontal bits timed for a char, -1.)
+  - bits 7-4: total: total number of horizontal bits timed for a char, -1.)
+  - TODO: while total h.bits will always be 8, implement displayed h.bits (.0-.3)
 - r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
+    - TODO
 - r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of scan lines to scroll the screen down 
+    - TODO: VDC: bits 4-0: scan lines to scroll UP
   - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
+    - TODO: VDC: bits 4-0: scan lines to scroll UP
   - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)
   - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
 - r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of pixels to shift the output to the right
   - bit 4: CSEL: if set, extend left border by 7 pixels and right border by 9 pixels
+    - TODO: according to https://www.c64-wiki.de/wiki/VDC bit4=1 is 40 col moddde
   - bit 5: unused (semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background))
+    - TODO: implement together with parts of R22
   - bit 6: attribute enable (VDC)
   - bit 7: bitmap mode (hires)
 - r26: default colours (VDC)
@@ -100,6 +107,7 @@ The following are the internal Viccy registers:
   - bit 4: DEN: display enable
   - bit 6-5: - 
   - bit 7: Micro-PET compatible (see r1)
+    - TODO: change bits so rasterline can be extended (e.g. 2->5, 4->6); move border x/y ext bits here (.3,.4)?
 - r40: extended background colour 
   - bits 3-0 background colour 1
   - bits 7-4 background colour 2
