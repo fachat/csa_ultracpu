@@ -58,9 +58,9 @@ The following are the internal Viccy registers:
 - r15: cursor position low (CRTC)
 - r20: attribute start address high (VDC)
 - r21: attribute start address low (VDC)
-- r22: character horizontal - define character width total and displayed (VDC)
+- r22: (not used: character horizontal - define character width total and displayed (VDC)
   - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
-  - bits 3-0: total: total number of horizontal bits timed for a char, -1.
+  - bits 3-0: total: total number of horizontal bits timed for a char, -1.)
 - r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
 - r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of scan lines to scroll the screen down 
@@ -70,7 +70,7 @@ The following are the internal Viccy registers:
 - r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of pixels to shift the output to the right
   - bit 4: CSEL: if set, extend left border by 7 pixels and right border by 9 pixels
-  - bit 5: semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background)
+  - bit 5: unused (semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background))
   - bit 6: attribute enable (VDC)
   - bit 7: bitmap mode (hires)
 - r26: default colours (VDC)
@@ -446,4 +446,24 @@ VIA CA2 output pin as on the PET.
 
 Please see the extensive VIC-II documentation for a description of the corresponding sprite registers
 
+## Colour Palette
+
+The colour palette is the same as the C128 VDC's.
+
+- 0: black
+- 1: dark grey
+- 2: dark blue
+- 3: light blue
+- 4: dark green
+- 5: light green
+- 6: dark cyan
+- 7: light cyan
+- 8: dark red
+- 9: light red
+- A: dark purple
+- B: light purple
+- C: brown
+- D: yellow
+- E: light grey
+- F: white
 

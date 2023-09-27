@@ -36,6 +36,7 @@ entity Top is
 	-- clock
 	   q50m : in std_logic;
 	   nres : in std_logic;
+		nirq : out std_logic;
 	
 	   -- CS/A out bus timing
 	   c8phi2	: out std_logic;
@@ -70,9 +71,6 @@ entity Top is
 	   nbe_dout : out std_logic;
 	   be_in: in std_logic;
 	   
-	-- I/O interface
-	   phi2_io: inout std_logic;
-
 	-- V/RAM interface
 	   VA : out std_logic_vector (18 downto 0);	-- 512k
 	   FA : out std_logic_vector (19 downto 15);	-- 512k, mappable in 32k blocks
@@ -81,18 +79,12 @@ entity Top is
 	   nvramsel : out STD_LOGIC;
 	   nframsel : out STD_LOGIC;
 	   ramrwb : out std_logic;
-
-	-- video out
- --          pxlld 	: out std_logic;
-	   colorld	: out std_logic;
---	   nchromaddr	: out std_logic;
---	   nsrload	: out std_logic;
 	   
-           vsync : out  STD_LOGIC;
-           hsync : out  STD_LOGIC;
---	   dclk : out std_logic;
-	   dena : out std_logic;
+      vsync : out  STD_LOGIC;
+      hsync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;
+
+		pxl_out: out std_logic_vector(3 downto 0);
 	   
 	-- SPI
 	   spi_out : out std_logic;
@@ -101,19 +93,18 @@ entity Top is
 	   spi_in1  : in std_logic;
 	   spi_in3  : in std_logic;
 	   -- selects
-	   nflash : out std_logic;	-- in1
-	   spi_nsel2 : out std_logic;	-- in1
-	   spi_nsel3 : out std_logic;	-- sd card, in3
-	   spi_nsel4 : out std_logic;	-- in1
-	   spi_nsel5 : out std_logic;	-- in1
-	   
-		pxl_out: out std_logic_vector(3 downto 0);
+		spi_sela : out std_logic;
+		spi_selb : out std_logic;
+		spi_selc : out std_logic;
+			   
+	-- Audio / DAC output
+		spi_naudio : out std_logic;
+		spi_aclk : out std_logic;
+		spi_amosi : out std_logic;
+		nldac : out std_logic;
 		
-		irq_out: out std_logic;
-		
-	-- Debug
-	   dbg_out: out std_logic;
-	   test: out std_logic
+	-- debug
+		dbg: in std_logic
 	 );
 end Top;
 
@@ -145,10 +136,8 @@ architecture Behavioral of Top is
 	
 	signal phi2_int: std_logic;
 	signal phi2_out: std_logic;
-	signal phi2_io_out: std_logic;
 	signal is_cpu: std_logic;
 	signal is_cpu_trigger: std_logic;
-	signal rdy_out: std_logic;
 		
 	-- CPU memory mapper
 	signal cfgld_in: std_logic;
@@ -185,13 +174,13 @@ architecture Behavioral of Top is
 	signal vis_80_in: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
-	signal v_dena: std_logic;
 	signal v_out: std_logic_vector(3 downto 0);
 	
 	-- cpu
 	signal ca_in: std_logic_vector(15 downto 0);
 	signal cd_in: std_logic_vector(7 downto 0);
 	signal reset: std_logic;
+	signal irq_out: std_logic;
 	signal wait_ram: std_logic;
 	signal wait_bus: std_logic;	-- when CPU waits for end of CS/A bus cycle
 	signal wait_setup: std_logic;	-- when CPU needs to wait for setup time
@@ -371,6 +360,8 @@ begin
 
 	reset <= not(nres);
 	
+	nirq <= '0' when irq_out = '1' else 'Z';
+	
 	-- define CPU slots.
 	-- mode(1 downto 0): 00=1MHz, 01=2MHz, 10=4MHz, 11=Max speed
 
@@ -466,7 +457,7 @@ begin
 	phi2_out <= phi2_int; -- or wait_bus or wait_setup;
 --	phi2_io_out <= memclk when mode="11" else
 --			phi2_int;
-	rdy_out <= '1';
+--	rdy_out <= '1';
 
 	
 	-- use a pullup and this mechanism to drive a 5V signal from a 3.3V CPLD
@@ -596,8 +587,6 @@ begin
 		reset
 	);
 
-	dbg_out <= '0';  --not(crom_fetch);
-	
 	vgraphic <= not(graphic);
 	
 	pxl_out <= v_out;
@@ -632,31 +621,24 @@ begin
 	-- SPI serial data out
 	spi_out <= ipl_out	when ipl = '1' 	else
 		spi_outx;
+		
 	-- SPI serial clock
 	spi_clk <= ipl_cnt(0)	when ipl = '1' and ipl_state = '0' else
 		spi_clkx;
---spi_clk <= q50m;
-		
-	-- SPI select lines
-	-- select flash chip
-	nflash <= '1'		when reset = '1' else
-			'0' 	when ipl = '1'	else
-			'0'	when spi_sel = "001" else
-			'1';
-		
-	spi_nsel2 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "010" else
-			'1';
-	spi_nsel3 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "011" else
-			'1';
-	spi_nsel4 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "100" else
-			'1';
-	spi_nsel5 <= '1'	when reset = '1' else
-			'0' 	when spi_sel = "101" else
-			'1';
-		
+	
+	spi_sela <= '1' 	when reset = '1' else
+				'1' 	when ipl = '1' else
+				spi_sel(0);
+				
+	spi_selb <= '1'	when reset = '1' else
+				'0'	when ipl = '1' else
+				spi_sel(1);
+				
+	spi_selc <= '1' 	when reset = '1' else
+				'0' 	when ipl = '1' else
+				spi_sel(2);
+	
+	
 	------------------------------------------------------
 	-- control registers
 	
@@ -713,7 +695,7 @@ begin
 
 
 	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
-			vid_fetch,
+			vid_fetch, rwb, m_vramsel_out,
 			memclk_dd)
 	begin
 		if (reset = '1') then
@@ -735,29 +717,31 @@ begin
 			else
 				VA_select <= VRA_CPU;
 			end if;
-			
+						
+		end if;
+
 			if (ipl = '1') then
 				ramrwb_int <= '0';	-- IPL load writes data to RAM
 			elsif (vid_fetch = '1') then
 				ramrwb_int <= '1';	-- video only reads
 			elsif (m_vramsel_out = '0') then
 				ramrwb_int <= '1';	-- not selected
-			elsif (memclk = '0') then
+			elsif (memclk = '1') then
 				ramrwb_int <= rwb;
+			else
+				ramrwb_int <= '1';
 			end if;
-			
-		end if;
+
 
 		-- keep VA, ramrwb etc stable one half qclk cycle after
 		-- de-select.
 		if (reset = '1') then
 			VA 		<= (others => 'Z');
-			ramrwb		<= '1';
+			--ramrwb		<= '1';
 			memclk_dd	<= '0';
 		elsif (falling_edge(q50m)) then
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
-			ramrwb <= ramrwb_int; 
 
 			memclk_dd <= memclk_d;
 
@@ -778,10 +762,9 @@ begin
 			end case;
 		end if;
 	end process;
+
+			ramrwb <= ramrwb_int; 
 	
---	colorld <= v_ldsync;
---	nsrload <= v_ldsync;
-				
 	FA(19 downto 16) <= 	ma_out(19 downto 16);
 	FA(15) <=		ma_out(15);
 			
@@ -819,6 +802,16 @@ begin
 			'0' 	when vid_fetch='1' else
 			'1' 	when wait_int = '1' else
 			not(m_vramsel_out);
+			
+	------------------------------------------------------
+	-- Audio / DAC output
+	-- TODO: move into submodule
+	
+	nldac <= rwb; --memclk;--m_vramsel_out; --ipl; -- ramrwb_int; --ipl;	--'1';
+	spi_naudio <= '1';
+	spi_amosi <= '1';
+	spi_aclk <= '1';
+	
 	
 	------------------------------------------------------
 	-- IPL logic

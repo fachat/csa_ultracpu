@@ -45,7 +45,6 @@ entity HBorder is
 			
 			hsync_pos: in std_logic_vector(6 downto 0);
 			slots_per_line: in std_logic_vector(6 downto 0);
-			h_shift: in std_logic_vector(3 downto 0);
 			h_extborder: in std_logic;
 			is_80: in std_logic;
 			

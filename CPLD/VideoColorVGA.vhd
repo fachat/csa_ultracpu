@@ -183,7 +183,6 @@ architecture Behavioral of Video is
 	-- border
 	signal h_shift: std_logic_vector(3 downto 0);
 	signal h_extborder: std_logic;
-	signal is_preload: std_logic;
 	signal v_extborder: std_logic;
 	signal v_shift: std_logic_vector(3 downto 0);
 	
@@ -209,6 +208,8 @@ architecture Behavioral of Video is
 	
 	signal irq_raster_ack: std_logic;
 	signal irq_raster: std_logic;
+	signal irq_raster_en: std_logic;
+	signal irq_out_int: std_logic;
 	
 	-- intermediate
 	signal h_zero: std_logic;
@@ -256,8 +257,6 @@ architecture Behavioral of Video is
 	signal attr_fetch_int : std_logic;
 	signal sr_fetch_int : std_logic;
 	
-	signal next_row : std_logic;
-	
 	-- temporary
 	signal is_double_int: std_logic;
 	signal interlace_int: std_logic;
@@ -301,7 +300,6 @@ architecture Behavioral of Video is
 			h_zero: in std_logic;
 			hsync_pos: in std_logic_vector(6 downto 0);
 			slots_per_line: in std_logic_vector(6 downto 0);
-			h_shift: in std_logic_vector(3 downto 0);
 			h_extborder: in std_logic;
 			is_80: in std_logic;
 			
@@ -500,7 +498,6 @@ begin
 			h_zero,
 			hsync_pos,
 			slots_per_line,
-			h_shift,
 			h_extborder,			
 			is_80,
 			x_start,
@@ -672,7 +669,7 @@ begin
 		end if;		
 	end process;
 
-	outbit_p: process(sr, sr_underline, sr_reverse)
+	outbit_p: process(sr, sr_underline, sr_reverse, h_shift)
 	begin
 		if(sr_underline = '1') then
 			is_outbit <= '1';
@@ -794,7 +791,7 @@ begin
 		end if;
 	end process;
 	
-	RasterIrq: process(phi2, crtc_reg, crtc_sel, crtc_rs)
+	RasterIrq: process(phi2, crtc_reg, crtc_sel, crtc_rs, reset)
 	begin
 		if (falling_edge(phi2)) then
 			
@@ -822,7 +819,12 @@ begin
 		
 	end process;
 	
-	irq_out <= irq_raster; -- or irq_sprite_bg or irq_sprite_sprite or ...
+	irq_out_int <= (irq_raster and irq_raster_en); 
+				-- or (irq_sprite_bg and irq_sprite_bg_en) 
+				-- or (irq_sprite_sprite and irq_sprite_sprite_en)
+				-- or ...
+	
+	irq_out <= irq_out_int;
 	
 	--------------------------------------------
 	-- crtc register emulation
@@ -881,6 +883,7 @@ begin
 			h_shift <= (others => '0');
 			va_offset <= (others => '0');
 			raster_match <= (others => '0');
+			irq_raster_en <= '0';
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1' 
 				and (crtc_rs=x"1" or crtc_rs=x"3") 
@@ -950,7 +953,10 @@ begin
 				crom_base <= CPU_D;
 			when x"1d" => 	-- R29
 				uline_scan <= CPU_D(4 downto 0);
+			when x"26" =>	-- R38
+				raster_match(7 downto 0) <= CPU_D;
 			when x"27" =>	-- R39
+				raster_match(9 downto 8) <= CPU_D(1 downto 0);
 				mode_extended <= CPU_D(2);
 				dispen <= CPU_D(4);
 				mode_upet <= CPU_D(7);
@@ -959,6 +965,8 @@ begin
 				col_bg2 <= CPU_D(7 downto 4);
 			when x"29" =>	-- R41
 				col_border <= CPU_D(3 downto 0);
+			when x"2a" =>	-- R42
+				irq_raster_en <= CPU_D(0);
 			when x"2c" =>	-- R44
 				-- horizontal sync
 				hsync_pos <= CPU_D(6 downto 0);
@@ -1056,6 +1064,11 @@ begin
 						vd_out(7 downto 4) <= col_bg2;
 					when x"29" =>	-- R41
 						vd_out(3 downto 0) <= col_border;
+					when x"2a" =>	-- R44
+						vd_out(0) <= irq_raster_en;
+					when x"2b" =>	-- R44
+						vd_out(0) <= irq_raster;
+						vd_out(7) <= irq_out_int;
 					when x"2c" =>	-- R44
 						vd_out(6 downto 0) <= hsync_pos;
 					when x"2d" =>	-- R45
