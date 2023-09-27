@@ -717,8 +717,6 @@ begin
 			else
 				VA_select <= VRA_CPU;
 			end if;
-						
-		end if;
 
 			if (ipl = '1') then
 				ramrwb_int <= '0';	-- IPL load writes data to RAM
@@ -726,22 +724,24 @@ begin
 				ramrwb_int <= '1';	-- video only reads
 			elsif (m_vramsel_out = '0') then
 				ramrwb_int <= '1';	-- not selected
-			elsif (memclk = '1') then
+			elsif (memclk = '0') then
 				ramrwb_int <= rwb;
-			else
-				ramrwb_int <= '1';
 			end if;
+						
+		end if;
+
 
 
 		-- keep VA, ramrwb etc stable one half qclk cycle after
 		-- de-select.
 		if (reset = '1') then
 			VA 		<= (others => 'Z');
-			--ramrwb		<= '1';
+			ramrwb		<= '1';
 			memclk_dd	<= '0';
 		elsif (falling_edge(q50m)) then
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
+			ramrwb <= ramrwb_int; 
 
 			memclk_dd <= memclk_d;
 
@@ -763,7 +763,6 @@ begin
 		end if;
 	end process;
 
-			ramrwb <= ramrwb_int; 
 	
 	FA(19 downto 16) <= 	ma_out(19 downto 16);
 	FA(15) <=		ma_out(15);

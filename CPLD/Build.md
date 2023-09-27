@@ -71,4 +71,14 @@ Then assign a configuration file to the CPLD
 
 After that, you can right-click on the CPLD device on display and select "Program" to program the configuration into the CPLD.
 
+## generating a PROM file for the FPGA version
+
+1. Setup the ISE environment:
+
+. /opt/Xilinx/14.7/ISE_DS/settings64.sh
+
+2. Run the promgen tool
+
+promgen -spi -u 0 work/Top.bit -w -p bin -o Top.rom
+
 
