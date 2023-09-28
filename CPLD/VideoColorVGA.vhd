@@ -799,10 +799,12 @@ begin
 				irq_raster_ack <= '0';
 			end if;
 			
-			if (crtc_sel = '1' and crtc_rs(1) = '1' and crtc_reg = x"2b") then
-				if (CPU_D(0) = '1') then
+			if (crtc_sel = '1' and crtc_rs(0) = '1' and crtc_reg = x"2b"
+					--and crtc_rwb = '0'	-- note this seems to break display...???
+					) then
+				--if (CPU_D(0) = '1') then
 					irq_raster_ack <= '1';
-				end if;
+				--end if;
 			end if;
 			
 		end if;
@@ -876,7 +878,7 @@ begin
 			col_bg0 <= "0000";
 			col_bg1 <= "0000";
 			col_bg2 <= "0000";
-			col_border <= "0111";
+			col_border <= "0000";
 			uline_scan <= (others => '0');
 			h_extborder <= '0';
 			v_extborder <= '0';

@@ -51,7 +51,7 @@ The following are the internal Viccy registers:
     - 00: solid cursor
     - 01: cursor off
     - 10: blink at 1/16th of the frame rate
-    - 10: blink at 1/32th of the frame rate
+    - 11: blink at 1/32th of the frame rate
 - r11: cursor end scan line + 1 (CRTC)
 - r12: start of video memory high (CRTC)
 - r13: start of video memory low (CRTC)
@@ -103,6 +103,7 @@ The following are the internal Viccy registers:
 - r38: rasterline counter low (bits 0-7)
 - r39: control register
   - bits 1-0: bits 9/8 of the rasterline counter
+    - Note: rasterline here does not make much sense as always needs to be combined with mode bits
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
   - bit 6-5: - 
@@ -127,7 +128,7 @@ The following are the internal Viccy registers:
 - r44 horizontal position (in chars); replaces r2
   - bit 0-6, defaults to 8
 - r45 vertical position (in rasterlines) of start of raster screen; replaces r7
-  - bit 0-7, defaults to 78 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
+  - bit 0-7, defaults to 84 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
 
 Sprite registers (subject to change):
 

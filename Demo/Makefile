@@ -1,0 +1,20 @@
+
+PRGS=
+
+all: updemo
+
+updemo: updemo.a65 *.a65 
+	xa -w -M -oPETSCII -l $@.lab -o $@ $<
+
+updemo.hex: updemo
+	hexdump -C $< > $@.hex
+	#diff -u $@.hex ../8296_burnin/8296\ burnin.hex
+
+	cc -Wall -pedantic -o $@ $<
+
+${PRGS}: % : %.lst
+	petcat -w40 -o $@ $<
+
+clean:
+	rm -f updemo.lab updemo.hex
+
