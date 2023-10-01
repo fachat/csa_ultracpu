@@ -66,8 +66,7 @@ The following are the internal Viccy registers:
 - r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
     - TODO
 - r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
-  - bits 3-0: number of scan lines to scroll the screen down 
-    - TODO: VDC: bits 4-0: scan lines to scroll UP
+  - bits 3-0: number of scan lines to scroll the screen up
   - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
     - TODO: VDC: bits 4-0: scan lines to scroll UP
   - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)

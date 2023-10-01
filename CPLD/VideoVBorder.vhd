@@ -68,7 +68,6 @@ architecture Behavioral of VBorder is
 	signal is_border_int: std_logic;
 	signal is_last_row_of_char_int: std_logic;
 	signal is_last_row_of_char_ext: std_logic;
-	signal is_last_row_of_char_ext_2: std_logic;
 	signal is_last_row_of_screen_int: std_logic;
 	signal is_first_row_of_screen_int: std_logic;
 	
@@ -111,7 +110,8 @@ begin
 
 						vh_cnt <= std_logic_vector(to_unsigned(1,10)); --(others => '0');
 
-						rcline_cnt_ext <= 0 - v_shift;
+						--rcline_cnt_ext <= 0 - v_shift;
+						rcline_cnt_ext <= v_shift;
 						rcline_cnt_int <= (others => '0');
 						
 						if (v_extborder = '0') then
@@ -164,7 +164,6 @@ begin
 
 			is_last_row_of_char_int <= '0';
 			is_last_row_of_char_ext <= '0';
-			is_last_row_of_char_ext_2 <= '0';
 			is_last_row_of_screen_int <= '0';
 			is_first_row_of_screen_int <= '0';
 			
@@ -182,17 +181,8 @@ begin
 					end if;
 				end if;
 
-				if (rcline_cnt_ext = rows_per_char 
-						and next_row = '1'
-						--and not(vh_cnt = 1) 
-						) then
-					if (v_shift = 0) then
-						is_last_row_of_char_ext_2 <= '1';
+				if (rcline_cnt_ext = rows_per_char and next_row = '1') then
 						is_last_row_of_char_ext <= '1';
-					elsif(not(vh_cnt = 1)) then
-						is_last_row_of_char_ext_2 <= '1';
-						is_last_row_of_char_ext <= '1';
-					end if;
 				end if;
 			end if;
 					
@@ -202,7 +192,7 @@ begin
 	rcline_cnt <= rcline_cnt_ext;
 	rline_cnt0 <= rline_cnt0_int;
 	
-	is_last_row_of_char <= is_last_row_of_char_ext_2;
+	is_last_row_of_char <= is_last_row_of_char_ext; --_2;
 	is_last_row_of_screen <= is_first_row_of_screen_int;
 	
 	is_border <= is_border_int;

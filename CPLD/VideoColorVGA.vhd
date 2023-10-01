@@ -540,7 +540,7 @@ begin
 	begin
 		if (reset ='1') then
 			vid_addr_hold <= (others => '0');
-		elsif (rising_edge(slotclk)) then
+		elsif (falling_edge(qclk) and dotclk = "0111") then
 			if (last_vis_slot_of_line = '1') then
 				if (last_line_of_screen = '1') then
 					vid_addr_hold <= vid_base;
@@ -569,7 +569,7 @@ begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
 			attr_addr <= (others => '0');
-		elsif (falling_edge(slotclk)) then
+		elsif (falling_edge(qclk) and dotclk = "1111") then
 				if (x_start = '0') then
 					if (is_80 = '1' or in_slot = '1') then
 						vid_addr <= vid_addr + 1;
@@ -883,6 +883,7 @@ begin
 			h_extborder <= '0';
 			v_extborder <= '0';
 			h_shift <= (others => '0');
+			v_shift <= (others => '0');
 			va_offset <= (others => '0');
 			raster_match <= (others => '0');
 			irq_raster_en <= '0';
@@ -929,7 +930,8 @@ begin
 			when x"0d" =>
 				vid_base(7 downto 0) <= CPU_D;
 			when x"0e" =>
-				crsr_address(15 downto 8) <= CPU_D;
+				crsr_address(14 downto 8) <= CPU_D(6 downto 0);
+				crsr_address(15) <= not(CPU_D(7));
 			when x"0f" =>	-- R15
 				crsr_address(7 downto 0) <= CPU_D;
 			when x"14" =>	-- R20
@@ -1053,6 +1055,9 @@ begin
 						vd_out <= crom_base;
 					when x"1d" => 	-- R29
 						vd_out(4 downto 0) <= uline_scan;
+					when x"25" => 	-- R37
+						vd_out(6) <= h_sync_int;
+						vd_out(5) <= v_sync_int;
 					when x"26" => 	-- R38
 						vd_out <= y_addr(7 downto 0);
 						y_addr_latch(9 downto 8) <= y_addr(9 downto 8);

@@ -62,7 +62,6 @@ architecture Behavioral of HBorder is
 
 	-- signal defs
 	signal h_state: std_logic;
-	signal h_start: std_logic;
 	
 	signal is_preload_int: std_logic;
 	signal is_preload_int_d: std_logic;
@@ -75,7 +74,7 @@ architecture Behavioral of HBorder is
 
 begin
 
-	CharCnt: process(qclk, dotclk, h_zero, h_start, vh_cnt, reset)
+	CharCnt: process(qclk, dotclk, h_zero, is_preload_int, vh_cnt, reset)
 	begin
 		if (reset = '1') then
 			vh_cnt <= (others => '0');
@@ -84,7 +83,7 @@ begin
 			if (h_zero = '1') then
 				vh_cnt <= (others => '0');
 				h_state <= '0';
-			elsif (h_start = '1') then
+			elsif (is_preload_int = '1') then
 				vh_cnt <= "0000001";
 				h_state <= '1';
 			else
@@ -110,15 +109,15 @@ begin
 	end process;
 
 	is_preload <= is_preload_int;
-	h_start <= is_preload_int;
 	
 	Enable: process (qclk, vh_cnt, is_preload_int_d, is_preload_int_dd, h_extborder)
 	begin
 		
-		if (falling_edge(qclk) and dotclk = "1111") then
+		if (h_zero = '1') then
+			is_border_int <= '1';
+		elsif (falling_edge(qclk) and dotclk = "1111") then
 			is_last_vis <= '0';
 			is_border <= is_border_int;
-			--if (h_state = '0' and ((h_extborder = '0' and is_preload_int_d = '1') or is_preload_int_dd = '1')) then
 			if ((h_extborder = '0' and is_preload_int = '1') 
 					or (is_80 = '1' and is_preload_int_d = '1') 
 					or (is_80 = '0' and is_preload_int_dd = '1')) 
