@@ -19,7 +19,8 @@ CR	=13
 p1	=$02
 p2	=$04
 tmp	=$06
-cnt	=$07
+cnt	=$08
+cnt2	=$09
 
 BSOUT	=$ffd2
 
@@ -37,12 +38,15 @@ link	.byt $00,$00
 l1000	; start of program
 
 	sei
+	jsr iniirq
+loop
 	jsr setviccy
 	jsr clrscr
-	jsr iniirq
-
-	;jsr first
+	jsr inichain
 	cli
+
+	lda #0
+	sta vdctab+24
 
 	jsr demo1
 	jsr demo2
@@ -53,7 +57,20 @@ l1000	; start of program
 	jsr demo7
 	jsr demo8
 	jsr demo9
-	rts
+	jsr demo10
+	jsr demo11
+	jsr demo12
+	jsr demolast
+	jsr demolast2
+
+	jsr wait
+	jsr wait
+	jsr wait
+x jmp x
+	jsr stopirq
+	sei
+	jsr resetchain
+	jmp loop
 
 
 ; ---------------------------------------------------------
@@ -195,23 +212,13 @@ txt 	.asc "           * INTERLACE MODE"
 	ldy #>itab
 	jsr addirq
 
-	ldx #14
-	lda #>$1000+9*80+12
-	jsr sreg
-	ldx #15
-	lda #<$1000+9*80+12
-	jsr sreg
-
-	ldx #10
-	lda #0+64		; cursor blink on 
-	jsr sreg
-	ldx #11
-	lda #8
-	jsr sreg
-
 	jmp wait
 
 idemo5	
+	ldx #10
+	lda #0+64		; cursor blink on 
+	jsr sreg
+
 	ldx #8
 	lda #128
 	jsr sreg	; interlace mode off
@@ -280,8 +287,20 @@ txt 	.asc "           * HORIZONTAL WIDTH AND POSITION"
 	jmp wait
 
 idemo5	
+	ldx #44
+	lda #8		; reset shift
+	jsr sreg
+	ldx #1
+	lda #80		; reset chars to 80
+	jsr sreg
+	ldx #27
+	lda #0		; reset compensate
+	jsr sreg	
+
 	ldx #25
-	lda #16+3	; shift three to the right
+	lda cnt
+	and #7
+	ora #16
 	jsr sreg
 
 	lda #41
@@ -300,7 +319,8 @@ txt 	.asc "           * HORIZONTAL SMOOTH SCROLL"
 ; --------------------
 
 	.(
-&demo8	lda #<txt
+&demo8
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -308,21 +328,17 @@ txt 	.asc "           * HORIZONTAL SMOOTH SCROLL"
 	ldy #>itab
 	jsr addirq
 
+	ldx #41
+	lda #5
+	jsr sreg
+
+	inc vdctab+41
+
 	jmp wait
 
 idemo5	
-	ldx #44
-	lda #8		; shift three to the right
-	jsr sreg
-	ldx #1
-	lda #80		; only 60 chars
-	jsr sreg
-	ldx #27
-	lda #0		; compensate
-	jsr sreg	
-
 	ldx #25
-	lda #16		; shift three to the right
+	lda #16
 	jsr sreg
 
 	lda #41
@@ -334,9 +350,10 @@ itab	.word idemo5-1
 	.word 271
 	.word 0
 
-txt 	.asc "           * HIRES"
+txt 	.asc "           * BORDERS AND RASTERLINE INTERRUPTS"
 	.asc CR,0
 	.)
+
 ; --------------------
 
 	.(
@@ -346,21 +363,300 @@ txt 	.asc "           * HIRES"
 
 	lda #<itab
 	ldy #>itab
-	jsr addirq
+	;jsr addirq
+
+	lda #<itab3
+	ldy #>itab3
+	;jsr insirq
+
+	lda #<itab2
+	ldy #>itab2
+	;jsr insirq
 
 	jmp wait
 
 idemo5	
+	lda cnt
+	and #%00000111
+	sta vdctab+24
+noinc
 	lda #41
 	sta VDC
 	inc VDC+1
 	rts
 
 itab	.word idemo5-1
-	.word 290
+	.word 289
 	.word 0
 
-txt 	.asc "           * BORDERS AND RASTERLINE INTERRUPTS"
+txt 	.asc "           * VERTICAL SMOOTH SCROLL + VARIABLE CHAR HEIGHT"
+	.asc CR,0
+
+idemo2	lda cnt
+	and #$07
+	clc
+	adc #8
+	ldx #9
+	jsr sreg
+
+	ldx #41
+	stx VDC
+	inc VDC+1
+	rts
+
+itab2	.word idemo2-1
+	.word 89; 90
+	.word 0
+
+idemo3
+	ldx #9
+	lda #8
+	jsr sreg
+	
+	ldx #41
+	stx VDC
+	inc VDC+1
+	rts
+
+
+itab3	.word idemo3-1
+	.word 117
+	.word 0
+
+	.)
+
+; --------------------
+
+	.(
+&demo10	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #<itab
+	ldy #>itab
+	jsr addirq
+
+	jmp wait
+
+idemo5	ldx #8
+	lda #0
+	jsr sreg
+
+	ldx #1
+	lda #40		; 40 cols per line
+	jsr sreg
+	ldx #27		; compensate 40 chars 
+	jsr sreg
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+	rts
+
+itab	.word idemo5-1
+	.word 307
+	.word 0
+
+txt 	.asc "           * SWITCHABLE 40/80 COLS"
+	.asc CR,0
+	.)
+
+; --------------------
+
+	.(
+&demo11	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #<itab
+	ldy #>itab
+	jsr addirq
+
+	lda #<itab2
+	ldy #>itab2
+	jsr addirq
+
+	jmp wait
+
+txt 	.asc "           * 50 ROW MODES"
+	.asc CR,0
+
+idemo5	
+	ldx #37
+	stx VDC
+l0	bit VDC+1
+	bvc l0
+
+	ldx #8
+	lda #128+3	; 50x80 mode
+	jsr sreg
+	
+	ldx #1
+	lda #80		; reset 40 cols per line
+	jsr sreg
+	lda #0
+	ldx #27		; reset compensate 40 chars 
+	jsr sreg
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+itab	.word idemo5-1
+	.word 325
+	.word 0
+
+idemox	ldx #8
+	lda #128
+	jmp sreg	
+
+itab2	.word idemox-1
+	.word 335
+	.word 0
+
+	.)
+
+; --------------------
+	.(
+&demo12	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #<itab
+	ldy #>itab
+	jsr addirq
+
+	lda #<itab2
+	ldy #>itab2
+	jsr addirq
+
+	jmp wait
+
+idemo5	
+	ldx #37
+	stx VDC
+l	bit VDC+1
+	bvc l
+
+	ldx #8
+	lda #128	; 50x80 mode
+	jsr sreg
+
+	ldx #9
+	lda #11		; 12 rasterlines/char
+	jsr sreg	
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+itab	.word idemo5-1
+	.word 338
+	.word 0
+
+idemox	ldx #9
+	lda #8		; 9 rasterlines/char
+	jsr sreg
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+
+itab2	.word idemox-1
+	.word 362
+	.word 0
+
+txt 	.asc "           * RE-DEFINABLE CHARACTER SET AND LARGE CHAR HEIGHT"
+	.asc CR,0
+	.)
+
+; --------------------
+
+; must be last, as it starts hires
+	.(
+&demolast
+	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #<itab
+	ldy #>itab
+;	jsr addirq
+
+	jmp wait
+
+idemo5	
+
+	ldx #25
+	lda #128+16
+	jsr sreg
+
+	ldx #9
+	lda #8
+	jsr sreg	
+
+;	ldx #25
+;	lda #16		; shift three to the right
+;	jsr sreg
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+itab	.word idemo5-1
+	.word 401
+	.word 0
+
+txt 	.asc "           * HIRES"
+	.asc CR,0
+	.)
+; --------------------
+
+; must be last, as it starts hires
+	.(
+&demolast2
+	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #<itab
+	ldy #>itab
+;	jsr addirq
+
+	ldy #0
+l0	tya
+;	sta $8800+20*80,y
+	iny
+	cpy #80
+	bcc l0
+
+	jmp wait
+
+idemo5	
+        ldx #39
+        lda #16
+        jsr sreg        ; disable ColourPet mode
+        ldx #25
+        lda #64+16+128
+        jsr sreg        ; enable VDC attribute mode
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+itab	.word idemo5-1
+	.word 418
+	.word 0
+
+txt 	.asc "           * VDC COLOUR HIRES"
 	.asc CR,0
 	.)
 
@@ -411,7 +707,11 @@ next	ldy #2
 	ldx #42
 	lda #1
 	jsr sreg	; re-enable raster irq
-	rts
+
+	inc cnt2
+	bne e
+	inc cnt
+e	rts
 	
 run
 	ldy #1
@@ -424,6 +724,7 @@ run
 	.)
 
 addirq	.(
+	sei
 	ldx last
 	stx p1
 	ldx last+1
@@ -435,7 +736,64 @@ addirq	.(
 	iny
 	lda last+1
 	sta (p1),y
+	cli
 	rts 
+	.)
+
+insirq	.(
+	sei
+	sta tmp
+	sty tmp+1
+
+	ldx start
+	stx p1
+	ldx start+1
+	stx p1+1
+
+	ldy #5
+	lda (p1),y
+	sta (tmp),y
+	dey
+	lda (p1),y
+	sta (tmp),y
+
+	lda tmp
+	sta (p1),y
+	iny
+	lda tmp+1
+	sta (p1),y
+
+	cli
+	rts 
+	.)
+
+resetchain .(
+	lda start
+	sta p1
+	lda start+1
+	sta p1+1
+next	ldy #4
+	lda (p1),y
+	pha
+	iny
+	lda (p1),y
+	tax
+	lda #0
+	sta (p1),y
+	dey
+	sta (p1),y
+	stx p1+1
+	pla
+	sta p1
+	ora p1+1
+	bne next
+	rts
+	.)
+
+stopirq	.(
+	ldx #42
+	lda #0
+	jmp sreg
 	.)
 
 inichain .(
@@ -460,7 +818,7 @@ inichain .(
 	rts
 
 itab	.word resetscr-1
-	.word 400
+	.word 450
 	.word 0
 
 resetscr
@@ -484,7 +842,6 @@ setr39 .(
 ; ---------------------------------------------------------
 
 irqsave	.word 0
-irqmode	.byt 0
 
 newirq  .(
         lda #43
@@ -502,9 +859,8 @@ iniirq  .(
         sta irqsave+1
 
         lda #0
-        sta irqmode
-
-	jsr inichain
+	sta cnt
+	sta cnt2
 
 	php
         sei
@@ -570,8 +926,8 @@ lx	iny
 	.byt 7		; r11: cursor end line
 	.byt >$1000	; r12: start of vid memory high
 	.byt <$1000	; r13: start of vid memory low
-	.byt >$1000	; r14: cursor pos high
-	.byt <$1000	; r15: cursor pos low
+	.byt >$1000+9*80+11	; r14: cursor pos high
+	.byt <$1000+9*80+11	; r15: cursor pos low
 	.byt 0,0,0,0	; r16-r19: ignored
 	.byt >$d000	; r20: start of attribute memory high
 	.byt <$d000	; r21: start of attribute memory low
@@ -661,6 +1017,10 @@ wait	.(
 	ldx #0
 	ldy #0
 l0	nop
+	lda #20
+l1	sec
+	sbc #1
+	bne l1
 	nop
 	nop
 	nop
