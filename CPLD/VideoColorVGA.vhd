@@ -82,6 +82,14 @@ architecture Behavioral of Video is
 	signal mode_interlace: std_logic;
 	signal mode_80: std_logic;
 	
+	signal mode_altreg: std_logic;		-- enable access to alternate vid_base and attr_base
+	signal mode_bitmap_alt: std_logic;	
+	signal mode_extended_alt: std_logic;	
+	signal mode_attrib_alt: std_logic;	
+	signal alt_match_modes : std_logic;
+	signal alt_match_vaddr : std_logic;
+	signal alt_match_attr : std_logic;
+	
 	--- colours
 	signal col_fg: std_logic_vector(3 downto 0);
 	signal col_bg0: std_logic_vector(3 downto 0);
@@ -141,6 +149,9 @@ architecture Behavioral of Video is
 	signal vid_base : std_logic_vector(15 downto 0);
 	signal attr_base : std_logic_vector(15 downto 0);
 	signal crom_base : std_logic_vector(7 downto 0);
+	
+	signal vid_base_alt : std_logic_vector(15 downto 0);
+	signal attr_base_alt : std_logic_vector(15 downto 0);
 
 	-- count "slots", i.e. 8pixels
 	-- 
@@ -563,6 +574,13 @@ begin
 							vid_addr_hold <= vid_addr + va_offset;
 						end if;
 					end if;
+					-- alternate values on raster match
+					if (is_raster_match = '1' and alt_match_vaddr = '1') then
+						vid_addr_hold <= vid_base_alt;
+					end if;
+					if (is_raster_match = '1' and alt_match_attr = '1') then
+						attr_addr_hold <= attr_base_alt;
+					end if;
 				end if;
 			end if;
 		end if;
@@ -879,10 +897,17 @@ begin
 			mode_attrib <= '0';
 			mode_extended <= '0';
 			mode_bitmap <= '0';
+			mode_attrib_alt <= '0';
+			mode_extended_alt <= '0';
+			mode_bitmap_alt <= '0';
 			mode_upet <= '1';
 			mode_double <= '0';
 			mode_interlace <= '0';
 			mode_80 <= '0';
+			mode_altreg <= '0';
+			alt_match_modes <= '0';
+			alt_match_vaddr <= '0';
+			alt_match_attr <= '0';
 			dispen <= '1';
 			crsr_mode <= (others => '0');
 			crsr_address <= (others => '0');
@@ -892,7 +917,9 @@ begin
 			vsync_pos <= std_logic_vector(to_unsigned(84,10));
 			clines_per_screen <= "0011001";	-- 25
 			attr_base <= x"d000";
+			attr_base_alt <= x"d000";
 			vid_base <= x"9000";
+			vid_base_alt <= x"9000";
 			crom_base <= x"00";
 			col_fg <= "1111";
 			col_bg0 <= "0000";
@@ -945,19 +972,36 @@ begin
 			when x"0b" => 
 				crsr_end_scan <= CPU_D(4 downto 0);
 			when x"0c" =>
-				vid_base(14 downto 8) <= CPU_D(6 downto 0);
-				vid_base(15) <= not(CPU_D(7));
+				if (mode_altreg = '1') then
+					vid_base_alt(14 downto 8) <= CPU_D(6 downto 0);
+					vid_base_alt(15) <= not(CPU_D(7));
+				else
+					vid_base(14 downto 8) <= CPU_D(6 downto 0);
+					vid_base(15) <= not(CPU_D(7));
+				end if;
 			when x"0d" =>
-				vid_base(7 downto 0) <= CPU_D;
+				if (mode_altreg = '1') then
+					vid_base_alt(7 downto 0) <= CPU_D;
+				else
+					vid_base(7 downto 0) <= CPU_D;
+				end if;
 			when x"0e" =>
 				crsr_address(14 downto 8) <= CPU_D(6 downto 0);
 				crsr_address(15) <= not(CPU_D(7));
 			when x"0f" =>	-- R15
 				crsr_address(7 downto 0) <= CPU_D;
 			when x"14" =>	-- R20
-				attr_base(15 downto 8) <= CPU_D;
+				if (mode_altreg = '1') then
+					attr_base_alt(15 downto 8) <= CPU_D;
+				else
+					attr_base(15 downto 8) <= CPU_D;
+				end if;
 			when x"15" =>	-- R21
-				attr_base(7 downto 0) <= CPU_D;
+				if (mode_altreg = '1') then
+					attr_base_alt(7 downto 0) <= CPU_D;
+				else
+					attr_base(7 downto 0) <= CPU_D;
+				end if;
 			when x"18" =>	-- R24
 				v_shift <= CPU_D(3 downto 0);
 				v_extborder <= CPU_D(4);
@@ -996,6 +1040,15 @@ begin
 				hsync_pos <= CPU_D(6 downto 0);
 			when x"2d" =>	-- R45
 				vsync_pos <= CPU_D;
+			when x"2e" =>	-- R46 (alternate control I)
+				mode_altreg <= CPU_D(0);
+				mode_bitmap_alt <= CPU_D(1);
+				mode_attrib_alt <= CPU_D(2);
+				mode_extended_alt <= CPU_D(3);
+				alt_match_modes <= CPU_D(5);
+				alt_match_attr <= CPU_D(6);
+				alt_match_vaddr <= CPU_D(7);				
+			when x"2f" =>	-- R47 (alternate control II)
 			when others =>
 				null;
 			end case;
@@ -1036,26 +1089,42 @@ begin
 						vd_out(1) <= mode_interlace;
 						vd_out(7) <= mode_80;
 					when x"09" =>
-						vd_out(3) <= rows_per_char(3);
-						--rows_per_char <= CPU_D(3 downto 0);
+						vd_out(3 downto 0) <= rows_per_char;
 					when x"0a" =>
 						vd_out(4 downto 0) <= crsr_start_scan;
 						vd_out(6 downto 5) <= crsr_mode;
 					when x"0b" =>
 						vd_out(4 downto 0) <= crsr_end_scan;
 					when x"0c" =>
-						vd_out(6 downto 0) <= vid_base(14 downto 8);
-						vd_out(7) <= not(vid_base(15));
+						if (mode_altreg = '1') then
+							vd_out(6 downto 0) <= vid_base_alt(14 downto 8);
+							vd_out(7) <= not(vid_base_alt(15));
+						else
+							vd_out(6 downto 0) <= vid_base(14 downto 8);
+							vd_out(7) <= not(vid_base(15));
+						end if;
 					when x"0d" =>
-						vd_out <= vid_base(7 downto 0);
+						if (mode_altreg = '1') then
+							vd_out <= vid_base_alt(7 downto 0);
+						else
+							vd_out <= vid_base(7 downto 0);
+						end if;
 					when x"0e" =>
 						vd_out <= crsr_address(15 downto 8);
 					when x"0f" =>	-- R15
 						vd_out <= crsr_address(7 downto 0);
 					when x"14" =>	-- R20
-						vd_out <= attr_base(15 downto 8);
+						if (mode_altreg = '1') then
+							vd_out <= attr_base_alt(15 downto 8);
+						else 
+							vd_out <= attr_base(15 downto 8);
+						end if;
 					when x"15" =>	-- R21
-						vd_out <= attr_base(7 downto 0);
+						if (mode_altreg = '1') then
+							vd_out <= attr_base_alt(7 downto 0);
+						else
+							vd_out <= attr_base(7 downto 0);
+						end if;
 					when x"18" =>	-- R24
 						vd_out(3 downto 0) <= v_shift;
 						vd_out(4) <= v_extborder;
@@ -1100,6 +1169,15 @@ begin
 						vd_out(6 downto 0) <= hsync_pos;
 					when x"2d" =>	-- R45
 						vd_out(7 downto 0) <= vsync_pos;
+					when x"2e" =>	-- R46 (alternate control I)
+						vd_out(0) <= mode_altreg;
+						vd_out(1) <= mode_bitmap_alt;
+						vd_out(2) <= mode_attrib_alt;
+						vd_out(3) <= mode_extended_alt;
+						vd_out(5) <= alt_match_modes;
+						vd_out(6) <= alt_match_attr;
+						vd_out(7) <= alt_match_vaddr;
+					when x"2f" =>	-- R47 (alternate control II)
 					when others =>
 						null;
 					end case;
