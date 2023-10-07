@@ -69,6 +69,8 @@ end Video;
 
 architecture Behavioral of Video is
 
+	type AOA is array(natural range<>) of std_logic_vector(3 downto 0);
+		
 	--- modes
 	signal mode_attrib: std_logic;			-- r25.6, enable attribute use
 	signal mode_extended: std_logic;		-- r33.2, enables full and multicolor modes
@@ -118,6 +120,8 @@ architecture Behavioral of Video is
 	signal sr_underline : std_logic;			-- when set, underline is active in SR
 	signal sr_underline_p: std_logic;
 	signal is_outbit: std_logic;
+	signal raster_out: AOA(0 to 6);
+	signal raster_outbit: std_logic_vector(3 downto 0);
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -167,7 +171,7 @@ architecture Behavioral of Video is
 	signal attr_buf : std_logic_vector(7 downto 0);
 	signal pxl_buf : std_logic_vector(7 downto 0);
 	-- replacements for shift register
-	signal sr : std_logic_vector(15 downto 0);
+	signal sr : std_logic_vector(7 downto 0);
 	signal nsrload : std_logic;
 	signal dena_int : std_logic;
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
@@ -528,7 +532,7 @@ begin
 	
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
 	
-	is_80 <= mode_80 xor is_80_in;
+	is_80 <= mode_80 or is_80_in;
 	
 	v_sync <= not(v_sync_int);
 	pet_vsync <= v_sync_int;
@@ -536,7 +540,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- address calculations
 	
-	AddrHold: process(slotclk, last_line_of_screen, vid_addr, reset) 
+	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset) 
 	begin
 		if (reset ='1') then
 			vid_addr_hold <= (others => '0');
@@ -564,7 +568,7 @@ begin
 		end if;
 	end process;
 	
-	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, slotclk, reset)
+	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, qclk, reset)
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
@@ -623,12 +627,6 @@ begin
 			nsrload	<= not (memclk and sr_fetch_int );
 		end if;
 
-		if (falling_edge(qclk)) then
-			if (pxl0_ce = '1' and fetch_int = '1') then
-				sr_reverse_p <= '0';
-				sr_underline_p <= '0';
-			elsif (pxl9_ce = '1' and fetch_int = '1') then
-				
 				sr_reverse_p <= mode_rev;
 				sr_underline_p <= '0';
 				-- independent from extended and bitmap
@@ -652,84 +650,106 @@ begin
 						sr_reverse_p <= not(sr_reverse_p);
 					end if;
 				end if;
-			end if;
-		end if;
 		
 		if (falling_edge(qclk)) then
 			if (pxlf_ce = '1' and (is_80 = '1' or in_slot = '0')) then
-				sr(15 downto 8) <= sr(14 downto 7); 
 				sr_attr <= attr_buf;
 				sr(7 downto 0) <= pxl_buf;
 				sr_reverse <= sr_reverse_p;
 				sr_underline <= sr_underline_p;
+				
+				if (sr_underline_p = '1') then
+					is_outbit <= '1';
+				elsif (sr_reverse_p = '1') then
+					is_outbit <= not(pxl_buf(7));
+				else
+					is_outbit <= pxl_buf(7);
+				end if;
 			elsif (dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
-					sr(15 downto 1) <= sr(14 downto 0);
-					sr(0) <= '1';
-			end if;
-		end if;		
-	end process;
+				sr(7 downto 1) <= sr(6 downto 0);
+				sr(0) <= '1';
 
-	outbit_p: process(sr, sr_underline, sr_reverse, h_shift)
-	begin
-		if(sr_underline = '1') then
-			is_outbit <= '1';
-		else
-			case (h_shift(2 downto 0)) is
-			when "000" =>
-				is_outbit <= sr(7) xor sr_reverse;
-			when "001" =>
-				is_outbit <= sr(8) xor sr_reverse;
-			when "010" =>
-				is_outbit <= sr(9) xor sr_reverse;
-			when "011" =>
-				is_outbit <= sr(10) xor sr_reverse;
-			when "100" =>
-				is_outbit <= sr(11) xor sr_reverse;
-			when "101" =>
-				is_outbit <= sr(12) xor sr_reverse;
-			when "110" =>
-				is_outbit <= sr(13) xor sr_reverse;
-			when "111" =>
-				is_outbit <= sr(14) xor sr_reverse;
-			when others =>
-				is_outbit <= '0';
-			end case;
+				if (sr_underline = '1') then
+					is_outbit <= '1';
+				elsif (sr_reverse = '1') then
+					is_outbit <= not(sr(6));
+				else
+					is_outbit <= sr(6);
+				end if;
+
+			end if;
 		end if;
 	end process;
-						
+					
+	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr)
+	begin			
+			if (x_border = '1' or y_border = '1' or dispen = '0') then
+				-- BORDER
+				raster_outbit <= col_border;
+			elsif (mode_extended = '0' and mode_attrib = '0') then
+				-- 2 COL MODE
+				if is_outbit = '0' then
+					raster_outbit <= col_bg0;
+				else
+					raster_outbit <= col_fg;
+				end if;
+			elsif (mode_extended = '0' and mode_attrib = '1') then
+				-- ATTRIBUTE MODE (VDC)
+				if (is_outbit = '0') then
+					raster_outbit <= col_bg0;
+				else
+					raster_outbit <= sr_attr(3 downto 0);
+				end if;
+			elsif (mode_extended = '1' and mode_attrib = '0') then
+				-- EXTENDED MODE (COLOUR PET)
+				if is_outbit = '0' then
+					raster_outbit <= sr_attr(7 downto 4);
+				else
+					raster_outbit <= sr_attr(3 downto 0);
+				end if;
+			else
+				if (is_outbit = '0') then
+					raster_outbit <= sr_attr(7 downto 4);
+				else 
+					raster_outbit <= sr_attr(3 downto 0);
+				end if;
+			end if;
+	end process;
+	
 	vid_out_p: process (qclk, dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
 
-			if (x_border = '1' or y_border = '1' or dispen = '0') then
+			case (h_shift(2 downto 0)) is
+			when "000" =>
+				vid_out <= raster_outbit;
+			when "001" =>
+				vid_out <= raster_out(0);
+			when "010" =>
+				vid_out <= raster_out(1);
+			when "011" =>
+				vid_out <= raster_out(2);
+			when "100" =>
+				vid_out <= raster_out(3);
+			when "101" =>
+				vid_out <= raster_out(4);
+			when "110" =>
+				vid_out <= raster_out(5);
+			when "111" =>
+				vid_out <= raster_out(6);
+			when others =>
 				vid_out <= col_border;
-			elsif (mode_extended = '0' and mode_attrib = '0') then
-				if is_outbit = '0' then
-					vid_out <= col_bg0;
-				else
-					vid_out <= col_fg;
-				end if;
-			elsif (mode_extended = '0' and mode_attrib = '1') then
-				if (is_outbit = '0') then
-					vid_out <= col_bg0;
-				else
-					vid_out <= sr_attr(3 downto 0);
-				end if;
-			elsif (mode_extended = '1' and mode_attrib = '0') then
-				if is_outbit = '0' then
-					vid_out <= sr_attr(7 downto 4);
-				else
-					vid_out <= sr_attr(3 downto 0);
-				end if;
-			else
-				if (is_outbit = '0') then
-					vid_out <= attr_buf(7 downto 4);
-				else 
-					vid_out <= attr_buf(3 downto 0);
-				end if;
-			end if;
+			end case;
+
+			raster_out(6) <= raster_out(5);
+			raster_out(5) <= raster_out(4);
+			raster_out(4) <= raster_out(3);
+			raster_out(3) <= raster_out(2);
+			raster_out(2) <= raster_out(1);
+			raster_out(1) <= raster_out(0);
+			raster_out(0) <= raster_outbit;			
 		end if;
 	end process;
 	

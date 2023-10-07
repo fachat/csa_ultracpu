@@ -110,7 +110,7 @@ begin
 
 	is_preload <= is_preload_int;
 	
-	Enable: process (qclk, vh_cnt, is_preload_int_d, is_preload_int_dd, h_extborder)
+	Enable: process (qclk, vh_cnt, is_preload_int_d, is_preload_int_dd, h_extborder, h_zero)
 	begin
 		
 		if (h_zero = '1') then
