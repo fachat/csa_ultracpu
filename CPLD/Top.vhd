@@ -372,13 +372,13 @@ begin
 
 	-- depending on mode, goes high when we have a CPU access pending,
 	-- and else low when a CPU access is done
-	is_cpu_p: process(reset, is_cpu_trigger, is_cpu, do_cpu, mode, memclk)
+	is_cpu_p: process(reset, q50m, dotclk, is_cpu_trigger, is_cpu, do_cpu, mode) --, memclk)
 	begin
 		if (reset = '1') then
 			is_cpu <= '0';
 		elsif (mode = "11") then
 			is_cpu <= '1';
-		elsif falling_edge(memclk) then
+		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "11") then	-- falling_edge(memclk)
  			if (is_cpu_trigger = '1') then
 				is_cpu <= '1';
 			elsif (do_cpu = '1') then
@@ -401,11 +401,13 @@ begin
 	-- constant low (full speed)
 	wait_int <= not(is_cpu); -- or ipl;
 		
-	release2_p: process(memclk_d, memclk_dd, memclk_ddd, reset)
+	-- do_cpu is set when the coming falling edge of memclk should be active for the CPU
+	release2_p: process(q50m, dotclk, reset) --memclk_d, memclk_dd, memclk_ddd, reset)
 	begin
 		if (reset = '1') then
 			do_cpu <= '0';
-		elsif (rising_edge(memclk_ddd)) then
+		--elsif (rising_edge(memclk_ddd)) then
+		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "11") then
 			if (	(is_bus = '0' 
 					and wait_int = '0' and wait_ram = '0')
 				or (is_bus = '1' 
@@ -418,12 +420,14 @@ begin
 		end if;
 	end process;
 	
-	release3_p: process(memclk_d, reset, is_bus, chold, csetup)
+	release3_p: process(memclk_d, reset, q50m, is_bus, chold, csetup)
 	begin
 		if (reset = '1'
 			or chold = '0') then
 			wait_setup <= '0';
-		elsif (rising_edge(memclk_d)) then
+		-- elsif (rising_edge(memclk_d)) then
+		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
+			-- after memclk rises, but before chold goes down
 		
 			-- first four memclk cycles in phi2 (csetup=1)
 			if (is_bus = '1'
@@ -434,7 +438,9 @@ begin
 		
 		if (reset = '1') then
 			wait_bus <= '0';
-		elsif (rising_edge(memclk_d)) then
+		--elsif (rising_edge(memclk_d)) then
+		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
+			-- after memclk rises, but before chold goes down
 			
 			-- memclk cycles after bus setup (csetup=0)
 			if (wait_setup = '1') then
@@ -455,17 +461,13 @@ begin
 	-- split phi2, stretched phi2 for the CPU to accomodate for waits.
 	-- for full speed, don't delay VIA timers
 	phi2_out <= phi2_int; -- or wait_bus or wait_setup;
---	phi2_io_out <= memclk when mode="11" else
---			phi2_int;
---	rdy_out <= '1';
-
 	
 	-- use a pullup and this mechanism to drive a 5V signal from a 3.3V CPLD
 	-- According to UG445 Figure 7: push up until detected high, then let pull up resistor do the rest.
 	-- data_to_pin<= data  when ((data and data_to_pin) ='0') else 'Z';	
+	--	phi2 <= phi2_out when ((phi2_out and phi2) = '0') else 'Z';
+	-- no need for that on 3.3V CPU, so just output phi2
 	phi2 <= phi2_out;
---	phi2 <= phi2_out when ((phi2_out and phi2) = '0') else 'Z';
---	phi2_io <= phi2_io_out when ((phi2_io_out and phi2_io) = '0') else 'Z';
 		
 	------------------------------------------------------
 	-- CPU memory mapper

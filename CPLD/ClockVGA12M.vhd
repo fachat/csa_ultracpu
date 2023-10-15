@@ -32,20 +32,20 @@ entity Clock is
 	   qclk 	: in std_logic;		-- input clock
 	   reset	: in std_logic;
 	   
-	   memclk 	: out std_logic;	-- memory access clock signal
+	   memclk: out std_logic;	-- memory access clock signal
 	   
-	   clk1m 	: out std_logic;	-- trigger CPU access @ 1MHz
+	   clk1m : out std_logic;	-- trigger CPU access @ 1MHz
 	   clk2m	: out std_logic;	-- trigger CPU access @ 2MHz
 	   clk4m	: out std_logic;	-- trigger CPU access @ 4MHz
 	   
 	   -- CS/A out bus timing
-	   c8phi2	: out std_logic;
-	   c2phi2	: out std_logic;
+	   c8phi2: out std_logic;
+	   c2phi2: out std_logic;
 	   cphi2	: out std_logic;
 	   chold	: out std_logic;	-- high for duration of Addr hold time
-	   csetup	: out std_logic;
+	   csetup: out std_logic;
 	   
-	   dotclk	: out std_logic_vector(3 downto 0) -- 1x, 1/2, 1/4, 1/8 pixel clock for video
+	   dotclk: out std_logic_vector(3 downto 0) -- 1x, 1/2, 1/4, 1/8 pixel clock for video
 	 );
 end Clock;
 
