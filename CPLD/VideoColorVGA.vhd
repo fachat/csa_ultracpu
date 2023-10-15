@@ -524,7 +524,7 @@ begin
 
 	v_border: VBorder
 	port map (
-			h_sync_int,	
+			h_zero,	--h_sync_int,	
 			v_zero,
 			vsync_pos,
 			rows_per_char,
@@ -618,7 +618,8 @@ begin
 
 
 	
-	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int)
+	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int,
+		mode_rev, sr_crsr, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
 	begin
 		
 		if (falling_edge(qclk)) then
@@ -699,7 +700,7 @@ begin
 		end if;
 	end process;
 					
-	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr)
+	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, col_bg0, col_fg)
 	begin			
 			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				-- BORDER

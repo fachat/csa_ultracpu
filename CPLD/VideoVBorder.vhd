@@ -63,38 +63,37 @@ architecture Behavioral of VBorder is
 	-- signal defs
 	signal v_state: std_logic;
 	signal v_next: std_logic;
-	signal v_shift_fl: std_logic;
 	
 	signal is_border_int: std_logic;
 	signal is_last_row_of_char_int: std_logic;
 	signal is_last_row_of_char_ext: std_logic;
 	signal is_last_row_of_screen_int: std_logic;
 	signal is_first_row_of_screen_int: std_logic;
+	signal is_first_row_of_screen_ext: std_logic;
 	
 	signal vh_cnt : std_logic_vector (6 downto 0) := (others => '0');
-	signal rcline_cnt_int: std_logic_vector(3 downto 0);
 	signal rcline_cnt_ext: std_logic_vector(3 downto 0);
 	signal rline_cnt0_int: std_logic;
 
 	signal next_row: std_logic;
-	
+
+	signal is_match: std_logic;
+	signal is_matchcr: std_logic;
+	signal is_shift: std_logic;
+	signal is_nextcr: std_logic;
 begin
 
-	next_row <= rline_cnt0_int or is_double;
+	next_row <= not(rline_cnt0_int) or is_double;
 	
 	RowCnt: process(h_sync, vh_cnt, reset)
 	begin
 		if (reset = '1') then
 			v_state <= '0';
-			rcline_cnt_int <= (others => '0');
-			rcline_cnt_ext <= (others => '0');
 			vh_cnt <= (others => '0');
 		elsif (rising_edge(h_sync)) then
 		
 			if (v_zero = '1') then
 				vh_cnt <= (others => '0');
-				rcline_cnt_int <= (others => '0');
-				rcline_cnt_ext <= (others => '0');
 				v_state <= '0';
 			else 
 			
@@ -108,82 +107,84 @@ begin
 		
 					else -- v_next = '1'
 
-						vh_cnt <= std_logic_vector(to_unsigned(1,10)); --(others => '0');
+						vh_cnt <= (others => '0'); --std_logic_vector(to_unsigned(1,10));
 
-						--rcline_cnt_ext <= 0 - v_shift;
 						rcline_cnt_ext <= v_shift;
-						rcline_cnt_int <= (others => '0');
-						
-						if (v_extborder = '0') then
-							is_border_int <= '0';
-						end if;
 						
 						rline_cnt0_int <= '0';
-						v_state <= '1';
-							
+						v_state <= '1';							
 					end if;
 					
 				else -- v_state = '1'
-										
-					if (is_last_row_of_char_int = '1') then
 
-						if (v_extborder = '1' and vh_cnt = 1) then
-							is_border_int <= '0';
-						end if;
-					
-						if (is_last_row_of_screen_int = '1') then
-							is_border_int <= '1';
-						end if;
-						
-						if (v_extborder = '1' and vh_cnt = clines_per_screen - 1) then
-							is_border_int <= '1';
-						end if;
-						
-						rcline_cnt_int <= (others => '0');
-						vh_cnt <= vh_cnt + 1;
-						
-					elsif (next_row = '1') then
-						-- display each char line twice
-						rcline_cnt_int <= rcline_cnt_int + 1;
-					end if;
-					
 					if (is_last_row_of_char_ext = '1') then
 						rcline_cnt_ext <= (others => '0');
 					elsif (next_row = '1') then
 						rcline_cnt_ext <= rcline_cnt_ext + 1;
+					end if;
+
+					if (is_last_row_of_char_ext = '1') then
+						vh_cnt <= vh_cnt + 1;
 					end if;
 				end if;
 			end if;			
 		end if;
 	end process;
 
-	State: process (vh_cnt, v_state, vsync_pos, h_sync)
+	State: process (vh_cnt, v_state, vsync_pos, h_sync, rcline_cnt_ext, rows_per_char, next_row, v_shift)
 	begin		
+	
+		if (rcline_cnt_ext = rows_per_char and next_row = '1') then -- rows_per_char
+			is_nextcr <= '1';
+		else
+			is_nextcr <= '0';
+		end if;
+		if (rcline_cnt_ext = v_shift and next_row = '1') then -- rows_per_char
+			is_matchcr <= '1';
+		else
+			is_matchcr <= '0';
+		end if;
+		is_match <= is_matchcr;
+	end process;
+	
+	State2: process (vh_cnt, v_state, vsync_pos, h_sync)
+	begin		
+		
 		if (falling_edge(h_sync)) then
 			v_next <= '0';
 
-			is_last_row_of_char_int <= '0';
 			is_last_row_of_char_ext <= '0';
-			is_last_row_of_screen_int <= '0';
-			is_first_row_of_screen_int <= '0';
+			is_first_row_of_screen_ext <= '0';
 			
 			if (v_state = '0' and vh_cnt = vsync_pos) then -- vsync_pos) then
-				v_next <= '1';
-				is_first_row_of_screen_int <= '1';
+				v_next <= '1';				
 			end if;
 			
 			if (v_state = '1') then
-				if (rcline_cnt_int = rows_per_char and next_row = '1') then -- rows_per_char
-									
-					is_last_row_of_char_int <= '1';
-					if (vh_cnt = clines_per_screen) then -- clines_per_screen) then
-						is_last_row_of_screen_int <= '1';
-					end if;
-				end if;
 
-				if (rcline_cnt_ext = rows_per_char and next_row = '1') then
-						is_last_row_of_char_ext <= '1';
+				if (is_nextcr = '1') then
+					is_last_row_of_char_ext <= '1';
 				end if;
+				if (is_matchcr = '1' and vh_cnt = 0) then
+					is_first_row_of_screen_ext <= '1';
+				end if;
+				
+				if (v_extborder = '0') then
+					if (is_match = '1' and vh_cnt = 0) then
+						is_border_int <= '0';
+					end if;
+					if (is_match = '1' and vh_cnt = clines_per_screen) then
+						is_border_int <= '1';
+					end if;
+				else -- v_extborder='1'
+					if (is_match = '1' and vh_cnt = 1) then
+						is_border_int <= '0';
+					end if;
+					if (is_match = '1' and vh_cnt = clines_per_screen - 1) then
+						is_border_int <= '1';	
+					end if;							
+				end if;
+							
 			end if;
 					
 		end if;
@@ -193,7 +194,7 @@ begin
 	rline_cnt0 <= rline_cnt0_int;
 	
 	is_last_row_of_char <= is_last_row_of_char_ext; --_2;
-	is_last_row_of_screen <= is_first_row_of_screen_int;
+	is_last_row_of_screen <= v_next; --is_first_row_of_screen_ext;
 	
 	is_border <= is_border_int;
 	
