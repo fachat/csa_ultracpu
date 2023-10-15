@@ -188,9 +188,6 @@ architecture Behavioral of Top is
 	signal wait_int: std_logic;
 	signal ramrwb_int: std_logic;
 	signal do_cpu : std_logic;
-	signal memclk_d : std_logic;
-	signal memclk_dd : std_logic;
-	signal memclk_ddd : std_logic;
 	
 	-- SPI
 	signal spi_dout : std_logic_vector(7 downto 0);
@@ -420,7 +417,7 @@ begin
 		end if;
 	end process;
 	
-	release3_p: process(memclk_d, reset, q50m, is_bus, chold, csetup)
+	release3_p: process(reset, q50m, is_bus, chold, csetup)
 	begin
 		if (reset = '1'
 			or chold = '0') then
@@ -697,18 +694,12 @@ begin
 
 
 	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
-			vid_fetch, rwb, m_vramsel_out,
-			memclk_dd)
+			vid_fetch, rwb, m_vramsel_out)
 	begin
 		if (reset = '1') then
 			ramrwb_int	<= '1';
-			memclk_d	<= '0';
-			memclk_ddd	<= '0';
 		elsif (rising_edge(q50m)) then
-	
-			memclk_d <= memclk;
-			memclk_ddd <= memclk_dd;
-			
+				
 			nframsel <= nframsel_int;
 			nvramsel <= nvramsel_int;
 
@@ -739,13 +730,10 @@ begin
 		if (reset = '1') then
 			VA 		<= (others => 'Z');
 			ramrwb		<= '1';
-			memclk_dd	<= '0';
 		elsif (falling_edge(q50m)) then
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
 			ramrwb <= ramrwb_int; 
-
-			memclk_dd <= memclk_d;
 
 			case (VA_select) is
 			when VRA_IPL =>
@@ -817,13 +805,14 @@ begin
 	------------------------------------------------------
 	-- IPL logic
 	
-	ipl_p: process(memclk, reset, ipl)
+	ipl_p: process(q50m, reset, ipl)
 	begin
 		if (reset = '1') then 
 			ipl_state <= '0';
 			ipl_cnt <= (others => '0');
 			ipl <= '1';
-		elsif (falling_edge(memclk) and ipl_d = '1') then
+		--elsif (falling_edge(memclk) and ipl_d = '1') then
+		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "11" and ipl_d = '1') then
 		
 			--ipl <= '0';	-- block IPL to test
 			
@@ -848,14 +837,15 @@ begin
 		end if;
 	end process;
 	
-	ipl_state_p: process(reset, memclk, ipl_state)
+	ipl_state_p: process(reset, q50m, ipl_state)
 	begin
 		if (reset = '1') then
 			ipl_state_d <= '0';
 			ipl_next <= '0';
 			ipl_out <= '0';
 			ipl_d <= '1';
-		elsif (rising_edge(memclk)) then
+		--elsif (rising_edge(memclk)) then
+		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "10") then
 			ipl_state_d <= ipl_state;
 			ipl_d <= ipl;
 			
