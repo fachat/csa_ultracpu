@@ -65,10 +65,7 @@ architecture Behavioral of VBorder is
 	signal v_next: std_logic;
 	
 	signal is_border_int: std_logic;
-	signal is_last_row_of_char_int: std_logic;
 	signal is_last_row_of_char_ext: std_logic;
-	signal is_last_row_of_screen_int: std_logic;
-	signal is_first_row_of_screen_int: std_logic;
 	signal is_first_row_of_screen_ext: std_logic;
 	
 	signal vh_cnt : std_logic_vector (6 downto 0) := (others => '0');
@@ -79,7 +76,6 @@ architecture Behavioral of VBorder is
 
 	signal is_match: std_logic;
 	signal is_matchcr: std_logic;
-	signal is_shift: std_logic;
 	signal is_nextcr: std_logic;
 begin
 
@@ -140,11 +136,15 @@ begin
 			is_nextcr <= '0';
 		end if;
 		if (rcline_cnt_ext = v_shift and next_row = '1') then -- rows_per_char
+			is_match <= '1';
+		else
+			is_match <= '0';
+		end if;
+		if (rcline_cnt_ext = v_shift) then -- rows_per_char
 			is_matchcr <= '1';
 		else
 			is_matchcr <= '0';
 		end if;
-		is_match <= is_matchcr;
 	end process;
 	
 	State2: process (vh_cnt, v_state, vsync_pos, h_sync)
@@ -154,7 +154,6 @@ begin
 			v_next <= '0';
 
 			is_last_row_of_char_ext <= '0';
-			is_first_row_of_screen_ext <= '0';
 			
 			if (v_state = '0' and vh_cnt = vsync_pos) then -- vsync_pos) then
 				v_next <= '1';				
@@ -165,19 +164,16 @@ begin
 				if (is_nextcr = '1') then
 					is_last_row_of_char_ext <= '1';
 				end if;
-				if (is_matchcr = '1' and vh_cnt = 0) then
-					is_first_row_of_screen_ext <= '1';
-				end if;
 				
 				if (v_extborder = '0') then
-					if (is_match = '1' and vh_cnt = 0) then
+					if (is_matchcr = '1' and vh_cnt = 0) then
 						is_border_int <= '0';
 					end if;
 					if (is_match = '1' and vh_cnt = clines_per_screen) then
 						is_border_int <= '1';
 					end if;
 				else -- v_extborder='1'
-					if (is_match = '1' and vh_cnt = 1) then
+					if (is_matchcr = '1' and vh_cnt = 1) then
 						is_border_int <= '0';
 					end if;
 					if (is_match = '1' and vh_cnt = clines_per_screen - 1) then
