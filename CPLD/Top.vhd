@@ -697,12 +697,15 @@ begin
 			vid_fetch, rwb, m_vramsel_out)
 	begin
 		if (reset = '1') then
-			ramrwb_int	<= '1';
+			--ramrwb_int	<= '1';
+			nframsel <= '1';
+			nvramsel <= '1';
 		elsif (rising_edge(q50m)) then
 				
 			nframsel <= nframsel_int;
 			nvramsel <= nvramsel_int;
-
+		end if;
+		
 			if (ipl = '1') then
 				VA_select <= VRA_IPL;
 			elsif (vid_fetch = '1') then
@@ -717,11 +720,14 @@ begin
 				ramrwb_int <= '1';	-- video only reads
 			elsif (m_vramsel_out = '0') then
 				ramrwb_int <= '1';	-- not selected
-			elsif (memclk = '0') then
+			else
+--			elsif (memclk = '0') then
 				ramrwb_int <= rwb;
+--			else
+--				ramrwb_int <= '1';
 			end if;
 						
-		end if;
+--		end if;
 
 
 
