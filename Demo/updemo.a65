@@ -910,7 +910,7 @@ setviccy .(
 l0	lda vdctab,y
 	sta VDC+3	; register value w/ auto-inc of register number
 lx	iny
-	cpy #54
+	cpy #46
 	bcc l0
 	rts
 
@@ -950,6 +950,7 @@ lx	iny
 	.byt 8		; r44: horizontal position (chars)
 	;.byt 84		; r45: vertical position (rasterlines)
 	.byt 59		; r45: vertical position (rasterlines)
+	.byt 0		; r46: alt match
 
 	.)
 
