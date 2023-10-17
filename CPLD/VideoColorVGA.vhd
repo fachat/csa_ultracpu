@@ -187,7 +187,7 @@ architecture Behavioral of Video is
 	signal dena_int : std_logic;
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
 	signal sr_crsr: std_logic;
-	
+	signal sr_blink: std_logic;
 
 	-- geo signals
 	--
@@ -602,7 +602,7 @@ begin
 
 	
 	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int,
-		mode_rev, sr_crsr, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
+		mode_rev, sr_crsr, sr_blink, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
 	begin
 		
 		if (falling_edge(qclk)) then
@@ -629,18 +629,23 @@ begin
 			nsrload	<= not (memclk and sr_fetch_int );
 		end if;
 
-				sr_reverse_p <= mode_rev;
+		if (falling_edge(qclk)) then
+			if (pxlb_ce = '1' and fetch_int = '1') then
+			
+--				sr_reverse_p <= mode_rev;
 				sr_underline_p <= '0';
 				-- independent from extended and bitmap
-				if (sr_crsr = '1') then
-					sr_reverse_p <= not(sr_reverse_p);
-				end if;	
+--				if (sr_crsr = '1') then
+--					sr_reverse_p <= not(sr_reverse_p);
+--				end if;	
+				sr_blink <= '0';
 				if (mode_attrib = '0') then
 				elsif (mode_extended = '0') then
 					if (attr_buf(6) = '1' 			-- reverse attribute
 						xor (attr_buf(4) = '1' and			-- blink
 							cblink_active = '1')) then
-						sr_reverse_p <= not(sr_reverse_p);
+--						sr_reverse_p <= not(sr_reverse_p);
+						sr_blink <= '1';
 					end if;
 					if (attr_buf(5) = '1' and uline_active = '1') then
 						sr_underline_p <= '1';
@@ -649,9 +654,16 @@ begin
 					if (attr_buf(5) = '0' and ((attr_buf(6) = '1') 			-- reverse attribute
 						xor (attr_buf(4) = '1' and			-- blink
 							cblink_active = '1'))) then
-						sr_reverse_p <= not(sr_reverse_p);
+--						sr_reverse_p <= not(sr_reverse_p);
+						sr_blink <= '1';
 					end if;
 				end if;
+				
+				sr_reverse_p <= mode_rev 
+								xor sr_crsr
+								xor sr_blink;
+			end if;
+		end if;
 		
 		if (falling_edge(qclk)) then
 			if (pxlf_ce = '1' and (is_80 = '1' or in_slot = '0')) then

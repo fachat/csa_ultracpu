@@ -126,7 +126,7 @@ begin
 		end if;
 	end process;
 
-	State: process (vh_cnt, v_state, vsync_pos, h_sync, rcline_cnt_ext, rows_per_char, next_row, v_shift)
+	State: process (vh_cnt, v_state, vsync_pos, h_sync, rcline_cnt_ext, rows_per_char, next_row, v_shift, rline_cnt0_int, is_double)
 	begin		
 	
 		-- end of character (last pixel row)
