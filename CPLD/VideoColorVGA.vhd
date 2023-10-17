@@ -256,16 +256,6 @@ architecture Behavioral of Video is
 	
 	signal fetch_int: std_logic;
 	
-	-- convenience
-	signal chr40 : std_logic;
-	signal chr80 : std_logic;
-	signal pxl40 : std_logic;
-	signal pxl80 : std_logic;
-	signal attr40 : std_logic;
-	signal attr80 : std_logic;
-	signal sr40 : std_logic;
-	signal sr80 : std_logic;
-
 	signal chr_fetch_int : std_logic;
 	signal crom_fetch_int: std_logic;
 	signal pxl_fetch_int : std_logic;
@@ -452,33 +442,26 @@ begin
 
 	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
 	
-	-- access indicators
-	--
-	-- pxl40/chr40 are used in both 40 and 80 col mode
-	chr40 <= chr_window  and in_slot 	and not(mode_bitmap)		and is_80;
-	pxl40 <= pxl_window  and in_slot										and is_80;
-	attr40 <= attr_window and in_slot									and is_80;
-	sr40 <= sr_window and in_slot											and is_80;
-	chr80 <= chr_window  and not(in_slot) 	and not(mode_bitmap);
-	pxl80 <= pxl_window  and not(in_slot);
-	attr80 <= attr_window and not(in_slot);
-	sr80 <= sr_window and not(in_slot);
-
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
-	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace_int or not(rline_cnt0)) ;
+	--chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace_int or not(rline_cnt0)) ;
+	chr_fetch_int <= chr_window and fetch_int and not(mode_bitmap);
 
 	-- col fetch
-	attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace_int or not(rline_cnt0));
+	--attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace_int or not(rline_cnt0));
+	attr_fetch_int <= attr_window and fetch_int;
 	
 	-- hires fetch
-	pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
+	--pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
+	pxl_fetch_int <= pxl_window and fetch_int and mode_bitmap;
 	
 	-- character rom fetch
-	crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
+	--crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
+	crom_fetch_int <= pxl_window and fetch_int and not(mode_bitmap);
 
 	-- sr load
-	sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace_int or not(rline_cnt0));
+	--sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace_int or not(rline_cnt0));
+	sr_fetch_int <= sr_window and fetch_int;
 	
 	-- video access?
 	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;

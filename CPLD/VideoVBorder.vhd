@@ -66,7 +66,6 @@ architecture Behavioral of VBorder is
 	
 	signal is_border_int: std_logic;
 	signal is_last_row_of_char_ext: std_logic;
-	signal is_first_row_of_screen_ext: std_logic;
 	
 	signal vh_cnt : std_logic_vector (6 downto 0) := (others => '0');
 	signal rcline_cnt_ext: std_logic_vector(3 downto 0);
