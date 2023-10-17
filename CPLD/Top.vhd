@@ -103,6 +103,8 @@ entity Top is
 		spi_amosi : out std_logic;
 		nldac : out std_logic;
 		
+		init_b : out std_logic;
+		
 	-- debug
 		dbg: in std_logic
 	 );
@@ -339,6 +341,8 @@ architecture Behavioral of Top is
 
 begin
 
+	init_b <= memclk;
+	
 	clocky: Clock
 	port map (
 	   q50m,
@@ -720,11 +724,11 @@ begin
 				ramrwb_int <= '1';	-- video only reads
 			elsif (m_vramsel_out = '0') then
 				ramrwb_int <= '1';	-- not selected
-			else
---			elsif (memclk = '0') then
-				ramrwb_int <= rwb;
 --			else
---				ramrwb_int <= '1';
+			elsif (memclk = '1') then
+				ramrwb_int <= rwb;
+			else
+				ramrwb_int <= '1';
 			end if;
 						
 --		end if;
@@ -735,7 +739,7 @@ begin
 		-- de-select.
 		if (reset = '1') then
 			VA 		<= (others => 'Z');
-			ramrwb		<= '1';
+--			ramrwb		<= '1';
 		elsif (falling_edge(q50m)) then
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
@@ -802,7 +806,7 @@ begin
 	-- Audio / DAC output
 	-- TODO: move into submodule
 	
-	nldac <= rwb; --memclk;--m_vramsel_out; --ipl; -- ramrwb_int; --ipl;	--'1';
+	nldac <= vid_fetch; --rwb; --memclk;--m_vramsel_out; --ipl; -- ramrwb_int; --ipl;	--'1';
 	spi_naudio <= '1';
 	spi_amosi <= '1';
 	spi_aclk <= '1';
