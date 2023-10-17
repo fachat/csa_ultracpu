@@ -73,8 +73,8 @@ architecture Behavioral of VBorder is
 
 	signal next_row: std_logic;
 
-	signal is_match: std_logic;
-	signal is_matchcr: std_logic;
+	signal is_matchon: std_logic;
+	signal is_matchoff: std_logic;
 	signal is_nextcr: std_logic;
 begin
 
@@ -129,20 +129,23 @@ begin
 	State: process (vh_cnt, v_state, vsync_pos, h_sync, rcline_cnt_ext, rows_per_char, next_row, v_shift)
 	begin		
 	
+		-- end of character (last pixel row)
 		if (rcline_cnt_ext = rows_per_char and next_row = '1') then -- rows_per_char
 			is_nextcr <= '1';
 		else
 			is_nextcr <= '0';
 		end if;
-		if (rcline_cnt_ext = v_shift and next_row = '1') then -- rows_per_char
-			is_match <= '1';
+		-- start border
+		if (rcline_cnt_ext = v_shift and (rline_cnt0_int = '1' or is_double = '1')) then -- rows_per_char
+			is_matchon <= '1';
 		else
-			is_match <= '0';
+			is_matchon <= '0';
 		end if;
-		if (rcline_cnt_ext = v_shift) then -- rows_per_char
-			is_matchcr <= '1';
+		-- disable border
+		if (rcline_cnt_ext = v_shift and rline_cnt0_int = '0') then -- rows_per_char
+			is_matchoff <= '1';
 		else
-			is_matchcr <= '0';
+			is_matchoff <= '0';
 		end if;
 	end process;
 	
@@ -165,17 +168,17 @@ begin
 				end if;
 				
 				if (v_extborder = '0') then
-					if (is_matchcr = '1' and vh_cnt = 0) then
+					if (is_matchoff = '1' and vh_cnt = 0) then
 						is_border_int <= '0';
 					end if;
-					if (is_match = '1' and vh_cnt = clines_per_screen) then
+					if (is_matchon = '1' and vh_cnt = clines_per_screen) then
 						is_border_int <= '1';
 					end if;
 				else -- v_extborder='1'
-					if (is_matchcr = '1' and vh_cnt = 1) then
+					if (is_matchoff = '1' and vh_cnt = 1) then
 						is_border_int <= '0';
 					end if;
-					if (is_match = '1' and vh_cnt = clines_per_screen - 1) then
+					if (is_matchon = '1' and vh_cnt = clines_per_screen - 1) then
 						is_border_int <= '1';	
 					end if;							
 				end if;
