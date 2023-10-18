@@ -108,6 +108,8 @@ entity Top is
 	-- debug
 		dbg: in std_logic
 	 );
+	 attribute system_jitter: string;
+	 attribute system_jitter of q50m: signal is "10 ps";
 end Top;
 
 architecture Behavioral of Top is
@@ -738,7 +740,7 @@ begin
 		-- keep VA, ramrwb etc stable one half qclk cycle after
 		-- de-select.
 		if (reset = '1') then
-			VA 		<= (others => 'Z');
+--			VA 		<= (others => 'Z');
 --			ramrwb		<= '1';
 		elsif (falling_edge(q50m)) then
 		
@@ -751,14 +753,12 @@ begin
 				VA(18 downto 8) <= ipl_addr(18 downto 8);
 			when VRA_CPU =>
 				VA(7 downto 0) <= ca_in (7 downto 0);
-				VA(11 downto 8) <= ma_out (11 downto 8);
-				VA(13 downto 12) <= ma_out (13 downto 12);
-				VA(18 downto 14) <= ma_out (18 downto 14);
+				VA(18 downto 8) <= ma_out (18 downto 8);
 			when VRA_VIDEO =>  
 				VA(15 downto 0) <= va_out(15 downto 0);
 				VA(18 downto 16) <= (others => '0');
 			when others =>
-				VA 	<= (others => 'Z');
+				VA 	<= (others => '0');
 			end case;
 		end if;
 	end process;
