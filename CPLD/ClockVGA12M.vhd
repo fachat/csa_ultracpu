@@ -47,12 +47,15 @@ entity Clock is
 	   
 	   dotclk: out std_logic_vector(3 downto 0) -- 1x, 1/2, 1/4, 1/8 pixel clock for video
 	 );
+	 attribute maxskew: string;
+	 attribute maxskew of dotclk : signal is "10 ns";
 end Clock;
 
 architecture Behavioral of Clock is
 
 	signal clk_cnt : std_logic_vector(5 downto 0);
-		
+	signal dotclk_int: std_logic_vector(3 downto 0);
+	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
 		if L then
@@ -80,10 +83,10 @@ begin
 	
 	-- We have 16 pixels with 40ns each (at 80 cols). 
 	-- We run the CPU with 80ns clock cycle, i.e. 12.5 MHz
-	out_p: process(qclk, reset, clk_cnt)
+	out_p: process(qclk, reset, clk_cnt, dotclk_int)
 	begin
 		if (reset = '1') then
-			memclk <= '0';
+--			memclk <= '0';
 
 			c8phi2 <= '0';
 			c2phi2 <= '0';
@@ -93,7 +96,7 @@ begin
 		elsif (falling_edge(qclk)) then
 
 			-- memory clock (12.5MHz)
-			memclk <= clk_cnt(1);
+			--memclk <= clk_cnt(1);
 						
 			-- CS/A bus clocks (phi2, 2phi2, 8phi2)
 			-- which are 1.04MHz, 2.1MHz and 8MHz 
@@ -182,8 +185,10 @@ begin
 			end if;
 			
 			----------------- 
-			dotclk <= clk_cnt (3 downto 0);
+			dotclk_int <= clk_cnt (3 downto 0);
 		end if;
+		memclk <= dotclk_int(1);
+		dotclk <= dotclk_int;
 	end process;
 	
 end Behavioral;
