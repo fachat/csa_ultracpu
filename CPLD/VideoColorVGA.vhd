@@ -444,28 +444,30 @@ begin
 	
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
-	--chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace_int or not(rline_cnt0)) ;
 	chr_fetch_int <= chr_window and fetch_int and not(mode_bitmap);
 
 	-- col fetch
-	--attr_fetch_int <= is_enable and (attr40 or attr80) and (interlace_int or not(rline_cnt0));
-	attr_fetch_int <= attr_window and fetch_int;
+	attr_fetch_int <= attr_window and fetch_int and (mode_attrib or mode_extended);
 	
 	-- hires fetch
-	--pxl_fetch_int <= is_enable and mode_bitmap and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
 	pxl_fetch_int <= pxl_window and fetch_int and mode_bitmap;
 	
 	-- character rom fetch
-	--crom_fetch_int <= is_enable and not(mode_bitmap) and (pxl40 or pxl80) and (interlace_int or not(rline_cnt0));
 	crom_fetch_int <= pxl_window and fetch_int and not(mode_bitmap);
 
 	-- sr load
 	--sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace_int or not(rline_cnt0));
 	sr_fetch_int <= sr_window and fetch_int;
 	
-	-- video access?
-	vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
-
+	
+	fetch_p: process(chr_fetch_int, pxl_fetch_int, attr_fetch_int, crom_fetch_int, qclk)
+	begin
+		-- video access?
+--		if (falling_edge(qclk) and dotclk(1 downto 0) = "11") then
+			vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
+--		end if;
+	end process;
+	
 	-----------------------------------------------------------------------------
 	-- geometry calculation
 
