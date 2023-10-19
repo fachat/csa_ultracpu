@@ -86,9 +86,16 @@ architecture Behavioral of Video is
 	signal mode_bitmap_alt: std_logic;	
 	signal mode_extended_alt: std_logic;	
 	signal mode_attrib_alt: std_logic;	
+	signal mode_bitmap_reg: std_logic;	
+	signal mode_extended_reg: std_logic;	
+	signal mode_attrib_reg: std_logic;	
 	signal alt_match_modes : std_logic;
 	signal alt_match_vaddr : std_logic;
 	signal alt_match_attr : std_logic;
+	signal alt_rc_cnt: std_logic_vector(3 downto 0);
+	signal alt_set_rc: std_logic;
+	signal alt_do_set_rc: std_logic;
+	signal mode_set_flag: std_logic;
 	
 	--- colours
 	signal col_fg: std_logic_vector(3 downto 0);
@@ -328,6 +335,8 @@ architecture Behavioral of Video is
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
 			v_shift: in std_logic_vector(3 downto 0);
+			alt_rc_cnt: in std_logic_vector(3 downto 0);
+			alt_set_rc: in std_logic;
 			
 			is_border: out std_logic;			
 			is_last_row_of_char: out std_logic;
@@ -517,6 +526,8 @@ begin
 			v_extborder,
 			is_double_int,
 			v_shift,
+			alt_rc_cnt,
+			alt_do_set_rc,
 			y_border,
 			last_line_of_char,
 			last_line_of_screen,
@@ -525,6 +536,7 @@ begin
 			reset
 	);
 	
+	alt_do_set_rc <= is_raster_match and alt_set_rc;
 	
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
 	
@@ -634,19 +646,13 @@ begin
 		if (falling_edge(qclk)) then
 			if (pxlb_ce = '1' and fetch_int = '1') then
 			
---				sr_reverse_p <= mode_rev;
 				sr_underline_p <= '0';
-				-- independent from extended and bitmap
---				if (sr_crsr = '1') then
---					sr_reverse_p <= not(sr_reverse_p);
---				end if;	
 				sr_blink <= '0';
 				if (mode_attrib = '0') then
 				elsif (mode_extended = '0') then
 					if (attr_buf(6) = '1' 			-- reverse attribute
 						xor (attr_buf(4) = '1' and			-- blink
 							cblink_active = '1')) then
---						sr_reverse_p <= not(sr_reverse_p);
 						sr_blink <= '1';
 					end if;
 					if (attr_buf(5) = '1' and uline_active = '1') then
@@ -656,7 +662,6 @@ begin
 					if (attr_buf(5) = '0' and ((attr_buf(6) = '1') 			-- reverse attribute
 						xor (attr_buf(4) = '1' and			-- blink
 							cblink_active = '1'))) then
---						sr_reverse_p <= not(sr_reverse_p);
 						sr_blink <= '1';
 					end if;
 				end if;
@@ -699,10 +704,6 @@ begin
 					
 	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, col_bg0, col_fg)
 	begin			
---			if (x_border = '1' or y_border = '1' or dispen = '0') then
---				-- BORDER
---				raster_outbit <= col_border;
---			elsif (mode_extended = '0' and mode_attrib = '0') then
 			if (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
 				if is_outbit = '0' then
@@ -822,16 +823,17 @@ begin
 	--------------------------------------------
 	-- raster interrupt handling
 	
-	RasterMatch: process(h_sync_int, raster_match, y_addr)
+	RasterMatch: process(h_zero, raster_match, y_addr)
 	begin
 		
-		if (falling_edge(h_sync_int)) then
+		if (rising_edge(h_zero)) then
 			if (raster_match = y_addr) then
 				is_raster_match <= '1';
 			else
 				is_raster_match <= '0';
 			end if;
 		end if;
+		
 	end process;
 	
 	RasterIrq: process(phi2, crtc_reg, crtc_sel, crtc_rs, reset)
@@ -872,6 +874,38 @@ begin
 	irq_out <= irq_out_int;
 	
 	--------------------------------------------
+	-- alt modes
+	altmodes_p: process(qclk)
+	begin
+	
+		if (falling_edge(qclk)) then
+			
+			if (v_zero = '1' or mode_set_flag = '1') then
+				mode_attrib <= mode_attrib_reg;
+				mode_extended <= mode_extended_reg;
+				mode_bitmap <= mode_bitmap_reg;
+			elsif (is_raster_match = '1' and alt_match_modes = '1') then
+				mode_attrib <= mode_attrib_alt;
+				mode_extended <= mode_extended_alt;
+				mode_bitmap <= mode_bitmap_alt;
+			end if;
+		end if;
+	end process;
+
+	Writemode_p: process(phi2, h_zero, crtc_reg, crtc_sel, crtc_rs, reset)
+	begin
+		if (h_zero = '1') then
+			mode_set_flag <= '0';
+		elsif (falling_edge(phi2)) then
+			if (crtc_sel = '1' and crtc_rs(0) = '1' and (crtc_reg = x"19" or crtc_reg = x"27")
+					and crtc_rwb = '0'	-- note this seems to break display...???
+					) then
+				mode_set_flag <= '1';
+			end if;
+		end if;
+	end process;
+	
+	--------------------------------------------
 	-- crtc register emulation
 	-- only 8/9 rows per char are emulated right now
 
@@ -899,9 +933,9 @@ begin
 		if (reset = '1') then
 			mode_rev <= '0';
 			cblink_mode <= '0';
-			mode_attrib <= '0';
-			mode_extended <= '0';
-			mode_bitmap <= '0';
+			mode_attrib_reg <= '0';
+			mode_extended_reg <= '0';
+			mode_bitmap_reg <= '0';
 			mode_attrib_alt <= '0';
 			mode_extended_alt <= '0';
 			mode_bitmap_alt <= '0';
@@ -913,6 +947,8 @@ begin
 			alt_match_modes <= '0';
 			alt_match_vaddr <= '0';
 			alt_match_attr <= '0';
+			alt_rc_cnt <= "0000";
+			alt_set_rc <= '0';
 			dispen <= '1';
 			crsr_mode <= (others => '0');
 			crsr_address <= (others => '0');
@@ -1015,8 +1051,8 @@ begin
 			when x"19" =>	-- R25
 				h_shift <= CPU_D(3 downto 0);
 				h_extborder <= CPU_D(4);
-				mode_attrib <= CPU_D(6);
-				mode_bitmap <= CPU_D(7);
+				mode_attrib_reg <= CPU_D(6);
+				mode_bitmap_reg <= CPU_D(7);
 			when x"1a" => 	-- R26
 				col_fg <= CPU_D(7 downto 4);
 				col_bg0 <= CPU_D(3 downto 0);
@@ -1030,7 +1066,7 @@ begin
 				raster_match(7 downto 0) <= CPU_D;
 			when x"27" =>	-- R39
 				raster_match(9 downto 8) <= CPU_D(1 downto 0);
-				mode_extended <= CPU_D(2);
+				mode_extended_reg <= CPU_D(2);
 				dispen <= CPU_D(4);
 				mode_upet <= CPU_D(7);
 			when x"28" => 	-- R40
@@ -1054,6 +1090,8 @@ begin
 				alt_match_attr <= CPU_D(6);
 				alt_match_vaddr <= CPU_D(7);				
 			when x"2f" =>	-- R47 (alternate control II)
+				alt_rc_cnt <= CPU_D(3 downto 0);
+				alt_set_rc <= CPU_D(7);
 			when others =>
 				null;
 			end case;
@@ -1183,6 +1221,8 @@ begin
 						vd_out(6) <= alt_match_attr;
 						vd_out(7) <= alt_match_vaddr;
 					when x"2f" =>	-- R47 (alternate control II)
+						vd_out(3 downto 0) <= alt_rc_cnt;
+						vd_out(7) <= alt_set_rc;
 					when others =>
 						null;
 					end case;

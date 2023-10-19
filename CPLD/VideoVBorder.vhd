@@ -46,6 +46,8 @@ entity VBorder is
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
 			v_shift: in std_logic_vector(3 downto 0);
+			alt_rc_cnt: in std_logic_vector(3 downto 0);
+			alt_set_rc: in std_logic;
 			
 			is_border: out std_logic;			
 			is_last_row_of_char: out std_logic;
@@ -112,7 +114,9 @@ begin
 					
 				else -- v_state = '1'
 
-					if (is_last_row_of_char_ext = '1') then
+					if (alt_set_rc = '1') then
+						rcline_cnt_ext <= alt_rc_cnt;
+					elsif (is_last_row_of_char_ext = '1') then
 						rcline_cnt_ext <= (others => '0');
 					elsif (next_row = '1') then
 						rcline_cnt_ext <= rcline_cnt_ext + 1;
