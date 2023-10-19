@@ -2,6 +2,8 @@
 ; if defined, print out some measurements for timers etc instead of just OKing
 #define	DEBUG
 
+CHAR	=$80000+3*16
+
 irqvec	=$90
 
 VDC	=$e880
@@ -298,8 +300,11 @@ idemo5
 	jsr sreg	
 
 	ldx #25
-	lda cnt
-	and #7
+	lda cnt2
+	lsr
+	lsr
+	lsr
+	lsr
 	ora #16
 	jsr sreg
 
@@ -357,28 +362,43 @@ txt 	.asc "           * BORDERS AND RASTERLINE INTERRUPTS"
 ; --------------------
 
 	.(
-&demo9	lda #<txt
+cur	.byt 0
+
+&demo9
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
-	lda #<itab
-	ldy #>itab
-	;jsr addirq
-
 	lda #<itab3
 	ldy #>itab3
-	;jsr insirq
+	jsr insirq
 
 	lda #<itab2
 	ldy #>itab2
-	;jsr insirq
+	jsr insirq
+
+	lda #<itab
+	ldy #>itab
+	jsr insirq
 
 	jmp wait
 
 idemo5	
-	lda cnt
-	and #%00000111
-	sta vdctab+24
+	lda cnt2
+	and #%11100000
+	lsr
+	lsr
+	lsr
+	lsr
+	lsr
+	cmp #7
+	bcc x1
+	lda #0
+x1	sta cur
+
+	ldx #24
+	jsr sreg
+	sta $8002
 noinc
 	lda #41
 	sta VDC
@@ -386,16 +406,15 @@ noinc
 	rts
 
 itab	.word idemo5-1
-	.word 289
+	.word 2		;289
 	.word 0
 
 txt 	.asc "           * VERTICAL SMOOTH SCROLL + VARIABLE CHAR HEIGHT"
 	.asc CR,0
 
-idemo2	lda cnt
-	and #$07
-	clc
-	adc #8
+idemo2
+	lda cur
+	adc #7
 	ldx #9
 	jsr sreg
 
@@ -405,12 +424,16 @@ idemo2	lda cnt
 	rts
 
 itab2	.word idemo2-1
-	.word 89; 90
+	.word 117
 	.word 0
 
 idemo3
 	ldx #9
 	lda #8
+	jsr sreg
+
+	ldx #24
+	lda #0
 	jsr sreg
 	
 	ldx #41
@@ -420,7 +443,7 @@ idemo3
 
 
 itab3	.word idemo3-1
-	.word 117
+	.word 135
 	.word 0
 
 	.)
@@ -562,6 +585,33 @@ idemox	ldx #9
 	lda #8		; 9 rasterlines/char
 	jsr sreg
 
+	lda cnt2
+	;sta $8004+4*80
+	;sta $8004+3*80
+	and #15
+	bne l3
+
+	; scroll a single char
+	ldx #15
+	lda CHAR,x
+	pha
+
+l0	dex
+	lda CHAR,x
+	lsr
+	bcc l1
+	ora #$80
+l1	inx
+	sta CHAR,x
+	dex
+	bne l0
+
+	pla
+	lsr
+	bcc l2
+	ora #$80
+l2	sta CHAR,x
+l3	
 	lda #41
 	sta VDC
 	inc VDC+1
@@ -707,11 +757,8 @@ next	ldy #2
 	ldx #42
 	lda #1
 	jsr sreg	; re-enable raster irq
-
-	inc cnt2
-	bne e
-	inc cnt
-e	rts
+	
+	rts
 	
 run
 	ldy #1
@@ -849,7 +896,12 @@ newirq  .(
 	lda VDC+1	; irq status
         bpl noloop
         jsr doirq
-noloop  jmp (irqsave)
+retirq  jmp (irqsave)
+noloop
+	inc cnt2
+	bne e
+	inc cnt
+e	jmp retirq
 	.)
 
 iniirq  .(
