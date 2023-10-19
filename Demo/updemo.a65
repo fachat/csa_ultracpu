@@ -479,7 +479,7 @@ idemo5	ldx #8
 	rts
 
 itab	.word idemo5-1
-	.word 307
+	.word 309
 	.word 0
 
 txt 	.asc "           * SWITCHABLE 40/80 COLS"
@@ -682,7 +682,6 @@ txt 	.asc "           * HIRES"
 
 	ldy #0
 l0	tya
-;	sta $8800+20*80,y
 	iny
 	cpy #80
 	bcc l0
@@ -706,7 +705,7 @@ itab	.word idemo5-1
 	.word 418
 	.word 0
 
-txt 	.asc "           * VDC COLOUR HIRES"
+txt 	.asc "           * RESETABLE ADDRESS COUNTERS"
 	.asc CR,0
 	.)
 
@@ -948,21 +947,22 @@ setviccy .(
 	sta SCTRL	; 12 MHz CPU
 	lda #0		; 40 column, display enable
 	sta VCTRL
-	lda #39
-	sta VDC		; r39
+	ldx #39		; r39
 	lda #20
-	sta VDC+1	; disable uPET compat mode
-	lda #8
-	sta VDC		; r8
+	jsr sreg	; disable uPET compat mode
+	ldx #8		; r8
 	lda #128
-	sta VDC+1	; 80 col mode via Viccy
+	jsr sreg	; 80 col mode via Viccy
+	ldx #46		; r46
+	lda #0		; disable any alt modes
+	jsr sreg
 
 	ldy #0
 	sty VDC		; register number
 l0	lda vdctab,y
 	sta VDC+3	; register value w/ auto-inc of register number
 lx	iny
-	cpy #46
+	cpy #47
 	bcc l0
 	rts
 
