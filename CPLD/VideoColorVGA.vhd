@@ -142,7 +142,7 @@ architecture Behavioral of Video is
 	
 	signal rows_per_char: std_logic_vector(3 downto 0);
 	signal slots_per_line: std_logic_vector(6 downto 0);
-	signal clines_per_screen: std_logic_vector(6 downto 0);
+	signal clines_per_screen: std_logic_vector(7 downto 0);
 	signal hsync_pos: std_logic_vector(6 downto 0);
 	signal vsync_pos: std_logic_vector(7 downto 0);
 	
@@ -324,7 +324,7 @@ architecture Behavioral of Video is
 			v_zero: in std_logic;
 			vsync_pos: in std_logic_vector(7 downto 0);
 			rows_per_char: in std_logic_vector(3 downto 0);
-			clines_per_screen: in std_logic_vector(6 downto 0);
+			clines_per_screen: in std_logic_vector(7 downto 0);
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
 			v_shift: in std_logic_vector(3 downto 0);
@@ -699,10 +699,11 @@ begin
 					
 	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, col_bg0, col_fg)
 	begin			
-			if (x_border = '1' or y_border = '1' or dispen = '0') then
-				-- BORDER
-				raster_outbit <= col_border;
-			elsif (mode_extended = '0' and mode_attrib = '0') then
+--			if (x_border = '1' or y_border = '1' or dispen = '0') then
+--				-- BORDER
+--				raster_outbit <= col_border;
+--			elsif (mode_extended = '0' and mode_attrib = '0') then
+			if (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
 				if is_outbit = '0' then
 					raster_outbit <= col_bg0;
@@ -724,6 +725,7 @@ begin
 					raster_outbit <= sr_attr(3 downto 0);
 				end if;
 			else
+				-- MULTICOLOUR MODE
 				if (is_outbit = '0') then
 					raster_outbit <= sr_attr(7 downto 4);
 				else 
@@ -738,6 +740,10 @@ begin
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
 
+			if (x_border = '1' or y_border = '1' or dispen = '0') then
+				-- BORDER
+				vid_out <= col_border;
+			else
 			case (h_shift(2 downto 0)) is
 			when "000" =>
 				vid_out <= raster_outbit;
@@ -758,7 +764,8 @@ begin
 			when others =>
 				vid_out <= col_border;
 			end case;
-
+			end if;
+			
 			raster_out(6) <= raster_out(5);
 			raster_out(5) <= raster_out(4);
 			raster_out(4) <= raster_out(3);
@@ -913,7 +920,7 @@ begin
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= "0001000";	-- 8
 			vsync_pos <= std_logic_vector(to_unsigned(84,10));
-			clines_per_screen <= "0011001";	-- 25
+			clines_per_screen <= "00011001";	-- 25
 			attr_base <= x"d000";
 			attr_base_alt <= x"d000";
 			vid_base <= x"9000";
@@ -948,7 +955,7 @@ begin
 				end if;
 			when x"02" => 
 			when x"06" => 
-				clines_per_screen <= CPU_D(6 downto 0);
+				clines_per_screen <= CPU_D;
 			when x"08" =>
 				-- b1: interlace, b0: double (if b1=1)
 				mode_interlace <= CPU_D(1);
@@ -1081,7 +1088,7 @@ begin
 						end if;
 					when x"02" =>
 					when x"06" => 
-						vd_out(6 downto 0) <= clines_per_screen;
+						vd_out <= clines_per_screen;
 					when x"08" =>
 						vd_out(0) <= mode_double;
 						vd_out(1) <= mode_interlace;

@@ -42,7 +42,7 @@ entity VBorder is
 			v_zero: in std_logic;
 			vsync_pos: in std_logic_vector(7 downto 0);
 			rows_per_char: in std_logic_vector(3 downto 0);
-			clines_per_screen: in std_logic_vector(6 downto 0);
+			clines_per_screen: in std_logic_vector(7 downto 0);
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
 			v_shift: in std_logic_vector(3 downto 0);
@@ -67,7 +67,7 @@ architecture Behavioral of VBorder is
 	signal is_border_int: std_logic;
 	signal is_last_row_of_char_ext: std_logic;
 	
-	signal vh_cnt : std_logic_vector (6 downto 0) := (others => '0');
+	signal vh_cnt : std_logic_vector (7 downto 0) := (others => '0');
 	signal rcline_cnt_ext: std_logic_vector(3 downto 0);
 	signal rline_cnt0_int: std_logic;
 
