@@ -54,8 +54,10 @@ The following are the internal Viccy registers:
     - 11: blink at 1/32th of the frame rate
 - r11: cursor end scan line + 1 (CRTC)
 - r12: start of video memory high (CRTC)
+  - note: if upet compat mode, high bit (A15) is inverted
 - r13: start of video memory low (CRTC)
 - r14: cursor position high (CRTC)
+  - note: if upet compat mode, high bit (A15) is inverted
 - r15: cursor position low (CRTC)
 - r20: attribute start address high (VDC)
 - r21: attribute start address low (VDC)
@@ -87,7 +89,10 @@ The following are the internal Viccy registers:
   - bits 7-5: character generator address bits A13-A15. (VDC)
 - r29: underline scan line count (VDC)
 
-- (r30) block copy/fill word count
+- r30: read: rasterline counter low (bits 0-7); write: rasterline match value
+- r31: read: rasterline counter high (bits 0-1); write: rasterline match value
+
+- (r30) block copy/fill word count)
 - (r31) data register
 - (r32) block copy source (a15-a8)
 - (r33) block copy source (a7-a0)
@@ -99,15 +104,14 @@ The following are the internal Viccy registers:
   - bit 5: vsync
   - bit 6: hsync
 
-- r38: rasterline counter low (bits 0-7)
+- r38: -
 - r39: control register
-  - bits 1-0: bits 9/8 of the rasterline counter
-    - Note: rasterline here does not make much sense as always needs to be combined with mode bits
+  - bit 1-0: -
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
   - bit 6-5: - 
   - bit 7: Micro-PET compatible (see r1)
-    - TODO: change bits so rasterline can be extended (e.g. 2->5, 4->6); move border x/y ext bits here (.3,.4)?
+
 - r40: extended background colour 
   - bits 3-0 background colour 1
   - bits 7-4 background colour 2
@@ -257,7 +261,7 @@ When streaming, two bits are lumped together and evaluated to give these colours
 
 #### High Resolution Modes
 
-For all the text modes, the hires bit in r25.7 must be set.
+For all the hires modes, the hires bit in r25.7 must be set.
 
 1. single colour hires mode
 

@@ -1015,10 +1015,18 @@ begin
 			when x"0c" =>
 				if (mode_altreg = '1') then
 					vid_base_alt(14 downto 8) <= CPU_D(6 downto 0);
-					vid_base_alt(15) <= not(CPU_D(7));
+					if (mode_upet = '1') then
+						vid_base_alt(15) <= not(CPU_D(7));
+					else
+						vid_base_alt(15) <= CPU_D(7);
+					end if;
 				else
 					vid_base(14 downto 8) <= CPU_D(6 downto 0);
-					vid_base(15) <= not(CPU_D(7));
+					if (mode_upet = '1') then
+						vid_base(15) <= not(CPU_D(7));
+					else
+						vid_base(15) <= CPU_D(7);
+					end if;
 				end if;
 			when x"0d" =>
 				if (mode_altreg = '1') then
@@ -1028,7 +1036,11 @@ begin
 				end if;
 			when x"0e" =>
 				crsr_address(14 downto 8) <= CPU_D(6 downto 0);
-				crsr_address(15) <= not(CPU_D(7));
+				if (mode_upet = '1') then
+					crsr_address(15) <= not(CPU_D(7));
+				else
+					crsr_address(15) <= CPU_D(7);
+				end if;
 			when x"0f" =>	-- R15
 				crsr_address(7 downto 0) <= CPU_D;
 			when x"14" =>	-- R20
@@ -1062,10 +1074,11 @@ begin
 				crom_base <= CPU_D;
 			when x"1d" => 	-- R29
 				uline_scan <= CPU_D(4 downto 0);
-			when x"26" =>	-- R38
+			when x"1e" =>	-- R30
 				raster_match(7 downto 0) <= CPU_D;
-			when x"27" =>	-- R39
+			when x"1f" =>	-- R31
 				raster_match(9 downto 8) <= CPU_D(1 downto 0);
+			when x"27" =>	-- R39
 				mode_extended_reg <= CPU_D(2);
 				dispen <= CPU_D(4);
 				mode_upet <= CPU_D(7);
@@ -1141,10 +1154,18 @@ begin
 					when x"0c" =>
 						if (mode_altreg = '1') then
 							vd_out(6 downto 0) <= vid_base_alt(14 downto 8);
-							vd_out(7) <= not(vid_base_alt(15));
+							if (mode_upet = '1') then
+								vd_out(7) <= not(vid_base_alt(15));
+							else
+								vd_out(7) <= vid_base_alt(15);
+							end if;
 						else
 							vd_out(6 downto 0) <= vid_base(14 downto 8);
-							vd_out(7) <= not(vid_base(15));
+							if (mode_upet = '1') then
+								vd_out(7) <= not(vid_base(15));
+							else
+								vd_out(7) <= vid_base(15);
+							end if;
 						end if;
 					when x"0d" =>
 						if (mode_altreg = '1') then
@@ -1153,7 +1174,12 @@ begin
 							vd_out <= vid_base(7 downto 0);
 						end if;
 					when x"0e" =>
-						vd_out <= crsr_address(15 downto 8);
+						vd_out(6 downto 0) <= crsr_address(14 downto 8);
+						if (mode_upet = '1') then
+							vd_out(7) <= not(crsr_address(15));
+						else
+							vd_out(7) <= crsr_address(15);
+						end if;
 					when x"0f" =>	-- R15
 						vd_out <= crsr_address(7 downto 0);
 					when x"14" =>	-- R20
@@ -1187,14 +1213,15 @@ begin
 						vd_out <= crom_base;
 					when x"1d" => 	-- R29
 						vd_out(4 downto 0) <= uline_scan;
+					when x"1e" => 	-- R30
+						vd_out <= y_addr(7 downto 0);
+						y_addr_latch(9 downto 8) <= y_addr(9 downto 8);
+					when x"1f" =>	-- R31
+						vd_out(1 downto 0) <= y_addr_latch(9 downto 8);
 					when x"25" => 	-- R37
 						vd_out(6) <= h_sync_int;
 						vd_out(5) <= v_sync_int;
-					when x"26" => 	-- R38
-						vd_out <= y_addr(7 downto 0);
-						y_addr_latch(9 downto 8) <= y_addr(9 downto 8);
 					when x"27" =>	-- R39
-						vd_out(1 downto 0) <= y_addr_latch(9 downto 8);
 						vd_out(2) <= mode_extended;
 						vd_out(4) <= dispen;
 						vd_out(7) <= mode_upet;
