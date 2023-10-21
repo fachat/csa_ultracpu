@@ -23,8 +23,11 @@ p2	=$04
 tmp	=$06
 cnt	=$08
 cnt2	=$09
+tmp2	=$0a
 
 BSOUT	=$ffd2
+
+V_RLINE	=30
 
 	.word $0401
 	* = $0401
@@ -709,9 +712,7 @@ txt 	.asc "           * RE-DEFINABLE CHARACTER SET AND LARGE CHAR HEIGHT"
 
 	jmp wait
 
-txt 	.asc "           * HIRES"
-;	.asc CR, "          FOO"
-;	.asc CR, "            BAR"
+txt 	.asc "           * HIRES (SINGLE COLOUR, ATTRIBUTE, FG/BG, MULTI) MODES"
 	.asc CR,0
 	.)
 ; --------------------
@@ -743,7 +744,140 @@ cur	.byt 0
 	ldy #>itabc
 	jsr addirq
 
+	; set hires buffer
+	php
+	sei
+
+	; go to native / wide mode
+	clc
+	xce
+        ; set X/Y registers to 16 bit ...
+        rep #%00010000
+        .xl
+
+	lda #0
+	ldx #$1fff
+l3	sta $084000,x
+	;txa
+	dex
+	bne l3
+
+        rep #%00110000
+	.al
+
+	lda #$0000	; value
+l2	pha
+	; times 80=64+16 to get top down bytes
+	asl
+	asl
+	asl
+	asl
+	sta tmp		; x16
+	asl
+	asl		; x64
+	clc
+	adc tmp		; x80
+	tax
+	pla
+	sta $084014,x
+	sta $084016,x
+	sta $084018,x
+	sta $08401a,x
+	clc
+	adc #1
+	cmp #$80
+	bcc l2
+
+	; draw a line
+	lda #0
+:	tax
+	tay
+	pha
+	jsr dot_wxa
+	pla
+	pha
+	clc
+	;adc #128
+	tax
+	pla
+	pha
+	sec
+	sbc #128
+	eor #$ffff
+	tay
+	jsr dot_wxa
+	pla
+	clc
+	adc #1
+	cmp #128
+	bcc :-
+
+	; end native / wide mode
+	lda #0
+	ldx #0
+        sep #%00110000
+
+	sec
+	xce
+
+	.xs
+	.as
+	plp
+
 	jmp wait
+
+	.al
+	.xl
+
+dot_wxa	; draw a hires dot on x/y
+	tya
+	asl
+	asl
+	asl
+	asl		; x16
+	sta tmp
+	asl
+	asl		; x64
+	clc 
+	adc tmp	
+	sta tmp
+	txa
+	lsr
+	lsr
+	lsr
+	and #$fe	; index in line
+	clc
+	adc tmp
+	sta tmp
+	txa
+	and #$0f	; index in word
+	asl
+	tay
+	lda dottab,y
+	ldx tmp
+	ora $084020,x
+	sta $084020,x
+	rts
+
+dottab	.word $0080
+	.word $0040
+	.word $0020
+	.word $0010
+	.word $0008
+	.word $0004
+	.word $0002
+	.word $0001
+	.word $8000
+	.word $4000
+	.word $2000
+	.word $1000
+	.word $0800
+	.word $0400
+	.word $0200
+	.word $0100
+
+	.as
+	.xs
 
 idemo5	; if alt registers are set during raster match, they are effective in the next rasterline already!
 	ldx #46
@@ -758,10 +892,10 @@ idemo5	; if alt registers are set during raster match, they are effective in the
 
 hres1	
 	ldx #12
-	lda #>$8000
+	lda #>$4000
 	jsr sreg
 	inx
-	lda #<$8000
+	lda #<$4000
 	jsr sreg
 
 	ldx #20
@@ -776,13 +910,7 @@ hres1
 
         lda #128+64+32+2
 set     ldx #46
-sta $8000+4*80+4
 	jsr sreg        ; disable ColourPet mode
-
-lda #25
-sta VDC
-lda VDC+1
-sta $8000+4*80+5
 
 	jmp common
 
@@ -803,10 +931,10 @@ hres4	lda #128+64+32+8+4+2
 		
 text
 	ldx #12
-	lda #>$1000+5*80
+	lda #>$9000+5*80
 	jsr sreg
 	inx
-	lda #<$1000+5*80
+	lda #<$9000+5*80
 	jsr sreg
 
 	ldx #20
@@ -826,13 +954,6 @@ common
 	lda #128
 	ldx #47
 	jsr sreg
-
-lda resmode
-sta $8000+4*80+2
-lda rescnt
-sta $8000+4*80+3
-lda #1
-sta resfl
 
 	lda resmode
 	beq noinc
@@ -862,6 +983,7 @@ l1	sta cur
 	lda #<490
 	sec
 	sbc cur
+	ora #1		; that prevents the top line from flickering, as we are in non-interlace mode
 	sta line
 	lda #>490
 	sbc #0
@@ -871,17 +993,6 @@ l1	sta cur
 	sta VDC
 	inc VDC+1
 
-ldx #2
-ldy #0
-ll iny
-bne ll
-dex
-bne ll
-lda #25
-sta VDC
-lda VDC+1
-sta $8000+4*80+7
-
 	rts
 
 itab	.word idemo5-1
@@ -889,11 +1000,6 @@ line	.word 404
 	.word 0
 
 iclr
-lda #25
-sta VDC
-lda VDC+1
-sta $8000+4*80+6
-
 	ldx #46
 	lda #0
 	jsr sreg
@@ -924,7 +1030,7 @@ itabc	.word iclr-1
 	.word 494
 	.word 0
 
-txt 	.asc "           * RESETABLE ADDRESS COUNTERS"
+txt 	.asc "           * RESETABLE ADDRESS COUNTERS ON RASTERLINE MATCH"
 	.asc CR,0
 	.)
 
@@ -973,20 +1079,13 @@ next
 
 	ldy #2
 	lda (p2),y
-	ldx #38
+	ldx #V_RLINE
 	jsr sreg
 	iny
+	inx
 	lda (p2),y
-	jsr setr39
+	jsr sreg
 
-lda resfl
-beq :+
-dec resfl
-lda #25
-sta VDC
-lda VDC+1
-sta $8000+4*80+8
-:
 	ldx #42
 	lda #1
 	jsr sreg	; re-enable raster irq
@@ -1087,10 +1186,11 @@ inichain .(
 	sta last+1
 
 	lda itab+2
-	ldx #38
+	ldx #V_RLINE
 	jsr sreg
 	lda itab+3
-	jsr setr39
+	inx
+	jsr sreg
 
 	ldx #42
 	lda #1			; enable raster irq
@@ -1129,13 +1229,6 @@ newirq  .(
 	lda VDC+1	; irq status
         bpl noloop
         jsr doirq
-lda resfl
-beq retirq
-dec resfl
-lda #25
-sta VDC
-lda VDC+1
-sta $8000+4*80+8
 retirq  jmp (irqsave)
 noloop
 	inc cnt2
@@ -1217,10 +1310,10 @@ lx	iny
 	.byt 8		; r9: rows per char (-1)
 	.byt 32		; r10: cursor start (b0-4, b6/5= mode, 00=solid, 01=off, 1x= blink)
 	.byt 7		; r11: cursor end line
-	.byt >$1000	; r12: start of vid memory high
-	.byt <$1000	; r13: start of vid memory low
-	.byt >$1000+9*80+11	; r14: cursor pos high
-	.byt <$1000+9*80+11	; r15: cursor pos low
+	.byt >$9000	; r12: start of vid memory high
+	.byt <$9000	; r13: start of vid memory low
+	.byt >$9000+9*80+11	; r14: cursor pos high
+	.byt <$9000+9*80+11	; r15: cursor pos low
 	.byt 0,0,0,0	; r16-r19: ignored
 	.byt >$d000	; r20: start of attribute memory high
 	.byt <$d000	; r21: start of attribute memory low
@@ -1232,10 +1325,11 @@ lx	iny
 	.byt 0		; r27: address incr
 	.byt >$0000	; r28: char set address high
 	.byt 7		; r29: underline scanline
-	.byt 0,0,0,0,0,0,0 ; r30-r36 ignored
-	.byt 0		; r37: v/h sync status
-	.byt 0		; r38: rasterline counter low
-	.byt 4+16	; r39: 0/1=rasterline counter high, b2: extended (cpet compat), b4: disp en, b7: upet compat
+	.byt 0,0	; r30/31: rasterline counter low/high
+	.byt 0,0,0,0,0	; r32-r36 ignored
+	.byt 0		; r37: v/h sync status (VDC)
+	.byt 0		; n/a
+	.byt 4+16	; r39: b2: extended (cpet compat), b4: disp en, b7: upet compat
 	.byt 0		; r40: b0-3: bg colour 1, b4-7: bg colour 2
 	.byt BRDCOL	; r41: border colour (b0-3)
 	.byt 0		; r42: irq control
