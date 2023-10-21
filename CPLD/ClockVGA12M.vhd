@@ -50,7 +50,7 @@ entity Clock is
 	 attribute maxskew: string;
 	 attribute maxskew of dotclk : signal is "4 ns";
 	 attribute maxdelay: string;
-	 attribute maxdelay of dotclk : signal is "5 ns";
+	 attribute maxdelay of dotclk : signal is "4 ns";
 end Clock;
 
 architecture Behavioral of Clock is

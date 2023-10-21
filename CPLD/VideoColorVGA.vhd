@@ -65,6 +65,10 @@ entity Video is
 	   
 	   reset : in std_logic
 	   );
+		attribute maxskew: string;
+		attribute maxskew of vid_out : signal is "4 ns";
+		attribute maxdelay: string;
+		attribute maxdelay of vid_out : signal is "5 ns";
 end Video;
 
 architecture Behavioral of Video is
@@ -739,12 +743,12 @@ begin
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
-		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
+		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 
 			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				-- BORDER
 				vid_out <= col_border;
-			else
+			elsif (is_80 = '1' or dotclk(1) = '1') then
 			case (h_shift(2 downto 0)) is
 			when "000" =>
 				vid_out <= raster_outbit;

@@ -115,6 +115,7 @@ begin
 		
 		if (h_zero = '1') then
 			is_border_int <= '1';
+			is_border <= '1';
 		elsif (falling_edge(qclk) and dotclk = "1111") then
 			is_last_vis <= '0';
 			is_border <= is_border_int;
