@@ -50,20 +50,21 @@ loop
 	lda #0
 	sta vdctab+24
 
-	jsr demo1
-	jsr demo2
-	jsr demo3
-	jsr demo4
-	jsr demo5
-	jsr demo6
-	jsr demo7
-	jsr demo8
-	jsr demo9
-	jsr demo10
-	jsr demo11
-	jsr demo12
-	jsr demolast
-	jsr demolast2
+	jsr demo1	; print header
+	jsr demoborders	; rasterline ints & borders
+	jsr demovdc
+	jsr democpet
+	jsr demomcol
+	jsr demoilace
+	jsr democursor
+	jsr demohwpos
+	jsr demohscrl
+	jsr demovert
+	jsr demo4080
+	jsr demo50rows
+	jsr democset
+	jsr demoreset
+	jsr demohires
 
 	jsr wait
 	jsr wait
@@ -91,13 +92,14 @@ txt	.asc HOME, CRSD, CRSD
 ; --------------------
 
 	.(
-&demo2	lda #<txt
+&demovdc
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
 	ldy #0
 l0	tya
-	sta $8800+6*80+10,y
+	sta $8800+5*80+10,y
 	iny
 	cpy #60
 	bcc l0
@@ -122,25 +124,25 @@ idemo2
 	rts
 
 itab	.word idemo2-1
-	.word 167
+	.word 149
 	.word 0
 
 
-txt	.asc CR, CRSD, CRSD
-	.asc "           * C128 VDC COMPATIBLE MODE WITH BLINK/UNDERLINE"
+txt	.asc "           * C128 VDC COMPATIBLE MODE WITH BLINK/UNDERLINE"
 	.asc CR,0
 	.)
 
 ; --------------------
 
 	.(
-&demo3	lda #<txt
+&democpet
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
 	ldy #0
 l0	tya
-	sta $8800+7*80+10,y
+	sta $8800+6*80+10,y
 	iny
 	cpy #60
 	bcc l0
@@ -165,7 +167,7 @@ idemo3
 	rts
 
 itab	.word idemo3-1
-	.word 184
+	.word 167
 	.word 0
 
 txt 	.asc "           * COLOUR PET COMPATIBLE COLOUR MODE"
@@ -175,7 +177,50 @@ txt 	.asc "           * COLOUR PET COMPATIBLE COLOUR MODE"
 ; --------------------
 
 	.(
-&demo4	lda #<txt
+&demomcol
+	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	ldy #0
+l0	tya
+	sta $8800+7*80+10,y
+	iny
+	cpy #60
+	bcc l0
+
+	lda #<itab
+	ldy #>itab
+	jsr addirq
+
+	jmp wait
+
+idemo3	
+	ldx #39
+	lda #20
+	jsr sreg	; enable ColourPet mode (+attrib = multicolour)
+	ldx #25
+	lda #16
+	jsr sreg	; enable VDC attribute mode (+cpet =multicolour)
+
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+itab	.word idemo3-1
+	.word 185
+	.word 0
+
+txt 	.asc "           * MULTI-COLOUR MODE"
+	.asc CR,0
+	.)
+
+; --------------------
+
+	.(
+&demoilace
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -206,7 +251,8 @@ txt 	.asc "           * INTERLACE MODE"
 ; --------------------
 
 	.(
-&demo5	lda #<txt
+&democursor
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -241,7 +287,8 @@ txt 	.asc "           * HARDWARE CURSOR"
 ; --------------------
 
 	.(
-&demo6	lda #<txt
+&demohwpos
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -278,7 +325,8 @@ txt 	.asc "           * HORIZONTAL WIDTH AND POSITION"
 ; --------------------
 
 	.(
-&demo7	lda #<txt
+&demohscrl
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -324,7 +372,7 @@ txt 	.asc "           * HORIZONTAL SMOOTH SCROLL"
 ; --------------------
 
 	.(
-&demo8
+&demoborders
 	lda #<txt
 	ldy #>txt
 	jsr txtout
@@ -342,20 +390,17 @@ txt 	.asc "           * HORIZONTAL SMOOTH SCROLL"
 	jmp wait
 
 idemo5	
-	ldx #25
-	lda #16
-	jsr sreg
-
 	lda #41
 	sta VDC
 	inc VDC+1
 	rts
 
 itab	.word idemo5-1
-	.word 271
+	.word 140
 	.word 0
 
-txt 	.asc "           * BORDERS AND RASTERLINE INTERRUPTS"
+txt 	.asc CR
+	.asc "           * BORDERS AND RASTERLINE INTERRUPTS"
 	.asc CR,0
 	.)
 
@@ -364,7 +409,7 @@ txt 	.asc "           * BORDERS AND RASTERLINE INTERRUPTS"
 	.(
 cur	.byt 0
 
-&demo9
+&demovert
 	lda #<txt
 	ldy #>txt
 	jsr txtout
@@ -381,9 +426,17 @@ cur	.byt 0
 	ldy #>itab
 	jsr insirq
 
+	lda #<itabres
+	ldy #>itabres
+	jsr addirq
+
 	jmp wait
 
 idemo5	
+	ldx #25
+	lda #16
+	jsr sreg
+
 	lda cnt2
 	and #%11100000
 	lsr
@@ -446,12 +499,27 @@ itab3	.word idemo3-1
 	.word 135
 	.word 0
 
+idemores
+	ldx #25
+	lda #16
+	jsr sreg
+	ldx #41
+	stx VDC
+	inc VDC+1
+	rts
+
+itabres	.word idemores-1
+	.word 271
+	.word 0
+
+
 	.)
 
 ; --------------------
 
 	.(
-&demo10	lda #<txt
+&demo4080
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -479,7 +547,7 @@ idemo5	ldx #8
 	rts
 
 itab	.word idemo5-1
-	.word 309
+	.word 289
 	.word 0
 
 txt 	.asc "           * SWITCHABLE 40/80 COLS"
@@ -489,7 +557,8 @@ txt 	.asc "           * SWITCHABLE 40/80 COLS"
 ; --------------------
 
 	.(
-&demo11	lda #<txt
+&demo50rows
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -529,7 +598,7 @@ l0	bit VDC+1
 	rts
 
 itab	.word idemo5-1
-	.word 325
+	.word 325-18
 	.word 0
 
 idemox	ldx #8
@@ -537,14 +606,15 @@ idemox	ldx #8
 	jmp sreg	
 
 itab2	.word idemox-1
-	.word 335
+	.word 316
 	.word 0
 
 	.)
 
 ; --------------------
 	.(
-&demo12	lda #<txt
+&democset
+	lda #<txt
 	ldy #>txt
 	jsr txtout
 
@@ -565,7 +635,7 @@ l	bit VDC+1
 	bvc l
 
 	ldx #8
-	lda #128	; 50x80 mode
+	lda #128	; 25x80 mode
 	jsr sreg
 
 	ldx #9
@@ -578,7 +648,7 @@ l	bit VDC+1
 	rts
 
 itab	.word idemo5-1
-	.word 338
+	.word 325
 	.word 0
 
 idemox	ldx #9
@@ -586,8 +656,6 @@ idemox	ldx #9
 	jsr sreg
 
 	lda cnt2
-	;sta $8004+4*80
-	;sta $8004+3*80
 	and #15
 	bne l3
 
@@ -619,7 +687,7 @@ l3
 
 
 itab2	.word idemox-1
-	.word 362
+	.word 353
 	.word 0
 
 txt 	.asc "           * RE-DEFINABLE CHARACTER SET AND LARGE CHAR HEIGHT"
@@ -630,29 +698,221 @@ txt 	.asc "           * RE-DEFINABLE CHARACTER SET AND LARGE CHAR HEIGHT"
 
 ; must be last, as it starts hires
 	.(
-&demolast
+&demohires
+	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #1
+	sta resmode
+	sta rescnt
+
+	jmp wait
+
+txt 	.asc "           * HIRES"
+;	.asc CR, "          FOO"
+;	.asc CR, "            BAR"
+	.asc CR,0
+	.)
+; --------------------
+
+; starts split screen mode
+
+resmode	.byt 0
+rescnt	.byt 0
+
+resfl	.byt 0
+
+	.(
+cur	.byt 0
+
+&demoreset
+	lda #0
+	sta resmode
+	sta rescnt
+
 	lda #<txt
 	ldy #>txt
 	jsr txtout
 
 	lda #<itab
 	ldy #>itab
-;	jsr addirq
+	jsr addirq
+
+	lda #<itabc
+	ldy #>itabc
+	jsr addirq
 
 	jmp wait
 
-idemo5	
-
-	ldx #25
-	lda #128+16
+idemo5	; if alt registers are set during raster match, they are effective in the next rasterline already!
+	ldx #46
+	lda #1
 	jsr sreg
 
-	ldx #9
-	lda #8
-	jsr sreg	
+	lda resmode
+	beq text
 
-;	ldx #25
-;	lda #16		; shift three to the right
+	ldy rescnt
+	beq text
+
+hres1	
+	ldx #12
+	lda #>$8000
+	jsr sreg
+	inx
+	lda #<$8000
+	jsr sreg
+
+	ldx #20
+	lda #>$d000+5*80
+	jsr sreg
+	inx
+	lda #<$d000+5*80
+	jsr sreg
+
+	dey
+	bne hres2
+
+        lda #128+64+32+2
+set     ldx #46
+sta $8000+4*80+4
+	jsr sreg        ; disable ColourPet mode
+
+lda #25
+sta VDC
+lda VDC+1
+sta $8000+4*80+5
+
+	jmp common
+
+hres2	dey
+	bne hres3
+	
+        lda #128+64+32+4+2
+	bne set
+
+hres3	dey
+	bne hres4
+	
+        lda #128+64+32+8+2
+	bne set
+
+hres4	lda #128+64+32+8+4+2
+	bne set
+		
+text
+	ldx #12
+	lda #>$1000+5*80
+	jsr sreg
+	inx
+	lda #<$1000+5*80
+	jsr sreg
+
+	ldx #20
+	lda #>$d000+5*80
+	jsr sreg
+	inx
+	lda #<$d000+5*80
+	jsr sreg
+
+        ldx #46
+        lda #128+64+32+8
+        jsr sreg        ; disable ColourPet mode
+
+	jmp common
+
+common
+	lda #128
+	ldx #47
+	jsr sreg
+
+lda resmode
+sta $8000+4*80+2
+lda rescnt
+sta $8000+4*80+3
+lda #1
+sta resfl
+
+	lda resmode
+	beq noinc
+	lda cnt2
+	bne noinc
+	lda cnt
+	and #1
+	bne noinc
+
+	inc rescnt
+	lda rescnt
+	cmp #5
+	bcc noinc
+	lda #0
+	sta rescnt
+noinc
+	
+	lda cnt
+	lsr
+	lda cnt2
+	ror
+	lsr
+	cmp #82
+	bcc l1
+	lda #82
+l1	sta cur
+	lda #<490
+	sec
+	sbc cur
+	sta line
+	lda #>490
+	sbc #0
+	sta line+1
+
+	lda #41
+	sta VDC
+	inc VDC+1
+
+ldx #2
+ldy #0
+ll iny
+bne ll
+dex
+bne ll
+lda #25
+sta VDC
+lda VDC+1
+sta $8000+4*80+7
+
+	rts
+
+itab	.word idemo5-1
+line	.word 404
+	.word 0
+
+iclr
+lda #25
+sta VDC
+lda VDC+1
+sta $8000+4*80+6
+
+	ldx #46
+	lda #0
+	jsr sreg
+
+	ldx #47
+	lda #0
+	jsr sreg
+
+	lda cur
+	clc 
+	adc #0
+l0	tay
+	sec
+	sbc #9
+	bcs l0
+	tya
+	lsr
+	ora #16
+	ldx #24
 ;	jsr sreg
 
 	lda #41
@@ -660,49 +920,8 @@ idemo5
 	inc VDC+1
 	rts
 
-itab	.word idemo5-1
-	.word 401
-	.word 0
-
-txt 	.asc "           * HIRES"
-	.asc CR,0
-	.)
-; --------------------
-
-; must be last, as it starts hires
-	.(
-&demolast2
-	lda #<txt
-	ldy #>txt
-	jsr txtout
-
-	lda #<itab
-	ldy #>itab
-;	jsr addirq
-
-	ldy #0
-l0	tya
-	iny
-	cpy #80
-	bcc l0
-
-	jmp wait
-
-idemo5	
-        ldx #39
-        lda #16
-        jsr sreg        ; disable ColourPet mode
-        ldx #25
-        lda #64+16+128
-        jsr sreg        ; enable VDC attribute mode
-
-	lda #41
-	sta VDC
-	inc VDC+1
-	rts
-
-itab	.word idemo5-1
-	.word 418
+itabc	.word iclr-1
+	.word 494
 	.word 0
 
 txt 	.asc "           * RESETABLE ADDRESS COUNTERS"
@@ -718,8 +937,9 @@ chain	.word 0
 
 doirq	.(
 	ldx #43
-	lda #127
+	lda #127	; clear all Viccy interrupts
 	jsr sreg
+
 	lda chain
 	sta p2
 	lda chain+1
@@ -745,7 +965,13 @@ end	lda start
 	lda start+1
 	sta chain+1
 	sta p2+1
-next	ldy #2
+
+;	ldx #41
+;	lda #0
+;	jsr sreg
+next
+
+	ldy #2
 	lda (p2),y
 	ldx #38
 	jsr sreg
@@ -753,6 +979,14 @@ next	ldy #2
 	lda (p2),y
 	jsr setr39
 
+lda resfl
+beq :+
+dec resfl
+lda #25
+sta VDC
+lda VDC+1
+sta $8000+4*80+8
+:
 	ldx #42
 	lda #1
 	jsr sreg	; re-enable raster irq
@@ -864,7 +1098,7 @@ inichain .(
 	rts
 
 itab	.word resetscr-1
-	.word 450
+	.word 520
 	.word 0
 
 resetscr
@@ -895,6 +1129,13 @@ newirq  .(
 	lda VDC+1	; irq status
         bpl noloop
         jsr doirq
+lda resfl
+beq retirq
+dec resfl
+lda #25
+sta VDC
+lda VDC+1
+sta $8000+4*80+8
 retirq  jmp (irqsave)
 noloop
 	inc cnt2

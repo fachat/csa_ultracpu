@@ -4,7 +4,7 @@ PRGS=
 all: updemo
 
 updemo: updemo.a65 *.a65 
-	xa -w -M -oPETSCII -l $@.lab -o $@ $<
+	xa -w -M -XCA65 -oPETSCII -l $@.lab -o $@ $<
 
 updemo.hex: updemo
 	hexdump -C $< > $@.hex
