@@ -75,7 +75,7 @@ The following are the internal Viccy registers:
   - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
 - r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of pixels to shift the output to the right
-  - bit 4: CSEL: if set, extend left border by 7 pixels and right border by 9 pixels
+  - bit 4: CSEL: if set, extend left border by 8 pixels and right border by 8 pixels
     - TODO: according to https://www.c64-wiki.de/wiki/VDC bit4=1 is 40 col moddde
   - bit 5: unused (semigraphic mode (display the last pixel of a char in the intercharacter spacing, instead of background))
     - TODO: implement together with parts of R22

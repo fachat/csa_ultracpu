@@ -138,7 +138,7 @@ architecture Behavioral of Video is
 	signal sr_reverse_p : std_logic;
 	signal sr_underline : std_logic;			-- when set, underline is active in SR
 	signal sr_underline_p: std_logic;
-	signal is_outbit: std_logic;
+	signal is_outbit: std_logic_vector(1 downto 0);
 	signal raster_out: AOA(0 to 6);
 	signal raster_outbit: std_logic_vector(3 downto 0);
 	
@@ -199,6 +199,7 @@ architecture Behavioral of Video is
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
 	signal sr_crsr: std_logic;
 	signal sr_blink: std_logic;
+	signal sr_odd: std_logic;
 
 	-- geo signals
 	--
@@ -682,60 +683,100 @@ begin
 				sr(7 downto 0) <= pxl_buf;
 				sr_reverse <= sr_reverse_p;
 				sr_underline <= sr_underline_p;
+				sr_odd <= '0';
 				
-				if (sr_underline_p = '1') then
-					is_outbit <= '1';
-				elsif (sr_reverse_p = '1') then
-					is_outbit <= not(pxl_buf(7));
+				if (mode_attrib = '1' and mode_extended = '1') then
+					-- multicolour (2-bit colour mode)
+					if (sr_underline_p = '1') then
+						is_outbit <= "11";
+					elsif (sr_reverse_p = '1') then
+						is_outbit(1) <= not(pxl_buf(7));
+						is_outbit(0) <= not(pxl_buf(6));
+					else
+						is_outbit(1) <= pxl_buf(7);
+						is_outbit(0) <= pxl_buf(6);
+					end if;
 				else
-					is_outbit <= pxl_buf(7);
+					-- normal 1-bit colour modes
+					is_outbit(1) <= '0';
+					if (sr_underline_p = '1') then
+						is_outbit(0) <= '1';
+					elsif (sr_reverse_p = '1') then
+						is_outbit(0) <= not(pxl_buf(7));
+					else
+						is_outbit(0) <= pxl_buf(7);
+					end if;
 				end if;
 			elsif (dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
 				sr(7 downto 1) <= sr(6 downto 0);
 				sr(0) <= '1';
-
-				if (sr_underline = '1') then
-					is_outbit <= '1';
-				elsif (sr_reverse = '1') then
-					is_outbit <= not(sr(6));
+				sr_odd <= not(sr_odd);
+				
+				if (mode_attrib = '1' and mode_extended = '1' and sr_odd = '1') then
+					-- multicolour
+					-- multicolour (2-bit colour mode)
+					if (sr_underline_p = '1') then
+						is_outbit <= "11";
+					elsif (sr_reverse_p = '1') then
+						is_outbit(1) <= not(sr(7));
+						is_outbit(0) <= not(sr(6));
+					else
+						is_outbit(1) <= sr(7);
+						is_outbit(0) <= sr(6);
+					end if;
 				else
-					is_outbit <= sr(6);
+					is_outbit(1) <= '0';
+					if (sr_underline = '1') then
+						is_outbit(0) <= '1';
+					elsif (sr_reverse = '1') then
+						is_outbit(0) <= not(sr(6));
+					else
+						is_outbit(0) <= sr(6);
+					end if;
 				end if;
 
 			end if;
 		end if;
 	end process;
 					
-	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, col_bg0, col_fg)
+	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
+		col_bg0, col_fg, col_bg1, col_bg2)
 	begin			
 			if (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
-				if is_outbit = '0' then
+				if is_outbit(0) = '0' then
 					raster_outbit <= col_bg0;
 				else
 					raster_outbit <= col_fg;
 				end if;
 			elsif (mode_extended = '0' and mode_attrib = '1') then
 				-- ATTRIBUTE MODE (VDC)
-				if (is_outbit = '0') then
+				if (is_outbit(0) = '0') then
 					raster_outbit <= col_bg0;
 				else
 					raster_outbit <= sr_attr(3 downto 0);
 				end if;
 			elsif (mode_extended = '1' and mode_attrib = '0') then
 				-- EXTENDED MODE (COLOUR PET)
-				if is_outbit = '0' then
+				if is_outbit(0) = '0' then
 					raster_outbit <= sr_attr(7 downto 4);
 				else
 					raster_outbit <= sr_attr(3 downto 0);
 				end if;
 			else
 				-- MULTICOLOUR MODE
-				if (is_outbit = '0') then
+				case (is_outbit) is
+				when "00" =>
 					raster_outbit <= sr_attr(7 downto 4);
-				else 
+				when "01" =>
+					raster_outbit <= col_bg1;
+				when "10" =>
+					raster_outbit <= col_bg2;
+				when "11" =>
 					raster_outbit <= sr_attr(3 downto 0);
-				end if;
+				when others =>
+					raster_outbit <= col_border;
+				end case;
 			end if;
 	end process;
 	

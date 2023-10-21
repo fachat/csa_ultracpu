@@ -203,7 +203,7 @@ idemo3
 	lda #20
 	jsr sreg	; enable ColourPet mode (+attrib = multicolour)
 	ldx #25
-	lda #16
+	lda #64+16
 	jsr sreg	; enable VDC attribute mode (+cpet =multicolour)
 
 	lda #41
@@ -234,6 +234,10 @@ txt 	.asc "           * MULTI-COLOUR MODE"
 	jmp wait
 
 idemo4	
+	ldx #25
+	lda #16
+	jsr sreg
+
 	ldx #8
 	lda #2+128
 	jsr sreg	; interlace mode
@@ -1330,7 +1334,7 @@ lx	iny
 	.byt 0		; r37: v/h sync status (VDC)
 	.byt 0		; n/a
 	.byt 4+16	; r39: b2: extended (cpet compat), b4: disp en, b7: upet compat
-	.byt 0		; r40: b0-3: bg colour 1, b4-7: bg colour 2
+	.byt $0f	; r40: b0-3: bg colour 1, b4-7: bg colour 2
 	.byt BRDCOL	; r41: border colour (b0-3)
 	.byt 0		; r42: irq control
 	.byt 127	; r43: irq status (clear all sources)
