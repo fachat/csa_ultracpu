@@ -141,6 +141,7 @@ architecture Behavioral of Video is
 	signal is_outbit: std_logic_vector(1 downto 0);
 	signal raster_out: AOA(0 to 6);
 	signal raster_outbit: std_logic_vector(3 downto 0);
+	signal sr_buf: std_logic_vector(7 downto 0);
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -191,6 +192,7 @@ architecture Behavioral of Video is
 	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
 	signal char_index_buf : std_logic_vector(7 downto 0);
 	signal attr_buf : std_logic_vector(7 downto 0);
+	signal attr_buf2 : std_logic_vector(7 downto 0);
 	signal pxl_buf : std_logic_vector(7 downto 0);
 	-- replacements for shift register
 	signal sr : std_logic_vector(7 downto 0);
@@ -676,72 +678,59 @@ begin
 								xor sr_blink;
 			end if;
 		end if;
+
+		if (falling_edge(qclk)) then
+			if (pxld_ce = '1' and fetch_int = '1') then
+				--attr_buf2 <= attr_buf;
+				if (sr_underline_p = '1') then
+					sr_buf <= "11111111";
+				elsif (sr_reverse_p = '1') then
+					sr_buf <= not(pxl_buf);
+				else
+					sr_buf <= pxl_buf;
+				end if;
+			end if;
+		end if;
 		
 		if (falling_edge(qclk)) then
-			if (pxlf_ce = '1' and (is_80 = '1' or in_slot = '0')) then
+			if (pxle_ce = '1' and (is_80 = '1' or in_slot = '0')) then
 				sr_attr <= attr_buf;
-				sr(7 downto 0) <= pxl_buf;
-				sr_reverse <= sr_reverse_p;
-				sr_underline <= sr_underline_p;
+				sr(7 downto 0) <= sr_buf;
 				sr_odd <= '0';
 				
 				if (mode_attrib = '1' and mode_extended = '1') then
 					-- multicolour (2-bit colour mode)
-					if (sr_underline_p = '1') then
-						is_outbit <= "11";
-					elsif (sr_reverse_p = '1') then
-						is_outbit(1) <= not(pxl_buf(7));
-						is_outbit(0) <= not(pxl_buf(6));
-					else
-						is_outbit(1) <= pxl_buf(7);
-						is_outbit(0) <= pxl_buf(6);
-					end if;
+					is_outbit(1) <= sr_buf(7);
+					is_outbit(0) <= sr_buf(6);
 				else
 					-- normal 1-bit colour modes
 					is_outbit(1) <= '0';
-					if (sr_underline_p = '1') then
-						is_outbit(0) <= '1';
-					elsif (sr_reverse_p = '1') then
-						is_outbit(0) <= not(pxl_buf(7));
-					else
-						is_outbit(0) <= pxl_buf(7);
-					end if;
+					is_outbit(0) <= sr_buf(7);
 				end if;
-			elsif (dotclk(0) = '1' and (is_80 = '1' or dotclk(1) = '1')) then
+			elsif (dotclk(0) = '0' and (is_80 = '1' or dotclk(1) = '1')) then
 				sr(7 downto 1) <= sr(6 downto 0);
 				sr(0) <= '1';
 				sr_odd <= not(sr_odd);
 				
-				if (mode_attrib = '1' and mode_extended = '1' and sr_odd = '1') then
-					-- multicolour
-					-- multicolour (2-bit colour mode)
-					if (sr_underline_p = '1') then
-						is_outbit <= "11";
-					elsif (sr_reverse_p = '1') then
-						is_outbit(1) <= not(sr(7));
-						is_outbit(0) <= not(sr(6));
-					else
-						is_outbit(1) <= sr(7);
-						is_outbit(0) <= sr(6);
+				if (mode_attrib = '1' and mode_extended = '1') then
+					if (sr_odd = '1') then
+						-- multicolour (2-bit colour mode)
+						is_outbit(1) <= sr(6);
+						is_outbit(0) <= sr(5);
 					end if;
 				else
 					is_outbit(1) <= '0';
-					if (sr_underline = '1') then
-						is_outbit(0) <= '1';
-					elsif (sr_reverse = '1') then
-						is_outbit(0) <= not(sr(6));
-					else
-						is_outbit(0) <= sr(6);
-					end if;
+					is_outbit(0) <= sr(6);
 				end if;
 
 			end if;
 		end if;
 	end process;
 					
-	rasterout_p: process(sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
+	rasterout_p: process(qclk, sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
 		col_bg0, col_fg, col_bg1, col_bg2)
-	begin			
+	begin
+		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 			if (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
 				if is_outbit(0) = '0' then
@@ -767,17 +756,22 @@ begin
 				-- MULTICOLOUR MODE
 				case (is_outbit) is
 				when "00" =>
+--					raster_outbit <= "0001"; -- d.grey
 					raster_outbit <= sr_attr(7 downto 4);
 				when "01" =>
+--					raster_outbit <= "0100"; -- green
 					raster_outbit <= col_bg1;
 				when "10" =>
+--					raster_outbit <= "0010"; -- blue
 					raster_outbit <= col_bg2;
 				when "11" =>
+--					raster_outbit <= "1000"; -- red
 					raster_outbit <= sr_attr(3 downto 0);
 				when others =>
 					raster_outbit <= col_border;
 				end case;
 			end if;
+		end if;
 	end process;
 	
 	vid_out_p: process (qclk, dena_int)
