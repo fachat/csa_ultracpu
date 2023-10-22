@@ -294,6 +294,8 @@ architecture Behavioral of Video is
 	signal sprite_overborder: std_logic_vector(7 downto 0);
 	signal sprite_outbits: AOA4(0 to 7);
 	signal sprite_fgcol: AOA4(0 to 7);
+	signal sprite_mcol1: std_logic_vector(3 downto 0);
+	signal sprite_mcol2: std_logic_vector(3 downto 0);
 	signal next_row: std_logic;
 	-- output to mixer
 	signal sprite_on: std_logic;
@@ -759,10 +761,10 @@ begin
 		crtc_reg(1 downto 0),
 		CPU_D,
 		sprite_dout(0),
-		"1111",	--sprite_fgcol(0),
-		"0000",	--col_bg0,
-		"0000",
-		"0000",
+		sprite_fgcol(0),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
 		sprite_fetch_offset(0),
 		qclk,
 		dotclk,
@@ -1184,6 +1186,8 @@ begin
 			va_offset <= (others => '0');
 			raster_match <= (others => '0');
 			irq_raster_en <= '0';
+			sprite_mcol1 <= "0000";
+			sprite_mcol1 <= "0000";
 		elsif (falling_edge(phi2) 
 				and crtc_is_data = '1' 
 				and crtc_rwb = '0'
@@ -1313,6 +1317,26 @@ begin
 			when x"2f" =>	-- R47 (alternate control II)
 				alt_rc_cnt <= CPU_D(3 downto 0);
 				alt_set_rc <= CPU_D(7);
+			when x"50" =>	-- R80
+				sprite_fgcol(0) <= CPU_D(3 downto 0);
+			when x"51" =>	-- R81
+				sprite_fgcol(1) <= CPU_D(3 downto 0);
+			when x"52" =>	-- R82
+				sprite_fgcol(2) <= CPU_D(3 downto 0);
+			when x"53" =>	-- R83
+				sprite_fgcol(3) <= CPU_D(3 downto 0);
+			when x"54" =>	-- R84
+				sprite_fgcol(4) <= CPU_D(3 downto 0);
+			when x"55" =>	-- R85
+				sprite_fgcol(5) <= CPU_D(3 downto 0);
+			when x"56" =>	-- R86
+				sprite_fgcol(6) <= CPU_D(3 downto 0);
+			when x"57" =>	-- R87
+				sprite_fgcol(7) <= CPU_D(3 downto 0);
+			when x"5c" =>	-- R92
+				sprite_mcol1 <= CPU_D(3 downto 0);
+			when x"5d" =>	-- R93
+				sprite_mcol2 <= CPU_D(3 downto 0);
 			when others =>
 				null;
 			end case;
@@ -1459,6 +1483,26 @@ begin
 					when x"2f" =>	-- R47 (alternate control II)
 						vd_out(3 downto 0) <= alt_rc_cnt;
 						vd_out(7) <= alt_set_rc;
+					when x"50" =>	-- R80
+						vd_out(3 downto 0) <= sprite_fgcol(0);
+					when x"51" =>	-- R81
+						vd_out(3 downto 0) <= sprite_fgcol(1);
+					when x"52" =>	-- R82
+						vd_out(3 downto 0) <= sprite_fgcol(2);
+					when x"53" =>	-- R83
+						vd_out(3 downto 0) <= sprite_fgcol(3);
+					when x"54" =>	-- R84
+						vd_out(3 downto 0) <= sprite_fgcol(4);
+					when x"55" =>	-- R85
+						vd_out(3 downto 0) <= sprite_fgcol(5);
+					when x"56" =>	-- R86
+						vd_out(3 downto 0) <= sprite_fgcol(6);
+					when x"57" =>	-- R87
+						vd_out(3 downto 0) <= sprite_fgcol(7);
+					when x"5c" =>	-- R92
+						vd_out(3 downto 0) <= sprite_mcol1;
+					when x"5d" =>	-- R93
+						vd_out(3 downto 0) <= sprite_mcol2;
 					when others =>
 						vd_out <= sprite_d;
 					end case;
