@@ -147,27 +147,35 @@ The following are the internal Viccy registers:
 
 Sprite registers (subject to change):
 
-- r50: X coordinate sprite 0 (VIC-II)
-- r51: Y coordinate sprite 0 (VIC-II)
-- r52: sprite 0 extra
+- r48: X coordinate sprite 0 (VIC-II)
+- r49: Y coordinate sprite 0 (VIC-II)
+- r50: sprite 0 extra
   - bit 1-0: bits 8-7 of sprite 0 X coordinate
   - bit 5-4: bits 8-7 of sprite 0 Y coordinate
-- r53: sprite 0 control
+- r51: sprite 0 control
   - bit 0: enable
   - bit 1: X-expand
   - bit 2: Y-expand
   - bit 3: Multicolour flag
   - bit 4: sprite data priority
   - bit 5: sprite border flag (if set, show over border)
-- r54: color sprite 0 (VIC-II)
 
-- r55-: sprite 1
-- r60-: sprite 2
-- r65-: sprite 3
-- r70-: sprite 4
-- r75-: sprite 5
-- r80-: sprite 6
-- r85-: sprite 7
+- r52-: sprite 1
+- r56-: sprite 2
+- r60-: sprite 3
+- r64-: sprite 4
+- r68-: sprite 5
+- r72-: sprite 6
+- r76-: sprite 7
+
+- r80: color sprite 0 (VIC-II)
+- r81: color sprite 1 (VIC-II)
+- r82: color sprite 2 (VIC-II)
+- r83: color sprite 3 (VIC-II)
+- r84: color sprite 4 (VIC-II)
+- r85: color sprite 5 (VIC-II)
+- r86: color sprite 6 (VIC-II)
+- r87: color sprite 7 (VIC-II)
 
 - r90: sprite-sprite collision (VIC-II)
 - r91: sprite-data collision (VIC-II)

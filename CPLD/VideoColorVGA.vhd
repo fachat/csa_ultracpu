@@ -73,8 +73,11 @@ end Video;
 
 architecture Behavioral of Video is
 
-	type AOA is array(natural range<>) of std_logic_vector(3 downto 0);
-		
+	type AOA2 is array(natural range<>) of std_logic_vector(1 downto 0);
+	type AOA4 is array(natural range<>) of std_logic_vector(3 downto 0);
+	type AOA6 is array(natural range<>) of std_logic_vector(5 downto 0);
+	type AOA8 is array(natural range<>) of std_logic_vector(7 downto 0);
+	
 	--- modes
 	signal mode_attrib: std_logic;			-- r25.6, enable attribute use
 	signal mode_extended: std_logic;		-- r33.2, enables full and multicolor modes
@@ -134,12 +137,10 @@ architecture Behavioral of Video is
 	---
 	signal cblink_mode: std_logic;			-- character blink mode, R24.5
 	signal cblink_active: std_logic;		-- when set, character blinking is active
-	signal sr_reverse : std_logic;			-- when set, invert the pixels; made from blink, underline and cursor logic
 	signal sr_reverse_p : std_logic;
-	signal sr_underline : std_logic;			-- when set, underline is active in SR
 	signal sr_underline_p: std_logic;
 	signal is_outbit: std_logic_vector(1 downto 0);
-	signal raster_out: AOA(0 to 6);
+	signal raster_out: AOA4(0 to 6);
 	signal raster_outbit: std_logic_vector(3 downto 0);
 	signal sr_buf: std_logic_vector(7 downto 0);
 	
@@ -151,6 +152,7 @@ architecture Behavioral of Video is
 	
 	-- crtc register emulation
 	signal crtc_reg: std_logic_vector(7 downto 0);
+	signal crtc_is_data: std_logic;
 	
 	signal rows_per_char: std_logic_vector(3 downto 0);
 	signal slots_per_line: std_logic_vector(6 downto 0);
@@ -279,6 +281,25 @@ architecture Behavioral of Video is
 	-- temporary
 	signal is_double_int: std_logic;
 	signal interlace_int: std_logic;
+
+	-- sprite
+	signal sprite_sel: std_logic_vector(7 downto 0);
+	signal sprite_dout: AOA8(0 to 7);
+	signal sprite_d: std_logic_vector(7 downto 0);
+	signal sprite_fetch_offset: AOA6(0 to 7);
+	signal sprite_enabled: std_logic_vector(7 downto 0);
+	signal sprite_active: std_logic_vector(7 downto 0);
+	signal sprite_ison: std_logic_vector(7 downto 0);
+	signal sprite_overraster: std_logic_vector(7 downto 0);
+	signal sprite_overborder: std_logic_vector(7 downto 0);
+	signal sprite_outbits: AOA4(0 to 7);
+	signal sprite_fgcol: AOA4(0 to 7);
+	signal next_row: std_logic;
+	-- output to mixer
+	signal sprite_on: std_logic;
+	signal sprite_outcol: std_logic_vector(3 downto 0);
+	
+	-- helpers
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
@@ -353,6 +374,42 @@ architecture Behavioral of Video is
 			
 			reset : in std_logic
 		);
+	end component;
+	
+	component Sprite is
+	Port (
+		phi2: in std_logic;
+		sel: in std_logic;
+		rwb: in std_logic;
+		regsel: in std_logic_vector(1 downto 0);
+		din: in std_logic_vector(7 downto 0);
+		dout: out std_logic_vector(7 downto 0);
+
+		fgcol: in std_logic_vector(3 downto 0);
+		bgcol: in std_logic_vector(3 downto 0);
+		mcol1: in std_logic_vector(3 downto 0);
+		mcol2: in std_logic_vector(3 downto 0);
+		
+		fetch_offset: out std_logic_vector(5 downto 0);	-- 21x3 bytes = 63
+
+		qclk: in std_logic;
+		dotclk: in std_logic_vector(3 downto 0);
+		h_zero: in std_logic;
+		v_zero: in std_logic;
+		x_addr: in std_logic_vector(9 downto 0);
+		y_addr: in std_logic_vector(9 downto 0);
+		next_row: in std_logic;
+		is80: in std_logic;
+
+		enabled: out std_logic;		-- if sprite data should be read in rasterline
+		active: out std_logic;		-- if sprite pixel out is active (in x/y area)
+		ison: out std_logic;			-- if sprite pixel is not background (for collision / prio)
+		overraster: out std_logic;		-- if sprite should appear over the raster
+		overborder: out std_logic;		-- if sprite should appear over the border
+		outbits: out std_logic_vector(3 downto 0); 	-- double bit output
+		
+		reset: in std_logic
+	);
 	end component;
 	
 begin
@@ -553,7 +610,7 @@ begin
 	pet_vsync <= v_sync_int;
 	
 	-----------------------------------------------------------------------------
-	-- address calculations
+	-- raster address calculations
 	
 	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset) 
 	begin
@@ -616,6 +673,113 @@ begin
 				crsr_addr_match <= '0';
 			end if;
 	end process;
+
+	-----------------------------------------------------------------------------
+	-- sprite handling
+	
+	next_row <= '1' when interlace_int = '1' or rline_cnt0 = '0'
+						else '0';
+	
+	sprite_outcol_p: process(qclk, dotclk)
+	begin
+		
+		if (falling_edge(qclk)) then -- and dotclk(0) = '0') then
+			if (sprite_ison(0) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(0);
+--			elsif (sprite_ison(1) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(1);
+--			elsif (sprite_ison(2) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(2);
+--			elsif (sprite_ison(3) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(3);
+--			elsif (sprite_ison(4) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(4);
+--			elsif (sprite_ison(5) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(5);
+--			elsif (sprite_ison(6) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(6);
+--			elsif (sprite_ison(7) = '1') then
+--				sprite_on <= '1';
+--				sprite_outcol <= sprite_outbits(7);
+			else
+				sprite_on <= '0';
+				sprite_outcol <= "0000";
+			end if;
+		end if;
+	end process;
+	
+	sdo_p: process(crtc_reg, crtc_sel, sprite_dout)
+	begin
+	
+		sprite_sel <= (others => '0');
+		
+		if (crtc_sel = '1') then
+			case crtc_reg(6 downto 2) is
+			when "01100" =>	-- sprite 0
+				sprite_sel(0) <= '1';
+				sprite_d <= sprite_dout(0);
+			when "01101" =>	-- sprite 1
+				sprite_sel(1) <= '1';
+				sprite_d <= sprite_dout(1);
+			when "01110" =>	-- sprite 2
+				sprite_sel(2) <= '1';
+				sprite_d <= sprite_dout(2);
+			when "01111" =>	-- sprite 3
+				sprite_sel(3) <= '1';
+				sprite_d <= sprite_dout(3);
+			when "10000" =>	-- sprite 4
+				sprite_sel(4) <= '1';
+				sprite_d <= sprite_dout(4);
+			when "10001" =>	-- sprite 5
+				sprite_sel(5) <= '1';
+				sprite_d <= sprite_dout(5);
+			when "10010" =>	-- sprite 6
+				sprite_sel(6) <= '1';
+				sprite_d <= sprite_dout(6);
+			when "10011" =>	-- sprite 7
+				sprite_sel(7) <= '1';
+				sprite_d <= sprite_dout(7);
+			when others =>
+			end case;
+		end if;
+	end process;
+			
+	sprite0: Sprite
+	port map (
+		phi2,
+		sprite_sel(0),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(0),
+		"1111",	--sprite_fgcol(0),
+		"0000",	--col_bg0,
+		"0000",
+		"0000",
+		sprite_fetch_offset(0),
+		qclk,
+		dotclk,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		next_row,
+		is_80,
+		sprite_enabled(0),
+		sprite_active(0),
+		sprite_ison(0),
+		sprite_overraster(0),
+		sprite_overborder(0),
+		sprite_outbits(0),
+		reset
+	);
 	
 	-----------------------------------------------------------------------------
 	-- replace discrete color circuitry of ultracpu 1.2b
@@ -731,7 +895,9 @@ begin
 		col_bg0, col_fg, col_bg1, col_bg2)
 	begin
 		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
-			if (mode_extended = '0' and mode_attrib = '0') then
+			if (sprite_on = '1') then
+				raster_outbit <= sprite_outcol;
+			elsif (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
 				if is_outbit(0) = '0' then
 					raster_outbit <= col_bg0;
@@ -817,6 +983,7 @@ begin
 	end process;
 	
 	-----------------------------------------------------------------------------
+	-- address mixer
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
 	
 	a_out(3 downto 0) <= 
@@ -952,6 +1119,9 @@ begin
 
 	is_double_int <= mode_double;
 	interlace_int <= mode_interlace;
+
+	crtc_is_data <= '1' when crtc_sel = '1' and (crtc_rs = x"1" or crtc_rs = x"3")
+			else '0';
 	
 	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, reset) 
 	begin
@@ -1015,8 +1185,7 @@ begin
 			raster_match <= (others => '0');
 			irq_raster_en <= '0';
 		elsif (falling_edge(phi2) 
-				and crtc_sel = '1' 
-				and (crtc_rs=x"1" or crtc_rs=x"3") 
+				and crtc_is_data = '1' 
 				and crtc_rwb = '0'
 				) then
 			case (crtc_reg) is
@@ -1168,6 +1337,7 @@ begin
 					-- TODO: status register at address 0
 				elsif (crtc_rs = x"1" or crtc_rs = x"3") then
 
+					
 					case (crtc_reg) is
 					when x"01" =>
 						-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
@@ -1290,7 +1460,7 @@ begin
 						vd_out(3 downto 0) <= alt_rc_cnt;
 						vd_out(7) <= alt_set_rc;
 					when others =>
-						null;
+						vd_out <= sprite_d;
 					end case;
 				end if;
 			end if;
