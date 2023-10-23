@@ -50,6 +50,7 @@ entity Sprite is
 		
 		qclk: in std_logic;
 		dotclk: in std_logic_vector(3 downto 0);
+		vdin: in std_logic_vector(7 downto 0);
 		h_zero: in std_logic;
 		v_zero: in std_logic;
 		x_addr: in std_logic_vector(9 downto 0);
@@ -89,6 +90,8 @@ architecture Behavioral of Sprite is
 	signal enabled_int: std_logic;
 	signal active_int: std_logic;
 	signal ison_int: std_logic;
+	
+	signal pxl_idx: integer range 0 to 23;
 	
 begin
 
@@ -145,20 +148,23 @@ begin
 	-- TODO
 	out_p: process(qclk, fetch_ce)
 	begin
+	
+		pxl_idx <= to_integer(unsigned(x_cnt));
+		
 		if (falling_edge(qclk)) then
 			if (fetch_ce = '1') then
-				shiftreg(7 downto 0) <= din;
+				shiftreg(7 downto 0) <= vdin;
 			elsif (dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
 				if (active_int = '1') then
+		
 					-- TODO multicol
-					ison_int <= shiftreg(0) or (s_multi and shiftreg(1));
-					shiftreg(23 downto 1) <= shiftreg(22 downto 0);
-					-- debug endless loop
-					shiftreg(0) <= shiftreg(23);
+					--ison_int <= shiftreg(0) or (s_multi and shiftreg(1));
 					
-					if (shiftreg(0) = '1') then
+					if (shiftreg(pxl_idx) = '1') then
+						ison_int <= '1';
 						outbits <= fgcol;
 					else
+						ison_int <= '0';
 						outbits <= bgcol;
 					end if;
 				else

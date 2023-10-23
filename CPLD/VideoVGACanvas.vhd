@@ -53,6 +53,11 @@ entity Canvas is
 
 	   reset : in std_logic
 	   );
+	 attribute maxskew: string;
+	 attribute maxskew of x_addr : signal is "4 ns";
+	 attribute maxdelay: string;
+	 attribute maxdelay of x_addr : signal is "4 ns";
+
 end Canvas;
 
 architecture Behavioral of Canvas is

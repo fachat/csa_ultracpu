@@ -110,6 +110,10 @@ entity Top is
 	 );
 	 attribute system_jitter: string;
 	 attribute system_jitter of q50m: signal is "10 ps";
+	 attribute maxskew: string;
+	 attribute maxskew of q50m : signal is "3 ns";
+	 attribute maxdelay: string;
+	 attribute maxdelay of q50m : signal is "3 ns";
 end Top;
 
 architecture Behavioral of Top is

@@ -251,7 +251,6 @@ architecture Behavioral of Video is
 	signal sr_window : std_logic;
 	signal sprite_ptr_window: std_logic;
 	signal sprite_data_window: std_logic;
-	signal slotclk : std_logic;
 	
 	-- clock phases (16 half-pixels in one slot)
 	signal pxl0_ce: std_logic;
@@ -408,6 +407,7 @@ architecture Behavioral of Video is
 
 		qclk: in std_logic;
 		dotclk: in std_logic_vector(3 downto 0);
+		vdin: in std_logic_vector(7 downto 0);
 		h_zero: in std_logic;
 		v_zero: in std_logic;
 		x_addr: in std_logic_vector(9 downto 0);
@@ -427,8 +427,6 @@ architecture Behavioral of Video is
 	end component;
 	
 begin
-
-	slotclk <= dotclk(3);
 	
 	windows_p: process(dotclk)
 	begin
@@ -543,8 +541,8 @@ begin
 	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
 	fetch_sprite_en <= '1' when is_enable = '1' 
 								and (interlace_int = '1' or rline_cnt0 = '0') 
-								and x_addr(9 downto 6) = "0000" 
-								--and sprite_fetch_active = '1'
+								and x_addr(9 downto 6) = "0010" 
+								and sprite_fetch_active = '1'
 							else '0';
 	
 	-- do we fetch character index?
@@ -555,7 +553,7 @@ begin
 	attr_fetch_int <= attr_window and fetch_int and (mode_attrib or mode_extended);
 	
 	-- hires fetch
-	pxl_fetch_int <= pxl_window and fetch_int and mode_bitmap;
+	pxl_fetch_int <= pxl_window and fetch_int;	-- both, hires and crom and mode_bitmap;
 	
 	-- character rom fetch
 	crom_fetch_int <= pxl_window and fetch_int and not(mode_bitmap);
@@ -574,7 +572,6 @@ begin
 			vid_fetch <= chr_fetch_int 
 						or pxl_fetch_int 
 						or attr_fetch_int 
-						or crom_fetch_int
 						or sprite_ptr_fetch
 						or sprite_data_fetch
 						;
@@ -794,26 +791,27 @@ begin
 	
 	sprite_fetch_idx <= to_integer(unsigned(x_addr(5 downto 3)));
 	
-	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, pxl3_ce, sprite_data_fetch, fetch_ce)
+	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce)
 	begin
 		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
 		
 		if (falling_edge(qclk)) then
-			if (pxl3_ce = '1' and sprite_ptr_fetch = '1') then
+			if (fetch_ce = '1' and sprite_ptr_fetch = '1') then
 				sprite_data_ptr <= VRAM_D;
 			end if;
 		end if;
 		
 		sprite_fetch_ce <= "00000000";
+--		sprite_fetch_ce(0) <= sprite_ptr_fetch and fetch_ce; --sprite_data_fetch and fetch_ce;
 		case (sprite_fetch_idx) is
-		when 0 =>	sprite_fetch_ce(0) <= sprite_ptr_fetch and pxl3_ce; --sprite_data_fetch and fetch_ce;
-		when 1 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
-		when 2 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
-		when 3 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
-		when 4 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
-		when 5 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
-		when 6 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
-		when 7 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 0 =>	sprite_fetch_ce(0) <= sprite_ptr_fetch and fetch_ce; --sprite_data_fetch and fetch_ce;
+		when 1 =>	sprite_fetch_ce(1) <= sprite_data_fetch and fetch_ce;
+		when 2 =>	sprite_fetch_ce(2) <= sprite_data_fetch and fetch_ce;
+		when 3 =>	sprite_fetch_ce(3) <= sprite_data_fetch and fetch_ce;
+		when 4 =>	sprite_fetch_ce(4) <= sprite_data_fetch and fetch_ce;
+		when 5 =>	sprite_fetch_ce(5) <= sprite_data_fetch and fetch_ce;
+		when 6 =>	sprite_fetch_ce(6) <= sprite_data_fetch and fetch_ce;
+		when 7 =>	sprite_fetch_ce(7) <= sprite_data_fetch and fetch_ce;
 		end case;
 		
 	end process;
@@ -834,6 +832,7 @@ begin
 		sprite_fetch_ce(0),
 		qclk,
 		dotclk,
+		VRAM_D,
 		h_zero,
 		v_zero,
 		x_addr,
@@ -859,20 +858,20 @@ begin
 	begin
 		
 		if (falling_edge(qclk)) then
-			if (pxl3_ce = '1' and fetch_int = '1') then
+			if (fetch_ce = '1' and chr_fetch_int = '1') then
 				char_index_buf <= VRAM_D;
 				sr_crsr <= crsr_addr_match and crsr_active;
 			end if;			
 		end if;
 		
 		if (falling_edge(qclk)) then
-			if (pxl7_ce = '1' and fetch_int = '1') then
+			if (fetch_ce = '1' and attr_fetch_int = '1') then
 				attr_buf <= VRAM_D;
 			end if;
 		end if;
 
 		if (falling_edge(qclk)) then
-			if (pxlb_ce = '1' and fetch_int = '1') then
+			if (fetch_ce = '1' and pxl_fetch_int = '1') then
 				pxl_buf <= VRAM_D;
 			end if;
 		end if;
