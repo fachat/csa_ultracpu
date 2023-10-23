@@ -194,7 +194,6 @@ architecture Behavioral of Video is
 	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
 	signal char_index_buf : std_logic_vector(7 downto 0);
 	signal attr_buf : std_logic_vector(7 downto 0);
-	signal attr_buf2 : std_logic_vector(7 downto 0);
 	signal pxl_buf : std_logic_vector(7 downto 0);
 	-- replacements for shift register
 	signal sr : std_logic_vector(7 downto 0);
@@ -250,6 +249,8 @@ architecture Behavioral of Video is
 	signal pxl_window : std_logic;
 	signal attr_window : std_logic;
 	signal sr_window : std_logic;
+	signal sprite_ptr_window: std_logic;
+	signal sprite_data_window: std_logic;
 	signal slotclk : std_logic;
 	
 	-- clock phases (16 half-pixels in one slot)
@@ -269,14 +270,19 @@ architecture Behavioral of Video is
 	signal pxld_ce: std_logic;
 	signal pxle_ce: std_logic;
 	signal pxlf_ce: std_logic;
+	signal fetch_ce: std_logic;
 	
 	signal fetch_int: std_logic;
+	signal fetch_sprite_en: std_logic;
 	
 	signal chr_fetch_int : std_logic;
 	signal crom_fetch_int: std_logic;
 	signal pxl_fetch_int : std_logic;
 	signal attr_fetch_int : std_logic;
 	signal sr_fetch_int : std_logic;
+	
+	signal sprite_ptr_fetch: std_logic;
+	signal sprite_data_fetch: std_logic;
 	
 	-- temporary
 	signal is_double_int: std_logic;
@@ -300,6 +306,11 @@ architecture Behavioral of Video is
 	-- output to mixer
 	signal sprite_on: std_logic;
 	signal sprite_outcol: std_logic_vector(3 downto 0);
+
+	signal sprite_fetch_idx: integer range 0 to 7;
+	signal sprite_fetch_active: std_logic;		-- sprite is active for fetch
+	signal sprite_data_ptr: std_logic_vector(7 downto 0);
+	signal sprite_fetch_ce: std_logic_vector(7 downto 0);
 	
 	-- helpers
 	
@@ -393,6 +404,7 @@ architecture Behavioral of Video is
 		mcol2: in std_logic_vector(3 downto 0);
 		
 		fetch_offset: out std_logic_vector(5 downto 0);	-- 21x3 bytes = 63
+		fetch_ce: in std_logic;
 
 		qclk: in std_logic;
 		dotclk: in std_logic_vector(3 downto 0);
@@ -424,23 +436,30 @@ begin
 			pxl_window <= '0';
 			attr_window <= '0';
 			sr_window <= '0';
-
+			sprite_ptr_window <= '0';
+			sprite_data_window <= '0';
+			
 			-- access windows for pixel data, character data, or chr ROM
+			-- TODO: make case()
 			if (dotclk(3 downto 2) = "00") then
 				chr_window <= '1';
+				sprite_ptr_window <= '1';
 			end if;
 			
 			-- note: attributes must be loaded before character set, as attributes contain alternate character bit
 			if (dotclk(3 downto 2) = "01") then
 				attr_window <= '1';
+				sprite_data_window <= '1';
 			end if;
 
 			if (dotclk(3 downto 2) = "10") then
 				pxl_window <= '1';
+				sprite_data_window <= '1';
 			end if;			
 			
 			if (dotclk(3 downto 2) = "11") then
 				sr_window <= '1';
+				sprite_data_window <= '1';
 			end if;
 			
 	end process;
@@ -463,6 +482,7 @@ begin
 			pxld_ce <= '0';
 			pxle_ce <= '0';
 			pxlf_ce <= '0';
+			fetch_ce <= '0';
 
 			if (dotclk(3 downto 0) = "0000") then
 				pxl0_ce <= '1';
@@ -512,10 +532,20 @@ begin
 			if (dotclk(3 downto 0) = "1111") then
 				pxlf_ce <= '1';
 			end if;
+			if (dotclk(1 downto 0) = "11") then
+				fetch_ce <= '1';
+			end if;
 	end process;
 	
 
 	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
+	
+	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
+	fetch_sprite_en <= '1' when is_enable = '1' 
+								and (interlace_int = '1' or rline_cnt0 = '0') 
+								and x_addr(9 downto 6) = "0000" 
+								--and sprite_fetch_active = '1'
+							else '0';
 	
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
@@ -531,15 +561,23 @@ begin
 	crom_fetch_int <= pxl_window and fetch_int and not(mode_bitmap);
 
 	-- sr load
-	--sr_fetch_int <= is_enable and (sr40 or sr80) and (interlace_int or not(rline_cnt0));
 	sr_fetch_int <= sr_window and fetch_int;
+
+	sprite_ptr_fetch <= sprite_ptr_window and fetch_sprite_en;
+	sprite_data_fetch <= sprite_data_window and fetch_sprite_en;	
 	
-	
-	fetch_p: process(chr_fetch_int, pxl_fetch_int, attr_fetch_int, crom_fetch_int, qclk)
+	fetch_p: process(chr_fetch_int, pxl_fetch_int, attr_fetch_int, crom_fetch_int, qclk,
+						sprite_ptr_fetch, sprite_data_fetch)
 	begin
 		-- video access?
 --		if (falling_edge(qclk) and dotclk(1 downto 0) = "11") then
-			vid_fetch <= chr_fetch_int or pxl_fetch_int or attr_fetch_int or crom_fetch_int;
+			vid_fetch <= chr_fetch_int 
+						or pxl_fetch_int 
+						or attr_fetch_int 
+						or crom_fetch_int
+						or sprite_ptr_fetch
+						or sprite_data_fetch
+						;
 --		end if;
 	end process;
 	
@@ -721,6 +759,7 @@ begin
 	begin
 	
 		sprite_sel <= (others => '0');
+		sprite_d <= (others => '0');
 		
 		if (crtc_sel = '1') then
 			case crtc_reg(6 downto 2) is
@@ -752,7 +791,33 @@ begin
 			end case;
 		end if;
 	end process;
-			
+	
+	sprite_fetch_idx <= to_integer(unsigned(x_addr(5 downto 3)));
+	
+	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, pxl3_ce, sprite_data_fetch, fetch_ce)
+	begin
+		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
+		
+		if (falling_edge(qclk)) then
+			if (pxl3_ce = '1' and sprite_ptr_fetch = '1') then
+				sprite_data_ptr <= VRAM_D;
+			end if;
+		end if;
+		
+		sprite_fetch_ce <= "00000000";
+		case (sprite_fetch_idx) is
+		when 0 =>	sprite_fetch_ce(0) <= sprite_ptr_fetch and pxl3_ce; --sprite_data_fetch and fetch_ce;
+		when 1 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 2 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 3 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 4 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 5 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 6 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 7 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		end case;
+		
+	end process;
+
 	sprite0: Sprite
 	port map (
 		phi2,
@@ -766,6 +831,7 @@ begin
 		sprite_mcol1,
 		sprite_mcol2,
 		sprite_fetch_offset(0),
+		sprite_fetch_ce(0),
 		qclk,
 		dotclk,
 		h_zero,
@@ -796,7 +862,7 @@ begin
 			if (pxl3_ce = '1' and fetch_int = '1') then
 				char_index_buf <= VRAM_D;
 				sr_crsr <= crsr_addr_match and crsr_active;
-			end if;
+			end if;			
 		end if;
 		
 		if (falling_edge(qclk)) then
@@ -924,16 +990,12 @@ begin
 				-- MULTICOLOUR MODE
 				case (is_outbit) is
 				when "00" =>
---					raster_outbit <= "0001"; -- d.grey
 					raster_outbit <= sr_attr(7 downto 4);
 				when "01" =>
---					raster_outbit <= "0100"; -- green
 					raster_outbit <= col_bg1;
 				when "10" =>
---					raster_outbit <= "0010"; -- blue
 					raster_outbit <= col_bg2;
 				when "11" =>
---					raster_outbit <= "1000"; -- red
 					raster_outbit <= sr_attr(3 downto 0);
 				when others =>
 					raster_outbit <= col_border;
@@ -988,22 +1050,30 @@ begin
 	-- address mixer
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
 	
+	--when sprite_ptr_fetch = '1' else
+	--when sprite_data_fetch = '1' else
+	
 	a_out(3 downto 0) <= 
+--							x_addr(6 downto 3)		when sprite_ptr_fetch = '1' else
+							"0000"						when sprite_ptr_fetch = '1' else
 							attr_addr(3 downto 0) 	when attr_fetch_int = '1' else
 							rcline_cnt 				 	when crom_fetch_int = '1' else
 							vid_addr(3 downto 0);
 
 	a_out(11 downto 4) <= 
+							"00000000"					when sprite_ptr_fetch = '1' else
 							attr_addr(11 downto 4)	when attr_fetch_int = '1' else
 							char_index_buf				when crom_fetch_int = '1' else
 							vid_addr(11 downto 4);
 
 	a_out(12) 		<= 
+							'1'							when sprite_ptr_fetch = '1' else
 							attr_addr(12)				when attr_fetch_int = '1' else
 							is_graph						when crom_fetch_int = '1' else
 							vid_addr(12);
 
 	a_out(15 downto 13) <= 
+							"100"							when sprite_ptr_fetch = '1' else
 							attr_addr(15 downto 13)	when attr_fetch_int = '1' else
 							crom_base(7 downto 5) 	when crom_fetch_int = '1' else
 							vid_addr(15 downto 13);

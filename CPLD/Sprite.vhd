@@ -46,7 +46,8 @@ entity Sprite is
 		mcol2: in std_logic_vector(3 downto 0);
 
 		fetch_offset: out std_logic_vector(5 downto 0);	-- 21x3 bytes = 63
-
+		fetch_ce: in std_logic;
+		
 		qclk: in std_logic;
 		dotclk: in std_logic_vector(3 downto 0);
 		h_zero: in std_logic;
@@ -142,23 +143,27 @@ begin
 	end process;
 	
 	-- TODO
-	out_p: process(qclk)
+	out_p: process(qclk, fetch_ce)
 	begin
-		if (falling_edge(qclk) and dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
-			if (active_int = '1') then
-				-- TODO multicol
-				ison_int <= shiftreg(0) or (s_multi and shiftreg(1));
-				shiftreg(23 downto 1) <= shiftreg(22 downto 0);
-				-- debug endless loop
-				shiftreg(0) <= shiftreg(23);
-				
-				if (shiftreg(0) = '1') then
-					outbits <= fgcol;
+		if (falling_edge(qclk)) then
+			if (fetch_ce = '1') then
+				shiftreg(7 downto 0) <= din;
+			elsif (dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
+				if (active_int = '1') then
+					-- TODO multicol
+					ison_int <= shiftreg(0) or (s_multi and shiftreg(1));
+					shiftreg(23 downto 1) <= shiftreg(22 downto 0);
+					-- debug endless loop
+					shiftreg(0) <= shiftreg(23);
+					
+					if (shiftreg(0) = '1') then
+						outbits <= fgcol;
+					else
+						outbits <= bgcol;
+					end if;
 				else
-					outbits <= bgcol;
+					ison_int <= '0';
 				end if;
-			else
-				ison_int <= '0';
 			end if;
 		end if;
 	end process;
@@ -172,12 +177,12 @@ begin
 			s_overraster <= '0';
 			s_overborder <= '0';
 			s_multi <= '0';
-			x_pos <= "0010000000";	-- (others => '0');
+			x_pos <= "0100000000";	-- (others => '0');
 			y_pos <= "0010000000";	-- (others => '0');
 		elsif (falling_edge(phi2)
 			and sel = '1' and rwb = '0'
 			) then
-			
+
 			case (regsel) is
 			when "00" =>	-- R0
 				x_pos(7 downto 0) <= din;
