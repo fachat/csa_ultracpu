@@ -55,7 +55,8 @@ entity Sprite is
 		v_zero: in std_logic;
 		x_addr: in std_logic_vector(9 downto 0);
 		y_addr: in std_logic_vector(9 downto 0);
-		first_row: in std_logic;
+		is_double: in std_logic;
+		is_interlace: in std_logic;
 		rline_cnt0: in std_logic;
 		is80: in std_logic;
 		
@@ -84,7 +85,7 @@ architecture Behavioral of Sprite is
 	signal y_pos: std_logic_vector(9 downto 0);
 	
 	signal x_cnt: std_logic_vector(5 downto 0);
-	signal y_cnt: std_logic_vector(5 downto 0);
+	signal y_cnt: std_logic_vector(6 downto 0);
 	
 	signal shiftreg: std_logic_vector(23 downto 0) := "111100101000001010101111";
 	
@@ -114,8 +115,8 @@ begin
 	ycnt_p: process(qclk, v_zero, h_zero)
 	begin
 		if (v_zero = '1') then
-			y_cnt <= (others => '1');
-		elsif (falling_edge(h_zero) and first_row = '1') then
+			y_cnt <= (others => '0');
+		elsif (falling_edge(h_zero)) then -- and first_row = '1') then
 			if (enabled_int = '1') then
 				y_cnt <= y_cnt + 1;
 			end if;
@@ -127,11 +128,20 @@ begin
 		if (rising_edge(h_zero)) then
 			if (y_addr = y_pos and s_enabled = '1') then
 				enabled_int <= '1';
-			elsif (y_expand = '0' and y_cnt = "010101") then	-- 21
+			end if;
+			if ((y_expand = '0' and is_double = '1') and y_cnt = "0010101") then	-- 21
 				enabled_int <= '0';
-			elsif (y_expand = '1' and y_cnt = "101010") then	-- 42
+			end if;
+			if ((y_expand = '0' and is_double = '0') and y_cnt = "0101010") then	-- 42
 				enabled_int <= '0';
-			elsif (v_zero = '1') then
+			end if;
+			if ((y_expand = '1' and is_double = '1') and y_cnt = "0101010") then	-- 42
+				enabled_int <= '0';
+			end if;
+			if ((y_expand = '1' and is_double = '0') and y_cnt = "1010100") then	-- 84
+				enabled_int <= '0';
+			end if;
+			if (v_zero = '1') then
 				enabled_int <= '0';
 			end if;
 		end if;
@@ -167,7 +177,19 @@ begin
 		elsif (falling_edge(qclk)) then
 			if (fetch_ce = '1') then
 			
-				if (y_expand = '0' or y_cnt(0) = '1') then
+				if (
+						((y_expand = '0' and is_double = '0') and (is_interlace = '0' or y_cnt(0) = '1'))  -- ok
+					or ((y_expand = '0' and is_double = '1'))	-- ok 		
+					or	((y_expand = '1' and is_double = '0') 
+						--and ((is_interlace = '0' ) 	-- shows twice
+						--and ((is_interlace = '0' and y_cnt(1) = '1') -- on odd coords, show last row as first
+						--and ((is_interlace = '0' and y_cnt(1) = '0') -- on even coords, show last row as first
+						and ((is_interlace = '0' and ((y_pos(0) = '0' and y_cnt(1) = '1') or (y_pos(0) = '1' and y_cnt(1) = '0')))
+							or (is_interlace = '1' and y_cnt(1) = '0' and y_cnt(0) = '1')))  -- ok 
+					or	((y_expand = '1' and is_double = '1') and y_cnt(0) = '1') -- ok
+					) then
+				
+				
 					fetch_offset_int <= fetch_offset_int + 1;
 				
 					case (dotclk(3 downto 2)) is

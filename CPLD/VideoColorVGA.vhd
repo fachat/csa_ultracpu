@@ -418,7 +418,8 @@ architecture Behavioral of Video is
 		v_zero: in std_logic;
 		x_addr: in std_logic_vector(9 downto 0);
 		y_addr: in std_logic_vector(9 downto 0);
-		first_row: in std_logic;
+		is_double: in std_logic;
+		is_interlace: in std_logic;
 		rline_cnt0: in std_logic;
 		is80: in std_logic;
 
@@ -548,7 +549,8 @@ begin
 	
 	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
 	fetch_sprite_en <= '1' when is_enable = '1' 
-								and first_row = '1'
+								-- and first_row = '1'
+								and (interlace_int = '1' or rline_cnt0 = '0')
 								-- x_addr(9 downto 6) addresses 8 x 8 pixels, i.e. 8x4 memory accesses for sprite fetches
 								-- note all zero (for sprite 0) is async, breaks fetch
 								-- but just 0001 leads to sprite fetch bleeding into raster fetch
@@ -726,7 +728,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- sprite handling
 
-	first_row <= '1' when (is_double_int = '1' and interlace_int = '1') or rline_cnt0 = '0'
+	first_row <= '1' when (interlace_int = '1' and is_double_int = '1')-- or rline_cnt0 = '1'
 						else '0';
 						
 	next_row <= '1' when (is_double_int = '1' and interlace_int = '1') or rline_cnt0 = '1'
@@ -858,7 +860,8 @@ begin
 		v_zero,
 		x_addr,
 		y_addr,
-		first_row,
+		is_double_int,
+		interlace_int,
 		rline_cnt0,
 		is_80,
 		sprite_enabled(0),
