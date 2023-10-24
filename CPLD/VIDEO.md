@@ -179,7 +179,8 @@ Sprite registers (subject to change):
 
 - r88: sprite block base (high)
   - top 8 bytes in page given here are sprite pointers
-  - in addition, top 7 bits are bits 15-9 of sprite data address
+  - in addition, bits 7/6 are bits 15/14 of sprite data base address
+  - initializes to $97, so mapped pointers are at $87f8-$87ff
 
 - r90: sprite-sprite collision (VIC-II)
 - r91: sprite-data collision (VIC-II)

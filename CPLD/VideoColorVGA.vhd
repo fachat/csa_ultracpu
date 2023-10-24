@@ -143,6 +143,7 @@ architecture Behavioral of Video is
 	signal raster_out: AOA4(0 to 6);
 	signal raster_outbit: std_logic_vector(3 downto 0);
 	signal sr_buf: std_logic_vector(7 downto 0);
+	signal raster_isbg: std_logic;
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -302,11 +303,14 @@ architecture Behavioral of Video is
 	signal sprite_mcol1: std_logic_vector(3 downto 0);
 	signal sprite_mcol2: std_logic_vector(3 downto 0);
 	signal next_row: std_logic;
+	signal first_row: std_logic;
 	signal sprite_base: std_logic_vector(7 downto 0);
 	-- output to mixer
 	signal sprite_on: std_logic;
 	signal sprite_outcol: std_logic_vector(3 downto 0);
-
+	signal sprite_onborder: std_logic;
+	signal sprite_onraster: std_logic;
+	
 	signal sprite_fetch_idx: integer range 0 to 7;
 	signal sprite_fetch_active: std_logic;		-- sprite is active for fetch
 	signal sprite_data_ptr: std_logic_vector(7 downto 0);
@@ -414,7 +418,7 @@ architecture Behavioral of Video is
 		v_zero: in std_logic;
 		x_addr: in std_logic_vector(9 downto 0);
 		y_addr: in std_logic_vector(9 downto 0);
-		next_row: in std_logic;
+		first_row: in std_logic;
 		rline_cnt0: in std_logic;
 		is80: in std_logic;
 
@@ -539,12 +543,17 @@ begin
 	end process;
 	
 
+	--fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
 	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
 	
 	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
 	fetch_sprite_en <= '1' when is_enable = '1' 
-								and (is_double_int = '1' or rline_cnt0 = '0') 
-								and x_addr(9 downto 6) = "0000" 
+								and first_row = '1'
+								-- x_addr(9 downto 6) addresses 8 x 8 pixels, i.e. 8x4 memory accesses for sprite fetches
+								-- note all zero (for sprite 0) is async, breaks fetch
+								-- but just 0001 leads to sprite fetch bleeding into raster fetch
+								--and (x_addr(9 downto 5) = "00010" or x_addr(9 downto 5) = "00001") 	
+								and (x_addr(9 downto 6) = "0001")
 								and sprite_fetch_active = '1'
 							else '0';
 	
@@ -716,8 +725,11 @@ begin
 
 	-----------------------------------------------------------------------------
 	-- sprite handling
-	
-	next_row <= '1' when is_double_int = '1' or rline_cnt0 = '0'
+
+	first_row <= '1' when (is_double_int = '1' and interlace_int = '1') or rline_cnt0 = '0'
+						else '0';
+						
+	next_row <= '1' when (is_double_int = '1' and interlace_int = '1') or rline_cnt0 = '1'
 						else '0';
 	
 	sprite_outcol_p: process(qclk, dotclk)
@@ -727,6 +739,8 @@ begin
 			if (sprite_ison(0) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(0);
+				sprite_onborder <= sprite_overborder(0);
+				sprite_onraster <= sprite_overraster(0);
 --			elsif (sprite_ison(1) = '1') then
 --				sprite_on <= '1';
 --				sprite_outcol <= sprite_outbits(1);
@@ -751,6 +765,8 @@ begin
 			else
 				sprite_on <= '0';
 				sprite_outcol <= "0000";
+				sprite_onborder <= '0';
+				sprite_onraster <= '0';
 			end if;
 		end if;
 	end process;
@@ -842,7 +858,7 @@ begin
 		v_zero,
 		x_addr,
 		y_addr,
-		next_row,
+		first_row,
 		rline_cnt0,
 		is_80,
 		sprite_enabled(0),
@@ -968,12 +984,12 @@ begin
 		col_bg0, col_fg, col_bg1, col_bg2)
 	begin
 		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
-			if (sprite_on = '1') then
-				raster_outbit <= sprite_outcol;
-			elsif (mode_extended = '0' and mode_attrib = '0') then
+			raster_isbg <= '0';
+			if (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
 				if is_outbit(0) = '0' then
 					raster_outbit <= col_bg0;
+					raster_isbg <= '1';
 				else
 					raster_outbit <= col_fg;
 				end if;
@@ -981,6 +997,7 @@ begin
 				-- ATTRIBUTE MODE (VDC)
 				if (is_outbit(0) = '0') then
 					raster_outbit <= col_bg0;
+					raster_isbg <= '1';
 				else
 					raster_outbit <= sr_attr(3 downto 0);
 				end if;
@@ -988,6 +1005,7 @@ begin
 				-- EXTENDED MODE (COLOUR PET)
 				if is_outbit(0) = '0' then
 					raster_outbit <= sr_attr(7 downto 4);
+					raster_isbg <= '1';
 				else
 					raster_outbit <= sr_attr(3 downto 0);
 				end if;
@@ -996,6 +1014,7 @@ begin
 				case (is_outbit) is
 				when "00" =>
 					raster_outbit <= sr_attr(7 downto 4);
+					raster_isbg <= '1';
 				when "01" =>
 					raster_outbit <= col_bg1;
 				when "10" =>
@@ -1015,30 +1034,37 @@ begin
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 
-			if (x_border = '1' or y_border = '1' or dispen = '0') then
+			if (sprite_on = '1' and sprite_onborder = '1') then
+				-- sprite on top of border
+				vid_out <= sprite_outcol;
+			elsif (x_border = '1' or y_border = '1' or dispen = '0') then
 				-- BORDER
 				vid_out <= col_border;
+			elsif (sprite_on = '1' and (raster_isbg = '1' or sprite_onraster = '1')) then
+				-- sprite on top of raster
+				vid_out <= sprite_outcol;
 			elsif (is_80 = '1' or dotclk(1) = '1') then
-			case (h_shift(2 downto 0)) is
-			when "000" =>
-				vid_out <= raster_outbit;
-			when "001" =>
-				vid_out <= raster_out(0);
-			when "010" =>
-				vid_out <= raster_out(1);
-			when "011" =>
-				vid_out <= raster_out(2);
-			when "100" =>
-				vid_out <= raster_out(3);
-			when "101" =>
-				vid_out <= raster_out(4);
-			when "110" =>
-				vid_out <= raster_out(5);
-			when "111" =>
-				vid_out <= raster_out(6);
-			when others =>
-				vid_out <= col_border;
-			end case;
+				-- raster
+				case (h_shift(2 downto 0)) is
+				when "000" =>
+					vid_out <= raster_outbit;
+				when "001" =>
+					vid_out <= raster_out(0);
+				when "010" =>
+					vid_out <= raster_out(1);
+				when "011" =>
+					vid_out <= raster_out(2);
+				when "100" =>
+					vid_out <= raster_out(3);
+				when "101" =>
+					vid_out <= raster_out(4);
+				when "110" =>
+					vid_out <= raster_out(5);
+				when "111" =>
+					vid_out <= raster_out(6);
+				when others =>
+					vid_out <= col_border;
+				end case;
 			end if;
 			
 			raster_out(6) <= raster_out(5);
@@ -1058,16 +1084,23 @@ begin
 	--when sprite_ptr_fetch = '1' else
 	--when sprite_data_fetch = '1' else
 	
-	a_out(3 downto 0) <= 
---							x_addr(6 downto 3)					when sprite_ptr_fetch = '1' else
-							"0000"									when sprite_ptr_fetch = '1' else
-							sprite_fetch_ptr(3 downto 0)		when sprite_data_fetch = '1' else
-							attr_addr(3 downto 0) 				when attr_fetch_int = '1' else
-							rcline_cnt 				 				when crom_fetch_int = '1' else
-							vid_addr(3 downto 0);
+	a_out(2 downto 0) <= 
+--							x_addr(5 downto 3)					when sprite_ptr_fetch = '1' else
+							"000"										when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(2 downto 0)		when sprite_data_fetch = '1' else
+							attr_addr(2 downto 0) 				when attr_fetch_int = '1' else
+							rcline_cnt(2 downto 0) 				when crom_fetch_int = '1' else
+							vid_addr(2 downto 0);
+
+	a_out(3) <= 
+							'1'										when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(3)					when sprite_data_fetch = '1' else
+							attr_addr(3)			 				when attr_fetch_int = '1' else
+							rcline_cnt(3) 			 				when crom_fetch_int = '1' else
+							vid_addr(3);
 
 	a_out(7 downto 4) <= 
-							"0000"									when sprite_ptr_fetch = '1' else
+							"1111"									when sprite_ptr_fetch = '1' else
 							sprite_fetch_ptr(7 downto 4)		when sprite_data_fetch = '1' else
 							attr_addr(7 downto 4)				when attr_fetch_int = '1' else
 							char_index_buf(3 downto 0) 		when crom_fetch_int = '1' else
@@ -1099,7 +1132,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- output sr control
 
-	en_p: process(nsrload)
+	en_p: process(nsrload, qclk)
 	begin
 		-- sr_load changes on falling edge of qclk
 		-- sr_load_d changes on rising edge of qclk
@@ -1110,6 +1143,10 @@ begin
 			enable <= h_enable and v_enable
 				and (interlace_int or not(rline_cnt0));
 		end if;
+--		if (falling_edge(qclk) and sr_fetch_int = '1') then
+--			enable <= h_enable and v_enable
+--				and (interlace_int or not(rline_cnt0));
+--		end if;
 	end process;
 
 	dena_int <= enable;
@@ -1274,7 +1311,7 @@ begin
 			irq_raster_en <= '0';
 			sprite_mcol1 <= "0000";
 			sprite_mcol1 <= "0000";
-			sprite_base <= "10010000";
+			sprite_base <= "10010111";
 		elsif (falling_edge(phi2) 
 				and crtc_is_data = '1' 
 				and crtc_rwb = '0'

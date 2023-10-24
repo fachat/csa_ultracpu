@@ -55,7 +55,7 @@ entity Sprite is
 		v_zero: in std_logic;
 		x_addr: in std_logic_vector(9 downto 0);
 		y_addr: in std_logic_vector(9 downto 0);
-		next_row: in std_logic;
+		first_row: in std_logic;
 		rline_cnt0: in std_logic;
 		is80: in std_logic;
 		
@@ -114,8 +114,8 @@ begin
 	ycnt_p: process(qclk, v_zero, h_zero)
 	begin
 		if (v_zero = '1') then
-			y_cnt <= (others => '0');
-		elsif (falling_edge(h_zero) and next_row = '1') then
+			y_cnt <= (others => '1');
+		elsif (falling_edge(h_zero) and first_row = '1') then
 			if (enabled_int = '1') then
 				y_cnt <= y_cnt + 1;
 			end if;
@@ -149,18 +149,7 @@ begin
 			end if;
 		end if;
 	end process;
-	
-	offset_p: process(qclk, fetch_ce, v_zero)
-	begin
-		if (v_zero = '1') then
-			fetch_offset_int <= (others => '0');
-		elsif (falling_edge(qclk)) then
-			if (fetch_ce = '1' and (dotclk(3) = '1' or dotclk(2) = '1')) then
-				fetch_offset_int <= fetch_offset_int + 1;
-			end if;
-		end if;
-	end process;
-	
+		
 	fetch_offset <= fetch_offset_int;
 	
 	-- TODO
@@ -173,17 +162,25 @@ begin
 			pxl_idx <= to_integer(unsigned(x_cnt(5 downto 1)));
 		end if;
 		
-		if (falling_edge(qclk)) then
+		if (v_zero = '1') then
+			fetch_offset_int <= (others => '0');
+		elsif (falling_edge(qclk)) then
 			if (fetch_ce = '1') then
-				case (dotclk(3 downto 2)) is
-				when "01" =>
-					shiftreg(23 downto 16) <= vdin;
-				when "10" => 
-					shiftreg(15 downto 8) <= vdin;
-				when "11" =>
-					shiftreg(7 downto 0) <= vdin;
-				when others =>
-				end case;
+			
+				if (y_expand = '0' or y_cnt(0) = '1') then
+					fetch_offset_int <= fetch_offset_int + 1;
+				
+					case (dotclk(3 downto 2)) is
+					when "01" =>
+						shiftreg(23 downto 16) <= vdin;
+					when "10" => 
+						shiftreg(15 downto 8) <= vdin;
+					when "11" =>
+						shiftreg(7 downto 0) <= vdin;
+					when others =>
+						-- fetch_ce only active during the three values above
+					end case;
+				end if;
 			elsif (dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
 				if (active_int = '1') then
 		

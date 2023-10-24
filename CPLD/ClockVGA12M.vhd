@@ -48,9 +48,11 @@ entity Clock is
 	   dotclk: out std_logic_vector(3 downto 0) -- 1x, 1/2, 1/4, 1/8 pixel clock for video
 	 );
 	 attribute maxskew: string;
-	 attribute maxskew of dotclk : signal is "4 ns";
 	 attribute maxdelay: string;
+	 attribute maxskew of dotclk : signal is "4 ns";
 	 attribute maxdelay of dotclk : signal is "4 ns";
+	 attribute maxskew of memclk : signal is "4 ns";
+	 attribute maxdelay of memclk : signal is "4 ns";
 end Clock;
 
 architecture Behavioral of Clock is
