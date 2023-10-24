@@ -56,6 +56,7 @@ entity Sprite is
 		x_addr: in std_logic_vector(9 downto 0);
 		y_addr: in std_logic_vector(9 downto 0);
 		next_row: in std_logic;
+		rline_cnt0: in std_logic;
 		is80: in std_logic;
 		
 		enabled: out std_logic;		-- if sprite data should be read in rasterline
@@ -93,13 +94,17 @@ architecture Behavioral of Sprite is
 	
 	signal pxl_idx: integer range 0 to 23;
 	
+	signal fetch_offset_int: std_logic_vector(5 downto 0);
+	
 begin
 
 	xcnt_p: process(qclk, h_zero)
 	begin
 		if (h_zero = '1') then
 			x_cnt <= (others => '0');
-		elsif (falling_edge(qclk) and dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
+		elsif (falling_edge(qclk) and dotclk(0) = '1' 
+				and (is80 = '1' or dotclk(1) = '1')
+				) then
 			if (active_int = '1') then
 				x_cnt <= x_cnt + 1;
 			end if;
@@ -145,15 +150,40 @@ begin
 		end if;
 	end process;
 	
+	offset_p: process(qclk, fetch_ce, v_zero)
+	begin
+		if (v_zero = '1') then
+			fetch_offset_int <= (others => '0');
+		elsif (falling_edge(qclk)) then
+			if (fetch_ce = '1' and (dotclk(3) = '1' or dotclk(2) = '1')) then
+				fetch_offset_int <= fetch_offset_int + 1;
+			end if;
+		end if;
+	end process;
+	
+	fetch_offset <= fetch_offset_int;
+	
 	-- TODO
 	out_p: process(qclk, fetch_ce)
 	begin
 	
-		pxl_idx <= to_integer(unsigned(x_cnt));
+		if (x_expand = '0') then
+			pxl_idx <= to_integer(unsigned(x_cnt));
+		else
+			pxl_idx <= to_integer(unsigned(x_cnt(5 downto 1)));
+		end if;
 		
 		if (falling_edge(qclk)) then
 			if (fetch_ce = '1') then
-				shiftreg(7 downto 0) <= vdin;
+				case (dotclk(3 downto 2)) is
+				when "01" =>
+					shiftreg(23 downto 16) <= vdin;
+				when "10" => 
+					shiftreg(15 downto 8) <= vdin;
+				when "11" =>
+					shiftreg(7 downto 0) <= vdin;
+				when others =>
+				end case;
 			elsif (dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
 				if (active_int = '1') then
 		

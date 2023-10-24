@@ -177,6 +177,10 @@ Sprite registers (subject to change):
 - r86: color sprite 6 (VIC-II)
 - r87: color sprite 7 (VIC-II)
 
+- r88: sprite block base (high)
+  - top 8 bytes in page given here are sprite pointers
+  - in addition, top 7 bits are bits 15-9 of sprite data address
+
 - r90: sprite-sprite collision (VIC-II)
 - r91: sprite-data collision (VIC-II)
 

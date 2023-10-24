@@ -302,6 +302,7 @@ architecture Behavioral of Video is
 	signal sprite_mcol1: std_logic_vector(3 downto 0);
 	signal sprite_mcol2: std_logic_vector(3 downto 0);
 	signal next_row: std_logic;
+	signal sprite_base: std_logic_vector(7 downto 0);
 	-- output to mixer
 	signal sprite_on: std_logic;
 	signal sprite_outcol: std_logic_vector(3 downto 0);
@@ -310,6 +311,7 @@ architecture Behavioral of Video is
 	signal sprite_fetch_active: std_logic;		-- sprite is active for fetch
 	signal sprite_data_ptr: std_logic_vector(7 downto 0);
 	signal sprite_fetch_ce: std_logic_vector(7 downto 0);
+	signal sprite_fetch_ptr: std_logic_vector(15 downto 0);
 	
 	-- helpers
 	
@@ -413,6 +415,7 @@ architecture Behavioral of Video is
 		x_addr: in std_logic_vector(9 downto 0);
 		y_addr: in std_logic_vector(9 downto 0);
 		next_row: in std_logic;
+		rline_cnt0: in std_logic;
 		is80: in std_logic;
 
 		enabled: out std_logic;		-- if sprite data should be read in rasterline
@@ -540,8 +543,8 @@ begin
 	
 	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
 	fetch_sprite_en <= '1' when is_enable = '1' 
-								and (interlace_int = '1' or rline_cnt0 = '0') 
-								and x_addr(9 downto 6) = "0010" 
+								and (is_double_int = '1' or rline_cnt0 = '0') 
+								and x_addr(9 downto 6) = "0000" 
 								and sprite_fetch_active = '1'
 							else '0';
 	
@@ -714,7 +717,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- sprite handling
 	
-	next_row <= '1' when interlace_int = '1' or rline_cnt0 = '0'
+	next_row <= '1' when is_double_int = '1' or rline_cnt0 = '0'
 						else '0';
 	
 	sprite_outcol_p: process(qclk, dotclk)
@@ -758,7 +761,7 @@ begin
 		sprite_sel <= (others => '0');
 		sprite_d <= (others => '0');
 		
-		if (crtc_sel = '1') then
+		if (crtc_sel = '1' and (crtc_rs = x"1" or crtc_rs = x"3")) then
 			case crtc_reg(6 downto 2) is
 			when "01100" =>	-- sprite 0
 				sprite_sel(0) <= '1';
@@ -794,6 +797,9 @@ begin
 	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce)
 	begin
 		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
+		sprite_fetch_ptr(5 downto 0) <= sprite_fetch_offset(sprite_fetch_idx);
+		sprite_fetch_ptr(13 downto 6) <= sprite_data_ptr;
+		sprite_fetch_ptr(15 downto 14) <= sprite_base(7 downto 6);
 		
 		if (falling_edge(qclk)) then
 			if (fetch_ce = '1' and sprite_ptr_fetch = '1') then
@@ -802,9 +808,8 @@ begin
 		end if;
 		
 		sprite_fetch_ce <= "00000000";
---		sprite_fetch_ce(0) <= sprite_ptr_fetch and fetch_ce; --sprite_data_fetch and fetch_ce;
 		case (sprite_fetch_idx) is
-		when 0 =>	sprite_fetch_ce(0) <= sprite_ptr_fetch and fetch_ce; --sprite_data_fetch and fetch_ce;
+		when 0 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce; --sprite_data_fetch and fetch_ce;
 		when 1 =>	sprite_fetch_ce(1) <= sprite_data_fetch and fetch_ce;
 		when 2 =>	sprite_fetch_ce(2) <= sprite_data_fetch and fetch_ce;
 		when 3 =>	sprite_fetch_ce(3) <= sprite_data_fetch and fetch_ce;
@@ -838,6 +843,7 @@ begin
 		x_addr,
 		y_addr,
 		next_row,
+		rline_cnt0,
 		is_80,
 		sprite_enabled(0),
 		sprite_active(0),
@@ -1053,28 +1059,39 @@ begin
 	--when sprite_data_fetch = '1' else
 	
 	a_out(3 downto 0) <= 
---							x_addr(6 downto 3)		when sprite_ptr_fetch = '1' else
-							"0000"						when sprite_ptr_fetch = '1' else
-							attr_addr(3 downto 0) 	when attr_fetch_int = '1' else
-							rcline_cnt 				 	when crom_fetch_int = '1' else
+--							x_addr(6 downto 3)					when sprite_ptr_fetch = '1' else
+							"0000"									when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(3 downto 0)		when sprite_data_fetch = '1' else
+							attr_addr(3 downto 0) 				when attr_fetch_int = '1' else
+							rcline_cnt 				 				when crom_fetch_int = '1' else
 							vid_addr(3 downto 0);
 
-	a_out(11 downto 4) <= 
-							"00000000"					when sprite_ptr_fetch = '1' else
-							attr_addr(11 downto 4)	when attr_fetch_int = '1' else
-							char_index_buf				when crom_fetch_int = '1' else
-							vid_addr(11 downto 4);
+	a_out(7 downto 4) <= 
+							"0000"									when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(7 downto 4)		when sprite_data_fetch = '1' else
+							attr_addr(7 downto 4)				when attr_fetch_int = '1' else
+							char_index_buf(3 downto 0) 		when crom_fetch_int = '1' else
+							vid_addr(7 downto 4);
+
+	a_out(11 downto 8) <= 
+							sprite_base(3 downto 0)				when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(11 downto 8)		when sprite_data_fetch = '1' else
+							attr_addr(11 downto 8)				when attr_fetch_int = '1' else
+							char_index_buf(7 downto 4) 		when crom_fetch_int = '1' else
+							vid_addr(11 downto 8);
 
 	a_out(12) 		<= 
-							'1'							when sprite_ptr_fetch = '1' else
-							attr_addr(12)				when attr_fetch_int = '1' else
-							is_graph						when crom_fetch_int = '1' else
+							sprite_base(4)							when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(12)					when sprite_data_fetch = '1' else
+							attr_addr(12)							when attr_fetch_int = '1' else
+							is_graph									when crom_fetch_int = '1' else
 							vid_addr(12);
 
 	a_out(15 downto 13) <= 
-							"100"							when sprite_ptr_fetch = '1' else
-							attr_addr(15 downto 13)	when attr_fetch_int = '1' else
-							crom_base(7 downto 5) 	when crom_fetch_int = '1' else
+							sprite_base(7 downto 5)				when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(15 downto 13)	when sprite_data_fetch = '1' else
+							attr_addr(15 downto 13)				when attr_fetch_int = '1' else
+							crom_base(7 downto 5) 				when crom_fetch_int = '1' else
 							vid_addr(15 downto 13);
 							
 	A <= a_out;
@@ -1257,6 +1274,7 @@ begin
 			irq_raster_en <= '0';
 			sprite_mcol1 <= "0000";
 			sprite_mcol1 <= "0000";
+			sprite_base <= "10010000";
 		elsif (falling_edge(phi2) 
 				and crtc_is_data = '1' 
 				and crtc_rwb = '0'
@@ -1402,6 +1420,8 @@ begin
 				sprite_fgcol(6) <= CPU_D(3 downto 0);
 			when x"57" =>	-- R87
 				sprite_fgcol(7) <= CPU_D(3 downto 0);
+			when x"58" =>	-- R88
+				sprite_base <= CPU_D;
 			when x"5c" =>	-- R92
 				sprite_mcol1 <= CPU_D(3 downto 0);
 			when x"5d" =>	-- R93
@@ -1568,6 +1588,8 @@ begin
 						vd_out(3 downto 0) <= sprite_fgcol(6);
 					when x"57" =>	-- R87
 						vd_out(3 downto 0) <= sprite_fgcol(7);
+					when x"58" =>	-- R88
+						vd_out <= sprite_base;
 					when x"5c" =>	-- R92
 						vd_out(3 downto 0) <= sprite_mcol1;
 					when x"5d" =>	-- R93
