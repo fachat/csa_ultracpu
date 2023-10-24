@@ -37,7 +37,7 @@ use ieee.numeric_std.all;
 
 entity VBorder is
 		Port (
-			h_sync: in std_logic;
+			h_zero: in std_logic;
 			
 			v_zero: in std_logic;
 			vsync_pos: in std_logic_vector(7 downto 0);
@@ -80,14 +80,15 @@ architecture Behavioral of VBorder is
 	signal is_nextcr: std_logic;
 begin
 
-	next_row <= not(rline_cnt0_int) or is_double;
+	--next_row <= not(rline_cnt0_int) or is_double;
+	next_row <= rline_cnt0_int or is_double;
 	
-	RowCnt: process(h_sync, vh_cnt, reset)
+	RowCnt: process(h_zero, vh_cnt, reset)
 	begin
 		if (reset = '1') then
 			v_state <= '0';
 			vh_cnt <= (others => '0');
-		elsif (rising_edge(h_sync)) then
+		elsif (rising_edge(h_zero)) then
 		
 			if (v_zero = '1') then
 				vh_cnt <= (others => '0');
@@ -130,7 +131,7 @@ begin
 		end if;
 	end process;
 
-	State: process (vh_cnt, v_state, vsync_pos, h_sync, rcline_cnt_ext, rows_per_char, next_row, v_shift, rline_cnt0_int, is_double)
+	State: process (vh_cnt, v_state, vsync_pos, h_zero, rcline_cnt_ext, rows_per_char, next_row, v_shift, rline_cnt0_int, is_double)
 	begin		
 	
 		-- end of character (last pixel row)
@@ -140,23 +141,24 @@ begin
 			is_nextcr <= '0';
 		end if;
 		-- start border
-		if (rcline_cnt_ext = v_shift and (rline_cnt0_int = '1' or is_double = '1')) then -- rows_per_char
+		if (rcline_cnt_ext = v_shift and (rline_cnt0_int = '0' or is_double = '1')) then -- rows_per_char
 			is_matchon <= '1';
 		else
 			is_matchon <= '0';
 		end if;
 		-- disable border
-		if (rcline_cnt_ext = v_shift and rline_cnt0_int = '0') then -- rows_per_char
+		if (rcline_cnt_ext = v_shift) then -- rows_per_char
+		--if (rcline_cnt_ext = v_shift and rline_cnt0_int = '0') then -- rows_per_char
 			is_matchoff <= '1';
 		else
 			is_matchoff <= '0';
 		end if;
 	end process;
 	
-	State2: process (vh_cnt, v_state, vsync_pos, h_sync)
+	State2: process (vh_cnt, v_state, vsync_pos, h_zero)
 	begin		
 		
-		if (falling_edge(h_sync)) then
+		if (falling_edge(h_zero)) then
 			v_next <= '0';
 
 			is_last_row_of_char_ext <= '0';

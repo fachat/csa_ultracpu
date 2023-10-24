@@ -372,7 +372,7 @@ architecture Behavioral of Video is
 
 	component VBorder is
 		Port (
-			h_sync: in std_logic;
+			h_zero: in std_logic;
 			
 			v_zero: in std_logic;
 			vsync_pos: in std_logic_vector(7 downto 0);
