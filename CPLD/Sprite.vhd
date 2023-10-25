@@ -88,12 +88,15 @@ architecture Behavioral of Sprite is
 	signal y_cnt: std_logic_vector(6 downto 0);
 	
 	signal shiftreg: std_logic_vector(23 downto 0) := "111100101000001010101111";
+	signal cur: std_logic_vector(1 downto 0);
 	
 	signal enabled_int: std_logic;
 	signal active_int: std_logic;
 	signal ison_int: std_logic;
 	
 	signal pxl_idx: integer range 0 to 23;
+	signal pxl_idx0: integer range 0 to 23;
+	signal pxl_idx1: integer range 0 to 23;
 	
 	signal fetch_offset_int: std_logic_vector(5 downto 0);
 	
@@ -171,6 +174,8 @@ begin
 		else
 			pxl_idx <= to_integer(unsigned(x_cnt(5 downto 1)));
 		end if;
+		cur(0) <= shiftreg(pxl_idx);
+		cur(1) <= shiftreg(pxl_idx + 1);
 		
 		if (v_zero = '1') then
 			fetch_offset_int <= (others => '0');
@@ -189,7 +194,6 @@ begin
 					or	((y_expand = '1' and is_double = '1') and y_cnt(0) = '1') -- ok
 					) then
 				
-				
 					fetch_offset_int <= fetch_offset_int + 1;
 				
 					case (dotclk(3 downto 2)) is
@@ -203,18 +207,37 @@ begin
 						-- fetch_ce only active during the three values above
 					end case;
 				end if;
+				
 			elsif (dotclk(0) = '1' and (is80 = '1' or dotclk(1) = '1')) then
+			
 				if (active_int = '1') then
 		
-					-- TODO multicol
-					--ison_int <= shiftreg(0) or (s_multi and shiftreg(1));
-					
-					if (shiftreg(pxl_idx) = '1') then
-						ison_int <= '1';
-						outbits <= fgcol;
-					else
-						ison_int <= '0';
-						outbits <= bgcol;
+					if (s_multi = '0') then
+						if (cur(0) = '1') then
+							ison_int <= '1';
+							outbits <= fgcol;
+						else
+							ison_int <= '0';
+							outbits <= bgcol;
+						end if;
+					elsif (x_cnt(0) = '0' and (x_expand = '0' or x_cnt(1) = '0')) then -- multicolour
+						case (cur) is
+						when "00" =>
+							outbits <= bgcol;
+							ison_int <= '0';
+						when "01" => 
+							outbits <= mcol1;
+							ison_int <= '1';
+						when "10" => 
+							outbits <= mcol2;
+							ison_int <= '1';
+						when "11" => 
+							outbits <= fgcol;
+							ison_int <= '1';
+						when others =>
+							ison_int <= '0';
+						end case;
+						
 					end if;
 				else
 					ison_int <= '0';
