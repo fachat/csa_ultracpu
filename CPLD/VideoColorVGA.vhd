@@ -1291,7 +1291,7 @@ begin
 			crsr_address <= (others => '0');
 			rows_per_char <= "0111"; -- 7
 			slots_per_line <= "1010000";	-- 80
-			hsync_pos <= "0001000";	-- 8
+			hsync_pos <= "0001101";	-- 13
 			vsync_pos <= std_logic_vector(to_unsigned(84,10));
 			clines_per_screen <= "00011001";	-- 25
 			attr_base <= x"d000";

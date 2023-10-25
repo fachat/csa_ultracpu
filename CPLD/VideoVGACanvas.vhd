@@ -72,9 +72,9 @@ architecture Behavioral of Canvas is
 	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((48 + 640	 				-8)/8	-1, 10));
 	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 			)/8		-1, 10));
 	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 	)/8		-1, 10));
-	-- zero for pixel coordinates is 80 pixels left of default borders
+	-- zero for pixel coordinates is 120 pixels left of default borders
 	-- note: during hsync. may be relevant for raster match
-	constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 - (80-48))	-2, 10));
+	constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 - (120-48))-2, 10));
 
 	-- all values in rasterlines
 	constant v_back_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33							-1, 10));
