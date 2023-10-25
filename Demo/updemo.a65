@@ -307,7 +307,9 @@ txt 	.asc "           * HARDWARE CURSOR"
 
 idemo5	
 	ldx #44
-	lda #11		; shift three to the right
+	lda vdctab+44
+	clc
+	adc #3		; shift three to the right
 	jsr sreg
 	ldx #1
 	lda #60		; only 60 chars
@@ -345,7 +347,7 @@ txt 	.asc "           * HORIZONTAL WIDTH AND POSITION"
 
 idemo5	
 	ldx #44
-	lda #8		; reset shift
+	lda vdctab+44	; reset shift
 	jsr sreg
 	ldx #1
 	lda #80		; reset chars to 80
@@ -1338,7 +1340,7 @@ lx	iny
 	.byt BRDCOL	; r41: border colour (b0-3)
 	.byt 0		; r42: irq control
 	.byt 127	; r43: irq status (clear all sources)
-	.byt 8		; r44: horizontal position (chars)
+	.byt 13		; r44: horizontal position (chars)
 	;.byt 84		; r45: vertical position (rasterlines)
 	.byt 59		; r45: vertical position (rasterlines)
 	.byt 0		; r46: alt match

@@ -310,6 +310,7 @@ architecture Behavioral of Video is
 	signal sprite_outcol: std_logic_vector(3 downto 0);
 	signal sprite_onborder: std_logic;
 	signal sprite_onraster: std_logic;
+	signal sprite_no: integer range 0 to 7;
 	
 	signal sprite_fetch_idx: integer range 0 to 7;
 	signal sprite_fetch_idx_v: std_logic_vector(2 downto 0);
@@ -744,46 +745,55 @@ begin
 				sprite_outcol <= sprite_outbits(0);
 				sprite_onborder <= sprite_overborder(0);
 				sprite_onraster <= sprite_overraster(0);
+				sprite_no <= 0;
 			elsif (sprite_ison(1) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(1);
 				sprite_onborder <= sprite_overborder(1);
 				sprite_onraster <= sprite_overraster(1);
+				sprite_no <= 1;
 			elsif (sprite_ison(2) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(2);
 				sprite_onborder <= sprite_overborder(2);
 				sprite_onraster <= sprite_overraster(2);
+				sprite_no <= 2;
 			elsif (sprite_ison(3) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(3);
 				sprite_onborder <= sprite_overborder(3);
 				sprite_onraster <= sprite_overraster(3);
+				sprite_no <= 3;
 			elsif (sprite_ison(4) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(4);
 				sprite_onborder <= sprite_overborder(4);
 				sprite_onraster <= sprite_overraster(4);
+				sprite_no <= 4;
 			elsif (sprite_ison(5) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(5);
 				sprite_onborder <= sprite_overborder(5);
 				sprite_onraster <= sprite_overraster(5);
+				sprite_no <= 5;
 			elsif (sprite_ison(6) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(6);
 				sprite_onborder <= sprite_overborder(6);
 				sprite_onraster <= sprite_overraster(6);
+				sprite_no <= 6;
 			elsif (sprite_ison(7) = '1') then
 				sprite_on <= '1';
 				sprite_outcol <= sprite_outbits(7);
 				sprite_onborder <= sprite_overborder(7);
 				sprite_onraster <= sprite_overraster(7);
+				sprite_no <= 7;
 			else
 				sprite_on <= '0';
 				sprite_outcol <= "0000";
 				sprite_onborder <= '0';
 				sprite_onraster <= '0';
+				sprite_no <= 0;
 			end if;
 		end if;
 	end process;
@@ -1150,7 +1160,6 @@ begin
 	-----------------------------------------------------------------------------
 	-- replace discrete color circuitry of ultracpu 1.2b
 
-
 	
 	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int,
 		mode_rev, sr_crsr, sr_blink, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
@@ -1305,18 +1314,30 @@ begin
 		end if;
 	end process;
 	
+--	collision_p: process(qclk, dena_int)
+--	begin
+--		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
+--
+--			if (x_border = '1' or y_border = '1' or dispen = '0') then
+--				if (sprite_on = '1') then
+--					collision_trigger_sprite_border(sprite_no) <= '1';
+--				end if;
+--			end if;
+	
 	vid_out_p: process (qclk, dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 
-			if (sprite_on = '1' and sprite_onborder = '1') then
-				-- sprite on top of border
-				vid_out <= sprite_outcol;
-			elsif (x_border = '1' or y_border = '1' or dispen = '0') then
-				-- BORDER
-				vid_out <= col_border;
+			if (x_border = '1' or y_border = '1' or dispen = '0') then
+				if (sprite_on = '1' and sprite_onborder = '1') then
+					-- sprite on top of border
+					vid_out <= sprite_outcol;
+				else
+					-- BORDER
+					vid_out <= col_border;
+				end if;
 			elsif (sprite_on = '1' and (raster_isbg = '1' or sprite_onraster = '1')) then
 				-- sprite on top of raster
 				vid_out <= sprite_outcol;

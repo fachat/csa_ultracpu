@@ -70,7 +70,6 @@ The following are the internal Viccy registers:
 - r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of scan lines to scroll the screen up
   - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
-    - TODO: VDC: bits 4-0: scan lines to scroll UP
   - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)
   - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
 - r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
@@ -109,7 +108,8 @@ The following are the internal Viccy registers:
   - bit 1-0: -
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
-  - bit 6-5: - 
+  - bit 5: - 
+  - bit 6: (reserved - memory map registers?) 
   - bit 7: Micro-PET compatible (see r1)
 
 - r40: extended background colour 
@@ -119,14 +119,16 @@ The following are the internal Viccy registers:
   - bits 3-0: border colour
 - r42 IRQ control (VIC-II)
   - bit 0: raster match enable
-  - bit 1: sprite/bitmap collision enable
-  - bit 2: sprite/sprite collision enable
-  - bit 7-3: unused
+  - bit 1: sprite/bitmap collision enable (TODO)
+  - bit 2: sprite/sprite collision enable (TODO)
+  - bit 3: sprite/border collision enable (TODO)
+  - bit 7-4: unused
 - r43 IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
   - bit 0: raster match occured
   - bit 1: sprite/bitmap collision occured
   - bit 2: sprite/sprite collision occured
-  - bit 6-3: unused
+  - bit 3: sprite/border collision occured
+  - bit 6-4: unused
   - bit 7: one when interrupt has occurred
 - r44 horizontal position (in chars); replaces r2
   - bit 0-6, defaults to 8
@@ -161,8 +163,8 @@ Sprite registers (subject to change):
   - bit 1: X-expand
   - bit 2: Y-expand
   - bit 3: Multicolour flag
-  - bit 4: sprite data priority
-  - bit 5: sprite border flag (if set, show over border)
+  - bit 4: sprite data priority: if set high, background overlays the sprite
+  - bit 5: sprite border flag (if set, show sprite over border)
   - bit 6: if set, use 80 col coordinates
 - r52-: sprite 1
 - r56-: sprite 2
@@ -186,8 +188,9 @@ Sprite registers (subject to change):
   - in addition, bits 7/6 are bits 15/14 of sprite data base address
   - initializes to $97, so mapped pointers are at $87f8-$87ff
 
-- r90: sprite-sprite collision (VIC-II)
-- r91: sprite-data collision (VIC-II)
+- r89: sprite-border collision (TODO)
+- r90: sprite-sprite collision (VIC-II) (TODO)
+- r91: sprite-data collision (VIC-II) (TODO)
 
 - r92: sprite multicolor 0 (VIC-II)
 - r93: sprite multicolor 1 (VIC-II)

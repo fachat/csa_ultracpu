@@ -100,7 +100,19 @@ architecture Behavioral of Sprite is
 	signal pxl_idx1: integer range 0 to 23;
 	
 	signal fetch_offset_int: std_logic_vector(5 downto 0);
-	
+
+	-- https://stackoverflow.com/questions/13584307/reverse-bit-order-on-vhdl	
+	function reverse_any_vector (a: in std_logic_vector)
+	return std_logic_vector is
+	  variable result: std_logic_vector(a'RANGE);
+	  alias aa: std_logic_vector(a'REVERSE_RANGE) is a;
+	begin
+	  for i in aa'RANGE loop
+	    result(i) := aa(i);
+	  end loop;
+	  return result;
+	end; -- function reverse_any_vector
+
 begin
 
 	xcnt_p: process(qclk, h_zero)
@@ -198,12 +210,12 @@ begin
 					fetch_offset_int <= fetch_offset_int + 1;
 				
 					case (dotclk(3 downto 2)) is
-					when "01" =>
-						shiftreg(23 downto 16) <= vdin;
-					when "10" => 
-						shiftreg(15 downto 8) <= vdin;
 					when "11" =>
-						shiftreg(7 downto 0) <= vdin;
+						shiftreg(23 downto 16) <= reverse_any_vector(vdin);
+					when "10" => 
+						shiftreg(15 downto 8) <= reverse_any_vector(vdin);
+					when "01" =>
+						shiftreg(7 downto 0) <= reverse_any_vector(vdin);
 					when others =>
 						-- fetch_ce only active during the three values above
 					end case;
@@ -252,7 +264,7 @@ begin
 		if (reset = '1') then
 			x_expand <= '0';
 			y_expand <= '0';
-			s_enabled <= '1';
+			s_enabled <= '0';
 			s_overraster <= '0';
 			s_overborder <= '0';
 			s_multi <= '0';
@@ -294,7 +306,7 @@ begin
 				x_expand <= din(1);
 				y_expand <= din(2);
 				s_multi <= din(3);
-				s_overraster <= din(4);
+				s_overraster <= not(din(4));
 				s_overborder <= din(5);
 				s_fine <= din(6);
 			when others =>
@@ -339,7 +351,7 @@ begin
 				dout(1) <= x_expand;
 				dout(2) <= y_expand;
 				dout(3) <= s_multi;
-				dout(4) <= s_overraster;
+				dout(4) <= not(s_overraster);
 				dout(5) <= s_overborder;
 				dout(6) <= s_fine;
 			when others =>
