@@ -68,6 +68,7 @@ loop
 	jsr democset
 	jsr demoreset
 	jsr demohires
+	jsr demosprites
 
 	jsr wait
 	jsr wait
@@ -1041,6 +1042,117 @@ txt 	.asc "           * RESETABLE ADDRESS COUNTERS ON RASTERLINE MATCH"
 	.)
 
 ; ---------------------------------------------------------
+; sprite demo
+
+	.(
+&demosprites
+	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	.(
+	ldx #63		; sprite data
+l	lda s_balloon,x
+	sta $089000-64,x
+	dex
+	bpl l
+	.)
+
+	lda #63
+	sta $8800-8	; sprite pointer
+
+	ldx #48		; x-pos
+	lda #40
+	jsr sreg
+
+	inx		; y-pos
+	lda #200
+	jsr sreg
+
+	inx	; x/y high bits
+	lda #0
+	jsr sreg
+
+	ldx #80
+	lda #5
+	jsr sreg	; fg colour
+
+	ldx #92
+	lda #3		; mcol1
+	jsr sreg
+	inx
+	lda #9		; mcol2
+	jsr sreg
+
+	ldx #51
+	lda #1+2+4+32+64	; enable, x+y-expand, over border, fine coords
+	jsr sreg
+
+	lda #<itab
+	ldy #>itab
+	jsr addirq
+
+	jmp wait
+
+idemo	
+	lda cnt2
+	and #$01
+	bne end
+
+	ldx #48
+	stx VDC
+	inc VDC+1
+	bne y
+
+	ldx #50
+	stx VDC
+	lda VDC+1
+	clc 
+	adc #1
+	and #%00110011
+	sta VDC+1
+	
+	ldx #80
+	stx VDC
+	inc VDC+1
+y
+;	ldx #49
+;	stx VDC
+;	inc VDC+1
+;	bne multi
+
+;	ldx #80
+;	stx VDC
+;	inc VDC+1
+multi	lda cnt2
+	bne end
+	ldx #51
+	stx VDC
+	lda VDC+1
+	eor #8		; multicolour bit
+	sta VDC+1
+end
+	lda #41
+	sta VDC
+	inc VDC+1
+	rts
+
+itab	.word idemo-1
+	.word 518
+	.word 0
+
+txt 	.asc "           * SPRITES (SINGLE/MULTICOL,EXPAND,PRIO)"
+	.asc CR,0
+
+s_balloon
+	.byt 0,127,0,1,255,192,3,255,224,3,231,224    
+	.byt 7,217,240,7,223,240,7,217,240,3,231,224  
+	.byt 3,255,224,3,255,224,2,255,160,1,127,64   
+	.byt 1,62,64,0,156,128,0,156,128,0,73,0,0,73,0
+	.byt 0,62,0,0,62,0,0,62,0,0,28,0              
+	.)
+
+; ---------------------------------------------------------
 ; irq chain
 
 last	.word 0
@@ -1422,6 +1534,6 @@ l1	sec
 	dey
 	bne l0
 	dex
-	bne l0
+	;bne l0
 	rts
 	.)

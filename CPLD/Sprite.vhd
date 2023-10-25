@@ -157,7 +157,7 @@ begin
 			if ((y_expand = '1' and is_double = '0') and y_cnt = "1010100") then	-- 84
 				enabled_int <= '0';
 			end if;
-			if (v_zero = '1') then
+			if (v_zero = '1' or fetch_offset_int = "111111") then
 				enabled_int <= '0';
 			end if;
 		end if;
