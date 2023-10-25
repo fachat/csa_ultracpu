@@ -312,6 +312,9 @@ architecture Behavioral of Video is
 	signal sprite_onraster: std_logic;
 	
 	signal sprite_fetch_idx: integer range 0 to 7;
+	signal sprite_fetch_idx_v: std_logic_vector(2 downto 0);
+	signal sprite_fetch_win: std_logic;	-- sprites can fetch
+	signal sprite_fetch_done: std_logic;	-- sprites can fetch
 	signal sprite_fetch_active: std_logic;		-- sprite is active for fetch
 	signal sprite_data_ptr: std_logic_vector(7 downto 0);
 	signal sprite_fetch_ce: std_logic_vector(7 downto 0);
@@ -547,17 +550,6 @@ begin
 	--fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
 	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
 	
-	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
-	fetch_sprite_en <= '1' when is_enable = '1' 
-								-- and first_row = '1'
-								and (interlace_int = '1' or rline_cnt0 = '0')
-								-- x_addr(9 downto 6) addresses 8 x 8 pixels, i.e. 8x4 memory accesses for sprite fetches
-								-- note all zero (for sprite 0) is async, breaks fetch
-								-- but just 0001 leads to sprite fetch bleeding into raster fetch
-								--and (x_addr(9 downto 5) = "00010" or x_addr(9 downto 5) = "00001") 	
-								and (x_addr(9 downto 6) = "0001")
-								and sprite_fetch_active = '1'
-							else '0';
 	
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
@@ -575,9 +567,6 @@ begin
 	-- sr load
 	sr_fetch_int <= sr_window and fetch_int;
 
-	sprite_ptr_fetch <= sprite_ptr_window and fetch_sprite_en;
-	sprite_data_fetch <= sprite_data_window and fetch_sprite_en;	
-	
 	fetch_p: process(chr_fetch_int, pxl_fetch_int, attr_fetch_int, crom_fetch_int, qclk,
 						sprite_ptr_fetch, sprite_data_fetch)
 	begin
@@ -728,6 +717,18 @@ begin
 	-----------------------------------------------------------------------------
 	-- sprite handling
 
+	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
+	fetch_sprite_en <= '1' when is_enable = '1' 
+								-- and first_row = '1'
+								and (interlace_int = '1' or rline_cnt0 = '0')
+								and sprite_fetch_active = '1'
+								and sprite_fetch_win = '1'
+							else '0';
+
+	sprite_ptr_fetch <= sprite_ptr_window and fetch_sprite_en;
+	sprite_data_fetch <= sprite_data_window and fetch_sprite_en;	
+	
+
 	first_row <= '1' when (interlace_int = '1' and is_double_int = '1')-- or rline_cnt0 = '1'
 						else '0';
 						
@@ -743,27 +744,41 @@ begin
 				sprite_outcol <= sprite_outbits(0);
 				sprite_onborder <= sprite_overborder(0);
 				sprite_onraster <= sprite_overraster(0);
---			elsif (sprite_ison(1) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(1);
---			elsif (sprite_ison(2) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(2);
---			elsif (sprite_ison(3) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(3);
---			elsif (sprite_ison(4) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(4);
---			elsif (sprite_ison(5) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(5);
---			elsif (sprite_ison(6) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(6);
---			elsif (sprite_ison(7) = '1') then
---				sprite_on <= '1';
---				sprite_outcol <= sprite_outbits(7);
+			elsif (sprite_ison(1) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(1);
+				sprite_onborder <= sprite_overborder(1);
+				sprite_onraster <= sprite_overraster(1);
+			elsif (sprite_ison(2) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(2);
+				sprite_onborder <= sprite_overborder(2);
+				sprite_onraster <= sprite_overraster(2);
+			elsif (sprite_ison(3) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(3);
+				sprite_onborder <= sprite_overborder(3);
+				sprite_onraster <= sprite_overraster(3);
+			elsif (sprite_ison(4) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(4);
+				sprite_onborder <= sprite_overborder(4);
+				sprite_onraster <= sprite_overraster(4);
+			elsif (sprite_ison(5) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(5);
+				sprite_onborder <= sprite_overborder(5);
+				sprite_onraster <= sprite_overraster(5);
+			elsif (sprite_ison(6) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(6);
+				sprite_onborder <= sprite_overborder(6);
+				sprite_onraster <= sprite_overraster(6);
+			elsif (sprite_ison(7) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(7);
+				sprite_onborder <= sprite_overborder(7);
+				sprite_onraster <= sprite_overraster(7);
 			else
 				sprite_on <= '0';
 				sprite_outcol <= "0000";
@@ -773,7 +788,7 @@ begin
 		end if;
 	end process;
 	
-	sdo_p: process(crtc_reg, crtc_sel, sprite_dout)
+	sdo_p: process(crtc_reg, crtc_sel, crtc_rs, sprite_dout)
 	begin
 	
 		sprite_sel <= (others => '0');
@@ -809,10 +824,30 @@ begin
 			end case;
 		end if;
 	end process;
+
+	fetch_idx_p: process(qclk, dotclk, h_zero, sprite_fetch_idx)
+	begin
+		if (h_zero = '1') then
+			sprite_fetch_idx <= 0;
+			sprite_fetch_win <= '0';
+			sprite_fetch_done <= '0';
+		elsif (falling_edge(qclk) and dotclk = "1111") then
+			if (sprite_fetch_done = '0') then
+				if (sprite_fetch_win = '0') then
+					sprite_fetch_win <= '1';
+				elsif(sprite_fetch_idx = 7) then
+					sprite_fetch_win <= '0';
+					sprite_fetch_done <= '1';
+				else
+					sprite_fetch_idx <= sprite_fetch_idx + 1;
+				end if;
+			end if;
+		end if;
+		
+		sprite_fetch_idx_v <= std_logic_vector(to_unsigned(sprite_fetch_idx, sprite_fetch_idx_v'length));
+	end process;
 	
-	sprite_fetch_idx <= to_integer(unsigned(x_addr(5 downto 3)));
-	
-	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce)
+	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce, sprite_data_ptr, sprite_base)
 	begin
 		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
 		sprite_fetch_ptr(5 downto 0) <= sprite_fetch_offset(sprite_fetch_idx);
@@ -827,7 +862,7 @@ begin
 		
 		sprite_fetch_ce <= "00000000";
 		case (sprite_fetch_idx) is
-		when 0 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce; --sprite_data_fetch and fetch_ce;
+		when 0 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
 		when 1 =>	sprite_fetch_ce(1) <= sprite_data_fetch and fetch_ce;
 		when 2 =>	sprite_fetch_ce(2) <= sprite_data_fetch and fetch_ce;
 		when 3 =>	sprite_fetch_ce(3) <= sprite_data_fetch and fetch_ce;
@@ -835,6 +870,7 @@ begin
 		when 5 =>	sprite_fetch_ce(5) <= sprite_data_fetch and fetch_ce;
 		when 6 =>	sprite_fetch_ce(6) <= sprite_data_fetch and fetch_ce;
 		when 7 =>	sprite_fetch_ce(7) <= sprite_data_fetch and fetch_ce;
+		when others =>
 		end case;
 		
 	end process;
@@ -870,6 +906,244 @@ begin
 		sprite_overraster(0),
 		sprite_overborder(0),
 		sprite_outbits(0),
+		reset
+	);
+
+	sprite1: Sprite
+	port map (
+		phi2,
+		sprite_sel(1),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(1),
+		sprite_fgcol(1),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(1),
+		sprite_fetch_ce(1),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(1),
+		sprite_active(1),
+		sprite_ison(1),
+		sprite_overraster(1),
+		sprite_overborder(1),
+		sprite_outbits(1),
+		reset
+	);
+
+	sprite2: Sprite
+	port map (
+		phi2,
+		sprite_sel(2),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(2),
+		sprite_fgcol(2),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(2),
+		sprite_fetch_ce(2),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(2),
+		sprite_active(2),
+		sprite_ison(2),
+		sprite_overraster(2),
+		sprite_overborder(2),
+		sprite_outbits(2),
+		reset
+	);
+
+	sprite3: Sprite
+	port map (
+		phi2,
+		sprite_sel(3),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(3),
+		sprite_fgcol(3),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(3),
+		sprite_fetch_ce(3),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(3),
+		sprite_active(3),
+		sprite_ison(3),
+		sprite_overraster(3),
+		sprite_overborder(3),
+		sprite_outbits(3),
+		reset
+	);
+
+	sprite4: Sprite
+	port map (
+		phi2,
+		sprite_sel(4),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(4),
+		sprite_fgcol(4),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(4),
+		sprite_fetch_ce(4),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(4),
+		sprite_active(4),
+		sprite_ison(4),
+		sprite_overraster(4),
+		sprite_overborder(4),
+		sprite_outbits(4),
+		reset
+	);
+
+	sprite5: Sprite
+	port map (
+		phi2,
+		sprite_sel(5),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(5),
+		sprite_fgcol(5),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(5),
+		sprite_fetch_ce(5),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(5),
+		sprite_active(5),
+		sprite_ison(5),
+		sprite_overraster(5),
+		sprite_overborder(5),
+		sprite_outbits(5),
+		reset
+	);
+
+	sprite6: Sprite
+	port map (
+		phi2,
+		sprite_sel(6),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(6),
+		sprite_fgcol(6),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(6),
+		sprite_fetch_ce(6),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(6),
+		sprite_active(6),
+		sprite_ison(6),
+		sprite_overraster(6),
+		sprite_overborder(6),
+		sprite_outbits(6),
+		reset
+	);
+
+	sprite7: Sprite
+	port map (
+		phi2,
+		sprite_sel(7),
+		crtc_rwb,
+		crtc_reg(1 downto 0),
+		CPU_D,
+		sprite_dout(7),
+		sprite_fgcol(7),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(7),
+		sprite_fetch_ce(7),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		rline_cnt0,
+		is_80,
+		sprite_enabled(7),
+		sprite_active(7),
+		sprite_ison(7),
+		sprite_overraster(7),
+		sprite_overborder(7),
+		sprite_outbits(7),
 		reset
 	);
 	
@@ -1088,8 +1362,7 @@ begin
 	--when sprite_data_fetch = '1' else
 	
 	a_out(2 downto 0) <= 
---							x_addr(5 downto 3)					when sprite_ptr_fetch = '1' else
-							"000"										when sprite_ptr_fetch = '1' else
+							sprite_fetch_idx_v(2 downto 0)	when sprite_ptr_fetch = '1' else
 							sprite_fetch_ptr(2 downto 0)		when sprite_data_fetch = '1' else
 							attr_addr(2 downto 0) 				when attr_fetch_int = '1' else
 							rcline_cnt(2 downto 0) 				when crom_fetch_int = '1' else

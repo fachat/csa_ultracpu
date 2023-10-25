@@ -80,6 +80,7 @@ architecture Behavioral of Sprite is
 	signal s_overraster: std_logic;
 	signal x_expand: std_logic;
 	signal y_expand: std_logic;
+	signal s_fine: std_logic;
 
 	signal x_pos: std_logic_vector(9 downto 0);
 	signal y_pos: std_logic_vector(9 downto 0);
@@ -166,7 +167,7 @@ begin
 	fetch_offset <= fetch_offset_int;
 	
 	-- TODO
-	out_p: process(qclk, fetch_ce)
+	out_p: process(qclk, fetch_ce, x_expand, shiftreg, v_zero)
 	begin
 	
 		if (x_expand = '0') then
@@ -255,6 +256,7 @@ begin
 			s_overraster <= '0';
 			s_overborder <= '0';
 			s_multi <= '0';
+			s_fine <= '0';
 			x_pos <= "0100000000";	-- (others => '0');
 			y_pos <= "0010000000";	-- (others => '0');
 		elsif (falling_edge(phi2)
@@ -263,12 +265,30 @@ begin
 
 			case (regsel) is
 			when "00" =>	-- R0
-				x_pos(7 downto 0) <= din;
+				if (is80 = '1' or s_fine = '1') then
+					x_pos(7 downto 0) <= din;
+				else
+					x_pos(8 downto 1) <= din;
+					x_pos(0) <= '0';
+				end if;
 			when "01" => 	-- R1
-				y_pos(7 downto 0) <= din;
+				if ((is_interlace = '1' and is_double = '1') or s_fine = '1') then
+					y_pos(7 downto 0) <= din;
+				else
+					y_pos(8 downto 1) <= din;
+					y_pos(0) <= '0';
+				end if;
 			when "10" =>	-- R2
-				x_pos(9 downto 8) <= din(1 downto 0);
-				y_pos(9 downto 8) <= din(5 downto 4);
+				if (is80 = '1' or s_fine = '1') then
+					x_pos(9 downto 8) <= din(1 downto 0);
+				else
+					x_pos(9) <= din(0);
+				end if;
+				if ((is_interlace = '1' and is_double = '1') or s_fine = '1') then
+					y_pos(9 downto 8) <= din(5 downto 4);
+				else
+					y_pos(9) <= din(4);
+				end if;
 			when "11" =>	-- R3
 				s_enabled <= din(0);
 				x_expand <= din(1);
@@ -276,13 +296,15 @@ begin
 				s_multi <= din(3);
 				s_overraster <= din(4);
 				s_overborder <= din(5);
+				s_fine <= din(6);
 			when others =>
 				null;
 			end case;
 		end if;
 	end process;
 	
-	reqr_p: process(phi2, sel, rwb, regsel, x_pos, y_pos, s_enabled, x_expand, y_expand, s_multi, s_overraster, s_overborder)
+	reqr_p: process(phi2, sel, rwb, regsel, x_pos, y_pos, s_enabled, x_expand, y_expand, s_multi, s_overraster, s_overborder,
+			is80)
 	begin
 		dout <= (others => '0');
 		
@@ -290,12 +312,28 @@ begin
 		
 			case regsel is
 			when "00" =>	-- R0
-				dout <= x_pos(7 downto 0);
+				if (is80 = '1' or s_fine = '1') then
+					dout <= x_pos(7 downto 0);
+				else
+					dout <= x_pos(8 downto 1);
+				end if;
 			when "01" =>	-- R1
-				dout <= y_pos(7 downto 0);
+				if ((is_interlace = '1' and is_double = '1') or s_fine = '1') then
+					dout <= y_pos(7 downto 0);
+				else
+					dout <= y_pos(8 downto 1);
+				end if;
 			when "10" =>
-				dout(1 downto 0) <= x_pos(9 downto 8);
-				dout(5 downto 4) <= y_pos(9 downto 8);
+				if (is80 = '1' or s_fine = '1') then
+					dout(1 downto 0) <= x_pos(9 downto 8);
+				else
+					dout(0) <= x_pos(9);
+				end if;
+				if ((is_interlace = '1' and is_double = '1') or s_fine = '1') then
+					dout(5 downto 4) <= y_pos(9 downto 8);
+				else
+					dout(4) <= y_pos(9);
+				end if;
 			when "11" =>
 				dout(0) <= s_enabled;
 				dout(1) <= x_expand;
@@ -303,6 +341,7 @@ begin
 				dout(3) <= s_multi;
 				dout(4) <= s_overraster;
 				dout(5) <= s_overborder;
+				dout(6) <= s_fine;
 			when others =>
 				null;
 			end case;

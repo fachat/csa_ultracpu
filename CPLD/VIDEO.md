@@ -148,10 +148,14 @@ The following are the internal Viccy registers:
 Sprite registers (subject to change):
 
 - r48: X coordinate sprite 0 (VIC-II)
+  - note: X coordinates are 2x2 pixels in 40 column modes, except fine mode is set (r51.6)
 - r49: Y coordinate sprite 0 (VIC-II)
+  - note: Y coordinates are 2x2 pixels in non-double modes (r8.0/1 != "11"), except fine mode is set (r51.6)
 - r50: sprite 0 extra
-  - bit 1-0: bits 8-7 of sprite 0 X coordinate
-  - bit 5-4: bits 8-7 of sprite 0 Y coordinate
+  - bit 1-0: bits 8-7 of sprite 0 X coordinate (80 cols/fine) / bit 0 only in 40 col modes
+  - bit 5-4: bits 8-7 of sprite 0 Y coordinate (80 cols)
+  - note: X coordinates are 2x2 pixels in 40 column modes, except fine mode is set (r51.6) - then bit 0 only
+  - note: Y coordinates are 2x2 pixels in non-double modes (r8.0/1 != "11"), except fine mode is set (r51.6) - then bit 4 only
 - r51: sprite 0 control
   - bit 0: enable
   - bit 1: X-expand
@@ -159,7 +163,7 @@ Sprite registers (subject to change):
   - bit 3: Multicolour flag
   - bit 4: sprite data priority
   - bit 5: sprite border flag (if set, show over border)
-
+  - bit 6: if set, use 80 col coordinates
 - r52-: sprite 1
 - r56-: sprite 2
 - r60-: sprite 3
