@@ -104,8 +104,15 @@ the video timing, this is fixed in the FPGA implementation.
 #### $e802 (59394) Bank Control
 
 - Bit 0-3: number of 32k bank in 512k RAM, for the lowest 32k of system
-- Bit 4-5: number of 4k character video memory block the $8xxx window points to; possible 
-addresses in VRAM bank 0 (CPU bank 8) are $8xxx, $9xxx, $axxx, $bxxx
+- Bit 4-6: number of 2k character video memory block the $8xxx window points to; possible addresses in VRAM bank 0 (CPU bank 8) are:
+  - $80xx 
+  - $88xx
+  - $90xx
+  - $98xx
+  - $a0xx
+  - $a8xx
+  - $b0xx
+  - $b8xx
 - Bit 6-7: unused, must be 0
 
 #### $e803 (59395) Speed Control
