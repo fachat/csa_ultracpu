@@ -88,7 +88,7 @@ architecture Behavioral of DAC is
 	-- 04: ldac down
 	-- 05: ldac up, end
 	signal spi_phase: std_logic_vector(2 downto 0);
-	signal spi_cnt: std_logic_vector(5 downto 0);
+	signal spi_cnt: std_logic_vector(6 downto 0);
 	signal spi_start: std_logic;
 	
 	signal rate_ce: std_logic;
@@ -101,13 +101,14 @@ begin
 	dma_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '1' else '0';
 	dac_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '1' else '0';
 	rate_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '0' else '0';
-	spi_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '0' else '0';
+	spi_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '1' else '0';
 	mosi_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '0' else '0';
 
 	dma_p: process(qclk, dma_ce, reset)
 	begin
 		if (reset = '1') then
 			dma_req <= '0';
+			dac_wp <= 0;
 		elsif (falling_edge(qclk) and dma_ce = '1') then
 			if (dma_load = '1' or dma_count = x"0000") then
 				dma_addr_int <= dma_start;
@@ -115,6 +116,16 @@ begin
 			elsif (dma_ack = '1') then
 				dma_addr_int <= dma_addr_int + 1;
 				dma_count <= dma_count - 1;
+			end if;
+
+			if (dma_active = '0') then
+				dac_wp <= 0;
+			else
+				if (dac_wp = 15) then
+					dac_wp <= 0;
+				else
+					dac_wp <= dac_wp + 1;
+				end if;
 			end if;
 			
 			dma_req <= '0';
@@ -130,7 +141,9 @@ begin
 
 	rate_p: process(qclk, reset,rate_ce, dac_ce, spi_ce, mosi_ce)
 	begin
-		if (falling_edge(qclk)) then	
+		if (reset = '1') then
+			spi_start <= '0';
+		elsif (falling_edge(qclk)) then	
 			if (rate_ce = '1') then
 				-- reset counter
 				if (dma_active = '0') then
@@ -152,26 +165,22 @@ begin
 		if (reset = '1') then
 			spi_naudio <= '1';
 			nldac <= '1';
-		elsif (falling_edge(qclk)) then
-			if (spi_ce = '1') then
-				nldac <= '1';
-				
-				-- spi phases
-				-- 00: inactive
-				-- 01: select / wait
-				-- 02: shift out
-				-- 03: sel out
-				-- 04: ldac down
-				-- 05: ldac up, end
+		elsif (falling_edge(qclk) and spi_ce = '1') then
+						
 				if (spi_start = '1') then
+					-- start work
 					spi_phase <= "001";
 					spi_cnt <= (others => '0');
-				elsif (spi_phase = "001" and spi_cnt = "00010") then
+				elsif (spi_phase = "001" and spi_cnt = "000010") then
+					-- after waiting spi_cnt=2 cycles to keep chip setup time, select chip
 					spi_naudio <= '0';
-				elsif (spi_phase = "001" and spi_cnt = "00100") then
+				elsif (spi_phase = "001" and spi_cnt = "000100") then
+					-- after waiting another 2 cycles, start shifting phase, reset counter
+					-- note: each bit is 4 cycles; 2 c. per SPI clock phase
 					spi_phase <= "010";
 					spi_cnt <= (others => '0');
-				elsif (spi_phase = "010" and spi_cnt = "10000") then
+				elsif (spi_phase = "010" and spi_cnt = "111111") then
+					-- after 16x4 cycles, end shifting phase, deselect chip
 					spi_phase <= "011";
 					spi_naudio <= '1';
 					spi_cnt <= (others => '0');
@@ -180,11 +189,25 @@ begin
 				elsif (spi_phase = "011" and spi_cnt = "00011") then
 					spi_phase <= "000";
 					nldac <= '1';
+				else
+					spi_cnt <= spi_cnt + 1;
 				end if;
-			end if;
 		end if;
 	end process;
 	
+	-- shift out 16 bits (msb first) per channel
+	-- 15: A/B:  0 = DAC A, 1 = DAC B
+	-- 14: --
+	-- 13: /GA: gain selection: 1 = 1x Vref, 0 = 2x Vref
+	-- 12: /SHDN: shutdown. 1 = active, 0 = output disabled
+	-- 11: D7
+	-- ...
+	--  4: D0
+	--  3: --
+	--  2: --
+	--  1: --
+	--  0: --
+	-- TODO
 	mosi_p: process(qclk, reset, dac_ce, spi_ce, mosi_ce, spi_start)
 	begin
 		if (reset = '1') then
@@ -194,7 +217,9 @@ begin
 				spi_aclk <= '0';		-- mode 0
 				if (spi_phase = "010") then
 					spi_aclk <= spi_cnt(1);
-					if (spi_cnt(0) = '0') then
+					if (spi_cnt(1) = '0' and spi_cnt(0) = '0') then
+						--if (spi_cnt
+						-- TODO: correct bits...
 						spi_amosi <= dac_buf(dac_rp)(to_integer(unsigned(spi_cnt(4 downto 2))));
 					end if;
 				end if;

@@ -575,7 +575,9 @@ begin
 	niosel_int <= --'0' when extio = '1'			-- external I/O
 			--else '1' when ioinh = '1'	-- I/O inhibit
 			--else 
-			'0' when m_iosel = '1' and not(ca_in(6 downto 4) = "000") 
+			'0' when m_iosel = '1' 
+--				and not(ca_in(6 downto 4) = "000") 
+				and sel0 = '0' and sel8 = '0' and dac_sel = '0'
 			else '1';
 
 	nmemsel_int <= not (m_memsel); -- not for now
