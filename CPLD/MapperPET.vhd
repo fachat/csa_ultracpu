@@ -267,17 +267,17 @@ begin
 			'1' when screenwin = '1' else
 			boota19;			-- second 512k (or 1st 512k on boot)
 
-	framsel <= '0' when avalid='0' else
-			'0' when boota19 = '1' else	-- not in upper half of 1M address space is ROM (4-7 are ignored, only 1M addr space)
+	framsel <= '0' when avalid='0' 
+					or boota19 = '1' else	-- not in upper half of 1M address space is ROM (4-7 are ignored, only 1M addr space)
 			'1' when low64k = '0' or A(15) = '0' else	-- lowest 32k or 64k-512k is RAM, i.e. all above 64k besides ROM
 			'0' when screenwin = '1' or buswin = '1' or wprot = '1' else	-- not in screen window
 			'1' when c8296ram = '1' else	-- upper half mapped (except peek through)
 			'0' when petio = '1' else	-- not in I/O space
 			'1';
 	
-	iosel <= '0' when avalid='0' else 
-			'0' when low64k = '0' else
-			'0' when c8296ram = '1' else	-- no peekthrough in 8296 mode
+	iosel <= '0' when avalid='0' 
+					or low64k = '0' 			-- not in lowest 64k
+					or c8296ram = '1' else 	-- or if in 8296 ram instead of normal address map and no peekthrough
 			'1' when petio ='1' else 
 			'0';
 		
