@@ -779,26 +779,27 @@ begin
 			nvramsel <= nvramsel_int;
 		end if;
 		
-			dac_dma_ack <= '0';
-			if (ipl = '1') then
-				VA_select <= VRA_IPL;
-			elsif (vid_fetch = '1') then
-				VA_select <= VRA_VIDEO;
---			elsif (dac_dma_req = '1') then
---				VA_select <= VRA_DAC;
---				dac_dma_ack <= '1';
-			else
+			if (ipl = '0' and vid_fetch = '0' and dac_dma_req = '0') then
 				VA_select <= VRA_CPU;
+			else
+				if (ipl = '1') then
+					VA_select <= VRA_IPL;
+				elsif (vid_fetch = '1') then
+					VA_select <= VRA_VIDEO;
+				elsif (dac_dma_req = '1') then
+					VA_select <= VRA_DAC;
+				else
+					VA_select <= VRA_CPU;
+				end if;
 			end if;
-
+			
 			if (ipl = '1') then
-				ramrwb_int <= '0';	-- IPL load writes data to RAM
-			elsif (vid_fetch = '1') then
+				ramrwb_int <= '0';		-- IPL load writes data to RAM
+			elsif (vid_fetch = '1' 		-- video fetch
+				or dac_dma_req = '1' 	-- DAC fetch
+				or m_vramsel_out = '0' 	-- not selected
+				) then
 				ramrwb_int <= '1';	-- video only reads
---			elsif (dac_dma_req <= '1') then
---				ramrwb_int <= '1';
-			elsif (m_vramsel_out = '0') then
-				ramrwb_int <= '1';	-- not selected
 			elsif (memclk = '1') then
 				ramrwb_int <= rwb;
 			else
@@ -814,10 +815,13 @@ begin
 		if (reset = '1') then
 --			VA 		<= (others => 'Z');
 --			ramrwb		<= '1';
+			dac_dma_ack <= '0';
 		elsif (falling_edge(q50m)) then
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
 			ramrwb <= ramrwb_int; 
+
+			dac_dma_ack <= '0';
 
 			case (VA_select) is
 			when VRA_IPL =>
@@ -829,6 +833,7 @@ begin
 			when VRA_DAC =>
 				VA(15 downto 0) <= dac_dma_addr;
 				VA(18 downto 16) <= (others => '0');
+				dac_dma_ack <= '1';
 			when VRA_VIDEO =>  
 				VA(15 downto 0) <= va_out(15 downto 0);
 				VA(18 downto 16) <= (others => '0');

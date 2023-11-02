@@ -118,11 +118,11 @@ begin
 			end if;
 			
 			dma_req <= '0';
---			if(not(dac_rp = dac_wp)) then
---				if (dma_active = '1') then
---					dma_req <= '1';
---				end if;
---			end if;
+			if(not(dac_rp = dac_wp)) then
+				if (dma_active = '1') then
+					dma_req <= '1';
+				end if;
+			end if;
 		end if;
 	end process;
 	
