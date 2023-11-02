@@ -57,7 +57,6 @@ entity Sprite is
 		y_addr: in std_logic_vector(9 downto 0);
 		is_double: in std_logic;
 		is_interlace: in std_logic;
-		rline_cnt0: in std_logic;
 		is80: in std_logic;
 		
 		enabled: out std_logic;		-- if sprite data should be read in rasterline
@@ -96,8 +95,6 @@ architecture Behavioral of Sprite is
 	signal ison_int: std_logic;
 	
 	signal pxl_idx: integer range 0 to 23;
-	signal pxl_idx0: integer range 0 to 23;
-	signal pxl_idx1: integer range 0 to 23;
 	
 	signal fetch_offset_int: std_logic_vector(5 downto 0);
 
@@ -316,7 +313,7 @@ begin
 	end process;
 	
 	reqr_p: process(phi2, sel, rwb, regsel, x_pos, y_pos, s_enabled, x_expand, y_expand, s_multi, s_overraster, s_overborder,
-			is80)
+			is80, s_fine, is_interlace, is_double)
 	begin
 		dout <= (others => '0');
 		

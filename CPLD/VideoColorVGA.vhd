@@ -197,7 +197,7 @@ architecture Behavioral of Video is
 	signal attr_buf : std_logic_vector(7 downto 0);
 	signal pxl_buf : std_logic_vector(7 downto 0);
 	-- replacements for shift register
-	signal sr : std_logic_vector(7 downto 0);
+	signal sr : std_logic_vector(6 downto 0);
 	signal nsrload : std_logic;
 	signal dena_int : std_logic;
 	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
@@ -254,22 +254,22 @@ architecture Behavioral of Video is
 	signal sprite_data_window: std_logic;
 	
 	-- clock phases (16 half-pixels in one slot)
-	signal pxl0_ce: std_logic;
-	signal pxl1_ce: std_logic;
-	signal pxl2_ce: std_logic;
-	signal pxl3_ce: std_logic;
-	signal pxl4_ce: std_logic;
-	signal pxl5_ce: std_logic;
-	signal pxl6_ce: std_logic;
-	signal pxl7_ce: std_logic;
-	signal pxl8_ce: std_logic;
-	signal pxl9_ce: std_logic;
-	signal pxla_ce: std_logic;
+--	signal pxl0_ce: std_logic;
+--	signal pxl1_ce: std_logic;
+--	signal pxl2_ce: std_logic;
+--	signal pxl3_ce: std_logic;
+--	signal pxl4_ce: std_logic;
+--	signal pxl5_ce: std_logic;
+--	signal pxl6_ce: std_logic;
+--	signal pxl7_ce: std_logic;
+--	signal pxl8_ce: std_logic;
+--	signal pxl9_ce: std_logic;
+--	signal pxla_ce: std_logic;
 	signal pxlb_ce: std_logic;
-	signal pxlc_ce: std_logic;
+--	signal pxlc_ce: std_logic;
 	signal pxld_ce: std_logic;
 	signal pxle_ce: std_logic;
-	signal pxlf_ce: std_logic;
+--	signal pxlf_ce: std_logic;
 	signal fetch_ce: std_logic;
 	
 	signal fetch_int: std_logic;
@@ -302,8 +302,6 @@ architecture Behavioral of Video is
 	signal sprite_fgcol: AOA4(0 to 7);
 	signal sprite_mcol1: std_logic_vector(3 downto 0);
 	signal sprite_mcol2: std_logic_vector(3 downto 0);
-	signal next_row: std_logic;
-	signal first_row: std_logic;
 	signal sprite_base: std_logic_vector(7 downto 0);
 	-- output to mixer
 	signal sprite_on: std_logic;
@@ -424,7 +422,6 @@ architecture Behavioral of Video is
 		y_addr: in std_logic_vector(9 downto 0);
 		is_double: in std_logic;
 		is_interlace: in std_logic;
-		rline_cnt0: in std_logic;
 		is80: in std_logic;
 
 		enabled: out std_logic;		-- if sprite data should be read in rasterline
@@ -476,72 +473,72 @@ begin
 
 	ce_p: process(dotclk)
 	begin
-			pxl0_ce <= '0';
-			pxl1_ce <= '0';
-			pxl2_ce <= '0';
-			pxl3_ce <= '0';
-			pxl4_ce <= '0';
-			pxl5_ce <= '0';
-			pxl6_ce <= '0';
-			pxl7_ce <= '0';
-			pxl8_ce <= '0';
-			pxl9_ce <= '0';
-			pxla_ce <= '0';
+--			pxl0_ce <= '0';
+--			pxl1_ce <= '0';
+--			pxl2_ce <= '0';
+--			pxl3_ce <= '0';
+--			pxl4_ce <= '0';
+--			pxl5_ce <= '0';
+--			pxl6_ce <= '0';
+--			pxl7_ce <= '0';
+--			pxl8_ce <= '0';
+--			pxl9_ce <= '0';
+--			pxla_ce <= '0';
 			pxlb_ce <= '0';
-			pxlc_ce <= '0';
+--			pxlc_ce <= '0';
 			pxld_ce <= '0';
 			pxle_ce <= '0';
-			pxlf_ce <= '0';
+--			pxlf_ce <= '0';
 			fetch_ce <= '0';
 
-			if (dotclk(3 downto 0) = "0000") then
-				pxl0_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0001") then
-				pxl1_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0010") then
-				pxl2_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0011") then
-				pxl3_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0100") then
-				pxl4_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0101") then
-				pxl5_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0110") then
-				pxl6_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "0111") then
-				pxl7_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "1000") then
-				pxl8_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "1001") then
-				pxl9_ce <= '1';
-			end if;
-			if (dotclk(3 downto 0) = "1010") then
-				pxla_ce <= '1';
-			end if;
+--			if (dotclk(3 downto 0) = "0000") then
+--				pxl0_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0001") then
+--				pxl1_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0010") then
+--				pxl2_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0011") then
+--				pxl3_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0100") then
+--				pxl4_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0101") then
+--				pxl5_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0110") then
+--				pxl6_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0111") then
+--				pxl7_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "1000") then
+--				pxl8_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "1001") then
+--				pxl9_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "1010") then
+--				pxla_ce <= '1';
+--			end if;
 			if (dotclk(3 downto 0) = "1011") then
 				pxlb_ce <= '1';
 			end if;
-			if (dotclk(3 downto 0) = "1100") then
-				pxlc_ce <= '1';
-			end if;
+--			if (dotclk(3 downto 0) = "1100") then
+--				pxlc_ce <= '1';
+--			end if;
 			if (dotclk(3 downto 0) = "1101") then
 				pxld_ce <= '1';
 			end if;
 			if (dotclk(3 downto 0) = "1110") then
 				pxle_ce <= '1';
 			end if;
-			if (dotclk(3 downto 0) = "1111") then
-				pxlf_ce <= '1';
-			end if;
+--			if (dotclk(3 downto 0) = "1111") then
+--				pxlf_ce <= '1';
+--			end if;
 			if (dotclk(1 downto 0) = "11") then
 				fetch_ce <= '1';
 			end if;
@@ -729,13 +726,6 @@ begin
 	sprite_ptr_fetch <= sprite_ptr_window and fetch_sprite_en;
 	sprite_data_fetch <= sprite_data_window and fetch_sprite_en;	
 	
-
-	first_row <= '1' when (interlace_int = '1' and is_double_int = '1')-- or rline_cnt0 = '1'
-						else '0';
-						
-	next_row <= '1' when (is_double_int = '1' and interlace_int = '1') or rline_cnt0 = '1'
-						else '0';
-	
 	sprite_outcol_p: process(qclk, dotclk)
 	begin
 		
@@ -908,7 +898,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(0),
 		sprite_active(0),
@@ -942,7 +931,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(1),
 		sprite_active(1),
@@ -976,7 +964,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(2),
 		sprite_active(2),
@@ -1010,7 +997,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(3),
 		sprite_active(3),
@@ -1044,7 +1030,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(4),
 		sprite_active(4),
@@ -1078,7 +1063,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(5),
 		sprite_active(5),
@@ -1112,7 +1096,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(6),
 		sprite_active(6),
@@ -1146,7 +1129,6 @@ begin
 		y_addr,
 		is_double_int,
 		interlace_int,
-		rline_cnt0,
 		is_80,
 		sprite_enabled(7),
 		sprite_active(7),
@@ -1234,7 +1216,7 @@ begin
 		if (falling_edge(qclk)) then
 			if (pxle_ce = '1' and (is_80 = '1' or in_slot = '0')) then
 				sr_attr <= attr_buf;
-				sr(7 downto 0) <= sr_buf;
+				sr(6 downto 0) <= sr_buf (6 downto 0);
 				sr_odd <= '0';
 				
 				if (mode_attrib = '1' and mode_extended = '1') then
@@ -1247,7 +1229,7 @@ begin
 					is_outbit(0) <= sr_buf(7);
 				end if;
 			elsif (dotclk(0) = '0' and (is_80 = '1' or dotclk(1) = '1')) then
-				sr(7 downto 1) <= sr(6 downto 0);
+				sr(6 downto 1) <= sr(5 downto 0);
 				sr(0) <= '1';
 				sr_odd <= not(sr_odd);
 				

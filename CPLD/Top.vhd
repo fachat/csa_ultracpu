@@ -118,7 +118,7 @@ end Top;
 
 architecture Behavioral of Top is
 
-	type T_VADDR_SRC is (VRA_IPL, VRA_CPU, VRA_VIDEO);
+	type T_VADDR_SRC is (VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_DAC);
 		
 	attribute NOREDUCE : string;
 	
@@ -161,7 +161,7 @@ architecture Behavioral of Top is
 
 	signal sel0 : std_logic;
 	signal sel8 : std_logic;
-
+	
 	signal mode : std_logic_vector(1 downto 0);
 	signal boot : std_logic;
 	signal wp_rom9 : std_logic;
@@ -214,6 +214,13 @@ architecture Behavioral of Top is
 	
 	signal bus_window_c: std_logic;	-- map $00Cxxx to MEMSEL too
 	signal bus_window_9: std_logic; -- map $009xxx to MEMSEL
+	
+	-- DAC
+	signal dac_sel: std_logic;
+	signal dac_dma_req: std_logic;
+	signal dac_dma_ack: std_logic;
+	signal dac_dma_addr: std_logic_vector(15 downto 0);
+	signal dac_dout: std_logic_vector(7 downto 0);
 	
 	-- components
 	
@@ -317,6 +324,32 @@ architecture Behavioral of Top is
 	 );
 	end component;
 
+   component DAC is
+	Port (
+		phi2: in std_logic;
+		sel: in std_logic;
+		rwb: in std_logic;
+		regsel: in std_logic_vector(3 downto 0);
+		din: in std_logic_vector(7 downto 0);
+		dout: out std_logic_vector(7 downto 0);
+		
+		qclk: in std_logic;
+		dotclk: in std_logic_vector(3 downto 0);
+		vdin: in std_logic_vector(7 downto 0);
+
+		dma_req: out std_logic;
+		dma_ack: in std_logic;		-- on falling edge data is taken
+		dma_addr: out std_logic_vector(15 downto 0);
+
+		spi_naudio: out std_logic;
+		spi_aclk: out std_logic;
+		spi_amosi: out std_logic;
+		nldac: out std_logic;
+
+		reset: in std_logic
+	);
+   end component;
+
 	component SPI is
 	  Port ( 
 	   DIN : in  STD_LOGIC_VECTOR (7 downto 0);
@@ -400,7 +433,7 @@ begin
 	-- is_vid is qualified with rising edge of qclk, but depends on pxl/char_window
 	-- that is created at same falling edge of qclk as when memclk falls low
 	-- so is_vid is early, but goes low at same falling edge as memclk
-	wait_ram <= '1' when m_vramsel_out = '1' and vid_fetch = '1' else	-- video access in RAM
+	wait_ram <= '1' when m_vramsel_out = '1' and (vid_fetch = '1' or dac_dma_req = '1') else	-- video access in RAM
 			'0';
 	
 	-- stretch clock such that we approx. one cycle per is_cpu_trigger (1, 2, 4MHz)
@@ -521,8 +554,9 @@ begin
 	cfgld_in <= '1' when is8296 = '1' and m_ffsel_out ='1' and ca_in(7 downto 0) = x"F0" else '0';
 
 	-- internal selects
-	sel0 <= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"0" else '0';
-	sel8 <= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"8" else '0';
+	sel0 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"0" else '0';
+	dac_sel 	<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"3" else '0';
+	sel8 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"8" else '0';
 
 	nbussel_p: process(reset, memclk)
 	begin
@@ -599,6 +633,34 @@ begin
 	vgraphic <= not(graphic);
 	
 	pxl_out <= v_out;
+
+	------------------------------------------------------
+	-- DAC interface
+
+	dac_comp: DAC
+	port map (
+		phi2_int,
+		dac_sel,
+		rwb,
+		ca_in(3 downto 0),
+		cd_in,
+		dac_dout,
+		
+		q50m,
+		dotclk,
+		vd_in,
+
+		dac_dma_req,
+		dac_dma_ack,
+		dac_dma_addr,
+
+		spi_naudio,
+		spi_aclk,
+		spi_amosi,
+		nldac,
+
+		reset
+	);
 	
 	------------------------------------------------------
 	-- SPI interface
@@ -704,22 +766,27 @@ begin
 
 
 	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
-			vid_fetch, rwb, m_vramsel_out)
+			vid_fetch, rwb, m_vramsel_out, dac_dma_req)
 	begin
 		if (reset = '1') then
 			--ramrwb_int	<= '1';
 			nframsel <= '1';
 			nvramsel <= '1';
+			dac_dma_ack <= '0';
 		elsif (rising_edge(q50m)) then
 				
 			nframsel <= nframsel_int;
 			nvramsel <= nvramsel_int;
 		end if;
 		
+			dac_dma_ack <= '0';
 			if (ipl = '1') then
 				VA_select <= VRA_IPL;
 			elsif (vid_fetch = '1') then
 				VA_select <= VRA_VIDEO;
+--			elsif (dac_dma_req = '1') then
+--				VA_select <= VRA_DAC;
+--				dac_dma_ack <= '1';
 			else
 				VA_select <= VRA_CPU;
 			end if;
@@ -728,9 +795,10 @@ begin
 				ramrwb_int <= '0';	-- IPL load writes data to RAM
 			elsif (vid_fetch = '1') then
 				ramrwb_int <= '1';	-- video only reads
+--			elsif (dac_dma_req <= '1') then
+--				ramrwb_int <= '1';
 			elsif (m_vramsel_out = '0') then
 				ramrwb_int <= '1';	-- not selected
---			else
 			elsif (memclk = '1') then
 				ramrwb_int <= rwb;
 			else
@@ -758,6 +826,9 @@ begin
 			when VRA_CPU =>
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(18 downto 8) <= ma_out (18 downto 8);
+			when VRA_DAC =>
+				VA(15 downto 0) <= dac_dma_addr;
+				VA(18 downto 16) <= (others => '0');
 			when VRA_VIDEO =>  
 				VA(15 downto 0) <= va_out(15 downto 0);
 				VA(18 downto 16) <= (others => '0');
@@ -791,6 +862,10 @@ begin
 				and rwb = '1'
 				and phi2_int = '1'
 		else
+			dac_dout when dac_sel = '1'
+				and rwb = '1'
+				and phi2_int = '1'
+		else
 			(others => 'Z');
 		
 	-- select RAM
@@ -802,19 +877,10 @@ begin
 	-- memclk changes at falling edge
 	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
 			'1'	when memclk = '0' else	-- inactive after previous access
-			'0' 	when vid_fetch='1' else
+			'0' 	when (vid_fetch='1' or dac_dma_req = '1') else
 			'1' 	when wait_int = '1' else
 			not(m_vramsel_out);
 			
-	------------------------------------------------------
-	-- Audio / DAC output
-	-- TODO: move into submodule
-	
-	nldac <= vid_fetch; --rwb; --memclk;--m_vramsel_out; --ipl; -- ramrwb_int; --ipl;	--'1';
-	spi_naudio <= '1';
-	spi_amosi <= '1';
-	spi_aclk <= '1';
-	
 	
 	------------------------------------------------------
 	-- IPL logic
