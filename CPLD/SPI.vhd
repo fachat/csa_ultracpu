@@ -33,17 +33,18 @@ use ieee.numeric_std.all;
 
 entity SPI is
 	  Port ( 
+	   phi2: in std_logic;
 	   DIN : in  STD_LOGIC_VECTOR (7 downto 0);
 	   DOUT : out  STD_LOGIC_VECTOR (7 downto 0);
 	   RS: in std_logic_vector(1 downto 0);
 	   RWB: in std_logic;
-	   CS: in std_logic;	-- includes clock
+	   CS: in std_logic;
 	   
 	   serin: in std_logic;
 	   serout: out std_logic;
 	   serclk: out std_logic;
 	   sersel: out std_logic_vector(2 downto 0);	   -- 8 combinations (0= none)
-	   spiclk : in std_logic;
+	   spiclk : in std_logic;	-- memclk
 	   
 	   ipl: in std_logic;
 	   reset : in std_logic
@@ -69,6 +70,7 @@ architecture Behavioral of SPI is
 	signal serin_d: std_logic;
 	
 	signal spiclk_int: std_logic;
+	signal spiclk_ce: std_logic;
 	signal spiclk_half: std_logic;
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
@@ -93,15 +95,17 @@ begin
 	
 	spiclk_int <= spiclk when sel(2) = '0' else
 			spiclk_half;
+	spiclk_ce <= '1' when sel(2) = '0' else
+			spiclk_half;
 		
 	-- read registers
-	read_p: process (rs, rwb, cs, sr, sel, cpol, cpha, run_sr, txd_valid, start_rx, ack_rxtx, ipl, reset)
+	read_p: process (phi2, rs, rwb, cs, sr, sel, cpol, cpha, run_sr, txd_valid, start_rx, ack_rxtx, ipl, reset)
 	begin
 		if (reset = '1') then
 			start_rx <= '0';
 		elsif (ack_rxtx = '1') then
 			start_rx <= '0';
-		elsif (falling_edge(cs) and rwb = '1' and rs = "01") then
+		elsif (falling_edge(phi2) and cs = '1' and rwb = '1' and rs = "01") then
 			start_rx <= '1';
 		end if;
 
@@ -128,14 +132,15 @@ begin
 		end if;
 	end process;
 	
-	write_p: process (rs, rwb, cs, ack_txd, reset)
+	write_p: process (phi2, rs, rwb, cs, ack_txd, reset)
 	begin
 		if (reset = '1') then
 			txd_valid <= '0';
 		elsif (ack_txd = '1') then
 			txd_valid <= '0';
-		elsif (falling_edge(cs) 
+		elsif (falling_edge(phi2) 
 			-- with falling memclk
+			and cs = '1'
 			and rs = "01"
 			and rwb = '0') then
 			txd_valid <= '1';
@@ -146,7 +151,8 @@ begin
 			txd <= (others => '0');
 			cpol <= '0';
 			cpha <= '0';
-		elsif (falling_edge(cs) 
+		elsif (falling_edge(phi2)
+			and cs = '1'
 			and rwb = '0') then
 			
 			case rs is
@@ -164,12 +170,13 @@ begin
 	
 	sersel <= sel;
 	
-	rxtx_p: process(sr, spiclk_int, serin, ack_rxtx, reset)
+	rxtx_p: process(sr, spiclk, spiclk_int, spiclk_ce, serin, ack_rxtx, reset)
 	begin
 		if (reset = '1') then
 			stat <= (others => '0');
 			ack_txd <= '0';
 			run_sr <= '0';
+--		elsif (rising_edge(spiclk) and spiclk_ce = '1') then
 		elsif (rising_edge(spiclk_int)) then
 			-- with rising memclk
 
@@ -215,8 +222,9 @@ begin
 		end if;
 	end process;
 	
-	ack_p: process(spiclk_int, stat)
+	ack_p: process(spiclk, spiclk_int, spiclk_ce, stat)
 	begin
+--		if (falling_edge(spiclk) and spiclk_ce = '1') then
 		if (falling_edge(spiclk_int)) then
 			run_sr_d <= run_sr; -- or run_rx;
 			if (stat = "1111") then

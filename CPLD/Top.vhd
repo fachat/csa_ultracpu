@@ -352,6 +352,7 @@ architecture Behavioral of Top is
 
 	component SPI is
 	  Port ( 
+	   phi2: in std_logic;
 	   DIN : in  STD_LOGIC_VECTOR (7 downto 0);
 	   DOUT : out  STD_LOGIC_VECTOR (7 downto 0);
 	   RS: in std_logic_vector(1 downto 0);
@@ -669,6 +670,7 @@ begin
 	
 	spi_comp: SPI
 	port map (
+	   phi2_int,
 	   cd_in,
 	   spi_dout,
 	   ca_in(1 downto 0),

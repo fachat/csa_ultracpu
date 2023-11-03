@@ -90,6 +90,10 @@ architecture Behavioral of DAC is
 	signal spi_phase: std_logic_vector(2 downto 0);
 	signal spi_cnt: std_logic_vector(6 downto 0);
 	signal spi_start: std_logic;
+	signal spi_buf: std_logic_vector(7 downto 0);
+	signal spi_msg: std_logic_vector(15 downto 0);
+	signal spi_chan: std_logic;
+	signal spi_direct: std_logic;
 	
 	signal rate_ce: std_logic;
 	signal dac_ce: std_logic;
@@ -101,8 +105,10 @@ begin
 	dma_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '1' else '0';
 	dac_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '1' else '0';
 	rate_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '0' else '0';
+	-- spi_ce must enable same falling clock as phi2 falling, to get direct writes
 	spi_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '1' else '0';
-	mosi_ce <= '1' when dotclk(0) = '1' and dotclk(1) = '0' else '0';
+	-- mosi_ce should be between two spi_ce
+	mosi_ce <= '1' when dotclk(0) = '0' and dotclk(1) = '1' else '0';
 
 	dma_p: process(qclk, dma_ce, reset)
 	begin
@@ -165,30 +171,42 @@ begin
 		if (reset = '1') then
 			spi_naudio <= '1';
 			nldac <= '1';
+			dac_rp <= 0;
 		elsif (falling_edge(qclk) and spi_ce = '1') then
 						
 				if (spi_start = '1') then
 					-- start work
 					spi_phase <= "001";
 					spi_cnt <= (others => '0');
+					spi_buf <= dac_buf(dac_rp);
+					spi_chan <= '0'; 	-- TODO
+					dac_rp <= dac_rp + 1;
+				elsif (spi_direct = '1') then
+					spi_phase <= "001";
+					spi_cnt <= (others => '0');
+					spi_buf <= din;
+					spi_chan <= regsel(0);
 				elsif (spi_phase = "001" and spi_cnt = "000010") then
 					-- after waiting spi_cnt=2 cycles to keep chip setup time, select chip
 					spi_naudio <= '0';
+					spi_cnt <= spi_cnt + 1;
 				elsif (spi_phase = "001" and spi_cnt = "000100") then
 					-- after waiting another 2 cycles, start shifting phase, reset counter
 					-- note: each bit is 4 cycles; 2 c. per SPI clock phase
 					spi_phase <= "010";
 					spi_cnt <= (others => '0');
-				elsif (spi_phase = "010" and spi_cnt = "111111") then
-					-- after 16x4 cycles, end shifting phase, deselect chip
+				elsif (spi_phase = "010" and spi_cnt = "011111") then
+					-- after 16x2 cycles, end shifting phase, deselect chip
 					spi_phase <= "011";
-					spi_naudio <= '1';
 					spi_cnt <= (others => '0');
 				elsif (spi_phase = "011" and spi_cnt = "00001") then
+					spi_naudio <= '1';
 					nldac <= '0';
-				elsif (spi_phase = "011" and spi_cnt = "00011") then
+					spi_cnt <= spi_cnt + 1;
+				elsif (spi_phase = "011" and spi_cnt = "00100") then
 					spi_phase <= "000";
 					nldac <= '1';
+					spi_cnt <= spi_cnt + 1;
 				else
 					spi_cnt <= spi_cnt + 1;
 				end if;
@@ -207,27 +225,36 @@ begin
 	--  2: --
 	--  1: --
 	--  0: --
-	-- TODO
+	spi_msg(15) <= spi_chan;
+	spi_msg(14) <= '0';	-- n/a bit
+	spi_msg(13) <= '0';	-- gain TODO
+	spi_msg(12) <= '1';	-- active
+	spi_msg(11 downto 4) <= spi_buf;
+	spi_msg(3 downto 0) <= (others => '0');
+	
 	mosi_p: process(qclk, reset, dac_ce, spi_ce, mosi_ce, spi_start)
 	begin
 		if (reset = '1') then
 			spi_amosi <= '0';
-		elsif (falling_edge(qclk)) then
-			if (mosi_ce = '1') then
-				spi_aclk <= '0';		-- mode 0
-				if (spi_phase = "010") then
-					spi_aclk <= spi_cnt(1);
-					if (spi_cnt(1) = '0' and spi_cnt(0) = '0') then
-						--if (spi_cnt
-						-- TODO: correct bits...
-						spi_amosi <= dac_buf(dac_rp)(to_integer(unsigned(spi_cnt(4 downto 2))));
-					end if;
+		elsif (falling_edge(qclk) and mosi_ce = '1') then
+			spi_aclk <= '0';		-- mode 0
+			if (spi_phase = "010") then
+				-- shifting phase, starts with cnt="000000"
+				spi_aclk <= spi_cnt(0);
+				if (spi_cnt(0) = '0') then
+					-- on end of clk hi, set new value
+					-- index is derived from cnt
+					spi_amosi <= spi_msg(15 - to_integer(unsigned(spi_cnt(4 downto 1))));
 				end if;
 			end if;
-			
 		end if;
 	end process;
 	
+	spi_direct <= '1' when
+				sel = '1'
+				and rwb = '0'
+				and regsel(3 downto 1) = "110"
+			else '0';
 	
 	regw_p: process(reset, phi2, sel, regsel,rwb)
 	begin
@@ -253,6 +280,10 @@ begin
 				dac_rate(7 downto 0) <= din;
 			when "0101" =>	-- R3
 				dac_rate(11 downto 8) <= din(3 downto 0);
+			when "1100" =>	-- R12
+				-- dummy, see spi_direct
+			when "1101" =>	-- R13
+				-- dummy, see spi_direct
 			when "1111" =>	-- R15
 				dma_active <= din(7);
 				dma_channel <= din(2);
