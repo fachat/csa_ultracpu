@@ -219,7 +219,7 @@ architecture Behavioral of Top is
 	signal dac_sel: std_logic;
 	signal dac_dma_req: std_logic;
 	signal dac_dma_ack: std_logic;
-	signal dac_dma_addr: std_logic_vector(15 downto 0);
+	signal dac_dma_addr: std_logic_vector(19 downto 0);
 	signal dac_dout: std_logic_vector(7 downto 0);
 	
 	-- components
@@ -339,7 +339,7 @@ architecture Behavioral of Top is
 
 		dma_req: out std_logic;
 		dma_ack: in std_logic;		-- on falling edge data is taken
-		dma_addr: out std_logic_vector(15 downto 0);
+		dma_addr: out std_logic_vector(19 downto 0);
 
 		spi_naudio: out std_logic;
 		spi_aclk: out std_logic;
@@ -835,8 +835,7 @@ begin
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(18 downto 8) <= ma_out (18 downto 8);
 			when VRA_DAC =>
-				VA(15 downto 0) <= dac_dma_addr;
-				VA(18 downto 16) <= (others => '0');
+				VA <= dac_dma_addr(18 downto 0);
 				dac_dma_ack <= '1';
 			when VRA_VIDEO =>  
 				VA(15 downto 0) <= va_out(15 downto 0);

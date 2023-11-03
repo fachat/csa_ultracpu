@@ -176,8 +176,8 @@ begin
 			stat <= (others => '0');
 			ack_txd <= '0';
 			run_sr <= '0';
---		elsif (rising_edge(spiclk) and spiclk_ce = '1') then
-		elsif (rising_edge(spiclk_int)) then
+		elsif (rising_edge(spiclk) and spiclk_ce = '1') then
+--		elsif (rising_edge(spiclk_int)) then
 			-- with rising memclk
 
 			ack_txd <= '0';
@@ -224,8 +224,8 @@ begin
 	
 	ack_p: process(spiclk, spiclk_int, spiclk_ce, stat)
 	begin
---		if (falling_edge(spiclk) and spiclk_ce = '1') then
-		if (falling_edge(spiclk_int)) then
+		if (falling_edge(spiclk) and spiclk_ce = '1') then
+--		if (falling_edge(spiclk_int)) then
 			run_sr_d <= run_sr; -- or run_rx;
 			if (stat = "1111") then
 				ack_rxtx <= '1';
