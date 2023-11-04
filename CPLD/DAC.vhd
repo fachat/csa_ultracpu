@@ -74,6 +74,8 @@ architecture Behavioral of DAC is
 	signal dma_count: std_logic_vector(15 downto 0);
 	signal dma_active_d: std_logic;
 	signal dma_load: std_logic;
+	signal dma_done: std_logic;
+	signal dma_last: std_logic;	-- last byte has been loaded
 	
 	signal dac_buf: AOA8(0 to 15);
 	signal dac_wp: std_logic_vector(3 downto 0);
@@ -119,13 +121,21 @@ begin
 		if (reset = '1' or dma_active = '0') then
 			dac_wp <= (others => '0');
 			dma_req <= '0';
+			dma_last <= '0';
 		elsif (falling_edge(qclk) and dma_ce = '1') then
 			dma_active_d <= dma_active;
 			
 			if (dma_load = '1' or dma_count = dma_len) then
+				-- start DMA, or re-start in loop
 				dma_addr_int <= dma_start;
 				dma_count <= (others => '0');
+				if (dma_load = '0' and dma_loop = '0') then
+					-- not just loaded, and no loop - then last byte was loaded
+					dma_last <= '1';
+				end if;
+				
 			elsif (dma_ack = '1') then
+				-- received a byte
 				dma_addr_int <= dma_addr_int + 1;
 				dma_count <= dma_count + 1;
 				dac_buf(to_integer(unsigned(dac_wp))) <= vdin;
@@ -134,7 +144,8 @@ begin
 				dma_req <= '0';
 				
 			elsif(not(dac_rp = dac_wp + 1)) then
-				if (dma_active = '1') then
+				-- request a new byte, but only if still active and not last one received already
+				if (dma_active = '1' and dma_last = '0') then
 					dma_req <= '1';
 				end if;
 			end if;
@@ -183,9 +194,13 @@ begin
 				spi_phase <= "01";
 				spi_cnt <= (others => '0');
 				spi_buf <= dac_buf(to_integer(unsigned(dac_rp)));
-				spi_chan <= '0'; 	-- TODO
-				dac_rp <= dac_rp + 1;
+				if (dma_stereo = '1') then
+					spi_chan <= '0';
+				else
+					spi_chan <= dma_channel;
+				end if;
 				spi_done <= '0';
+				dac_rp <= dac_rp + 1;
 			elsif (spi_direct = '1') then
 				spi_phase <= "01";
 				spi_cnt <= (others => '0');
@@ -207,10 +222,18 @@ begin
 				spi_cnt <= (others => '0');
 			elsif (spi_phase = "11" and spi_cnt = "00001") then
 				spi_naudio <= '1';
-				nldac <= '0';
-				spi_cnt <= spi_cnt + 1;
-				if (dma_loop = '0') then
-					spi_done <= '1';
+				if (dma_stereo = '1' and spi_chan = '0') then
+					spi_chan <= '1';
+					spi_phase <= "01";
+					spi_cnt <= (others => '0');
+					spi_buf <= dac_buf(to_integer(unsigned(dac_rp)));
+					dac_rp <= dac_rp + 1;
+				else
+					nldac <= '0';
+					spi_cnt <= spi_cnt + 1;
+					if (dma_last = '1') then
+						spi_done <= '1';
+					end if;
 				end if;
 			elsif (spi_phase = "11" and spi_cnt = "00100") then
 				spi_phase <= "00";
