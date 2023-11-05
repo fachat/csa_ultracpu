@@ -75,15 +75,12 @@ architecture Behavioral of DAC is
 	signal dma_count: std_logic_vector(15 downto 0);
 	signal dma_active_d: std_logic;
 	signal dma_load: std_logic;
-	signal dma_done: std_logic;
 	signal dma_last: std_logic;	-- last byte has been loaded
 	signal dma_irqen: std_logic;
 	
 	signal dac_buf: AOA8(0 to 15);
 	signal dac_wp: std_logic_vector(3 downto 0);
-	signal dac_wp_b: std_logic_vector(3 downto 0);
 	signal dac_rp: std_logic_vector(3 downto 0);
-	signal dac_rp_b: std_logic_vector(3 downto 0);
 	signal dac_rate: std_logic_vector(11 downto 0);		--	approx 10Hz - 44100Hz
 	signal dac_count: std_logic_vector(15 downto 0);	-- clock counter for rate; scale = 16x rate
 	
@@ -108,7 +105,6 @@ architecture Behavioral of DAC is
 	signal irq_int: std_logic;
 	
 	signal rate_ce: std_logic;
-	signal dac_ce: std_logic;
 	signal spi_ce: std_logic;
 	signal mosi_ce: std_logic;
 	
@@ -162,7 +158,7 @@ begin
 	
 	dma_addr <= dma_addr_int;
 
-	rate_p: process(qclk, reset,rate_ce, dac_ce, spi_ce, mosi_ce)
+	rate_p: process(qclk, reset,rate_ce, spi_ce, mosi_ce)
 	begin
 		if (reset = '1') then
 			spi_start <= '0';
@@ -273,7 +269,7 @@ begin
 	spi_msg(11 downto 4) <= spi_buf;
 	spi_msg(3 downto 0) <= (others => '0');
 	
-	mosi_p: process(qclk, reset, dac_ce, spi_ce, mosi_ce, spi_start)
+	mosi_p: process(qclk, reset, spi_ce, mosi_ce, spi_start)
 	begin
 		if (reset = '1') then
 			spi_amosi <= '0';
@@ -308,7 +304,7 @@ begin
 			else '0';
 	irq <= irq_int;
 				
-	regw_p: process(reset, phi2, sel, regsel, rwb, spi_done, dma_last)
+	regw_p: process(reset, phi2, sel, regsel, rwb, spi_done, dma_last, dma_irqen)
 	begin
 	
 		if (reset = '1' or dma_last = '0' or dma_irqen = '0') then
@@ -325,7 +321,7 @@ begin
 		elsif (falling_edge(phi2)) then
 			if (sel = '1' and rwb = '0' and regsel = "1111") then
 				-- write to register 15
-				dma_active <= din(7);
+				dma_active <= din(0);
 			end if;
 		end if;
 
@@ -350,10 +346,10 @@ begin
 				when "0100" =>	-- R4
 					dma_len(15 downto 8) <= din;
 				when "0101" =>	-- R5
-					dac_rate(7 downto 0) <= din;
 				when "0110" =>	-- R6
-					dac_rate(11 downto 8) <= din(3 downto 0);
+					dac_rate(7 downto 0) <= din;
 				when "0111" =>	-- R7 -
+					dac_rate(11 downto 8) <= din(3 downto 0);
 				when "1000" =>	-- R8 -
 				when "1001" =>	-- R9 -
 				when "1010" =>	-- R10	-- read only
@@ -363,12 +359,13 @@ begin
 				when "1101" =>	-- R13
 					-- dummy, see spi_direct
 				when "1110" =>	-- R14
+					-- read only, see below
 				when "1111" =>	-- R15
-					--dma_active <= din(7);
-					dma_irqen <= din(3);
-					dma_channel <= din(2);
-					dma_stereo <= din(1);
-					dma_loop <= din(0);
+					dma_irqen <= din(4);
+					dma_channel <= din(3);
+					dma_stereo <= din(2);
+					dma_loop <= din(1);
+					--dma_active <= din(0); see above
 				when others =>
 					null;
 				end case;
@@ -377,7 +374,7 @@ begin
 	end process;
 	
 	reqr_p: process(phi2, sel, rwb, regsel, dma_start, dma_len, dac_rate, dma_active, dma_channel, dma_stereo, dma_loop, dac_rp, dac_wp,
-				irq_int, dma_last, dma_irqen)
+				irq_int, dma_last, dma_irqen, spi_busy)
 	begin
 		dout <= (others => '0');
 		
@@ -394,34 +391,28 @@ begin
 				dout <= dma_len(7 downto 0);
 			when "0100" => -- R4
 				dout <= dma_len(15 downto 8);
-			when "0101" => -- R5
-				dout <= dac_rate(7 downto 0);
+			when "0101" => -- R5 - reserved
 			when "0110" => -- R6
-				dout(3 downto 0) <= dac_rate(11 downto 8);
+				dout <= dac_rate(7 downto 0);
 			when "0111" =>		-- R7 - 
+				dout(3 downto 0) <= dac_rate(11 downto 8);
 			when "1000" =>		-- R8 - 
-			when "1001" =>		-- R9 read only
-				dout(3 downto 0) <= dac_wp - dac_rp;
-				dac_rp_b <= dac_rp;
-				dac_wp_b <= dac_wp;
-			when "1010" =>		-- R10 read only
-				dout(3 downto 0) <= dac_rp;
-			when "1011" =>		-- R11 read only
-				dout(3 downto 0) <= dac_wp;
+			when "1001" =>		-- R9 -
+			when "1010" =>		-- R10 -
+			when "1011" =>		-- R11 -
 			when "1100" =>		-- R12 write only
-				dout(3 downto 0) <= dac_rp_b;
 			when "1101" =>		-- R13 write only
-				dout(3 downto 0) <= dac_wp_b;
-			when "1110" =>		-- R14 - 
-			when "1111" =>
-				dout(7) <= dma_active;
+			when "1110" =>		-- R14 status read only
+				dout(7) <= dma_active or spi_busy;
 				dout(6) <= irq_int;
 				dout(5) <= dma_last;
-				dout(4) <= spi_busy;
-				dout(3) <= dma_irqen;
-				dout(2) <= dma_channel;
-				dout(1) <= dma_stereo;
-				dout(0) <= dma_loop;
+				dout(3 downto 0) <= dac_wp - dac_rp;
+			when "1111" =>
+				dout(4) <= dma_irqen;
+				dout(3) <= dma_channel;
+				dout(2) <= dma_stereo;
+				dout(1) <= dma_loop;
+				dout(0) <= dma_active;
 			when others =>
 				null;
 			end case;

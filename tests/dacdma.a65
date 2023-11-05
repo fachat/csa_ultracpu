@@ -13,19 +13,23 @@ link	.word 0
 DAC_BASE	=$e830
 
 DAC_START	=0	; 3 registers, 2x8+3 bits
-DAC_LEN		=3	; 2 registers, 2x8 bits
-DAC_RATE	=5	; 2 registers, 8/4 bits
-DAC_WP		=10	
-DAC_RP		=11
+DAC_LEN		=3	; 2 registers, 2x8 bits (+1 reserved)
+DAC_RATE	=6	; 2 registers, 8/4 bits
 DAC_CH0		=12
 DAC_CH1		=13
+DAC_ST		=14
 DAC_CTRL	=15
 
-DAC_CTRL_ACTIVE	=%10000000
-DAC_CTRL_SPIBSY	=%00010000
-DAC_CTRL_CHAN	=%00000100
-DAC_CTRL_STEREO	=%00000010
-DAC_CTRL_LOOP	=%00000001
+DAC_CTRL_IRQEN	=%00010000	; if set, enables IRQ on last DMA fetch
+DAC_CTRL_CHAN	=%00001000	; if not stereo, determines channel for DMA
+DAC_CTRL_STEREO	=%00000100	; if set, dma data is interleaved channel 0 and 1
+DAC_CTRL_LOOP	=%00000010	; if set, loop DMA data indefinitely
+DAC_CTRL_ACTIVE	=%00000001	; start/stop DMA fetch
+
+DAC_ST_BUSY	=%10000000	; dma is active or SPI is still active
+DAC_ST_IRQ	=%01000000	; IRQ is active (= last + irqen); clear by writing to CTRL
+DAC_ST_LAST	=%00100000	; if set, last fetch has happened, and is waiting for SPIout
+DAC_ST_FILL	=%00001111	; mask of number of bytes in fetch buffer
 
 DATA		=$9400	; screen mem in video bank for testing
 LEN		=$0100
@@ -75,16 +79,16 @@ l1	txa
 	lda #0
 	sta DAC_BASE + DAC_CH0
 
-l2	lda #DAC_CTRL_SPIBSY
-	bit DAC_BASE + DAC_CTRL
-	bne l2
+	.assert DAC_ST_BUSY == $80, "BUSY bit needs to be bit 7"
+l2	bit DAC_BASE + DAC_ST
+	bmi l2
 
 	lda #0
 	sta DAC_BASE + DAC_CH1
 
-l3	lda #DAC_CTRL_SPIBSY
-	bit DAC_BASE + DAC_CTRL
-	bne l3
+	.assert DAC_ST_BUSY == $80, "BUSY bit needs to be bit 7"
+l3	bit DAC_BASE + DAC_ST
+	bmi l3
 
 	;jsr wait
 
