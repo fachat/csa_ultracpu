@@ -221,6 +221,7 @@ architecture Behavioral of Top is
 	signal dac_dma_ack: std_logic;
 	signal dac_dma_addr: std_logic_vector(19 downto 0);
 	signal dac_dout: std_logic_vector(7 downto 0);
+	signal dac_irq: std_logic;
 	
 	-- components
 	
@@ -332,6 +333,7 @@ architecture Behavioral of Top is
 		regsel: in std_logic_vector(3 downto 0);
 		din: in std_logic_vector(7 downto 0);
 		dout: out std_logic_vector(7 downto 0);
+		irq: out std_logic;
 		
 		qclk: in std_logic;
 		dotclk: in std_logic_vector(3 downto 0);
@@ -401,7 +403,7 @@ begin
 
 	reset <= not(nres);
 	
-	nirq <= '0' when irq_out = '1' else 'Z';
+	nirq <= '0' when irq_out = '1' or dac_irq = '1' else 'Z';
 	
 	-- define CPU slots.
 	-- mode(1 downto 0): 00=1MHz, 01=2MHz, 10=4MHz, 11=Max speed
@@ -648,6 +650,7 @@ begin
 		ca_in(3 downto 0),
 		cd_in,
 		dac_dout,
+		dac_irq, 
 		
 		q50m,
 		dotclk,
