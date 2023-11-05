@@ -1,0 +1,5 @@
+
+100 if a=0 then a=1: load "dacfile",8
+110 open 1,8,0,"1.raw"
+120 sys 828
+

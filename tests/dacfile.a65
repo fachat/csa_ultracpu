@@ -1,0 +1,99 @@
+
+
+	.word $033c
+	*=$033c
+
+
+DAC_BASE	=$e830
+
+DAC_START	=0	; 3 registers, 2x8+3 bits
+DAC_LEN		=3	; 2 registers, 2x8 bits (+1 reserved)
+DAC_RATE	=6	; 2 registers, 8/4 bits
+DAC_CH0		=12
+DAC_CH1		=13
+DAC_ST		=14
+DAC_CTRL	=15
+
+DAC_CTRL_IRQEN	=%00010000	; if set, enables IRQ on last DMA fetch
+DAC_CTRL_CHAN	=%00001000	; if not stereo, determines channel for DMA
+DAC_CTRL_STEREO	=%00000100	; if set, dma data is interleaved channel 0 and 1
+DAC_CTRL_LOOP	=%00000010	; if set, loop DMA data indefinitely
+DAC_CTRL_ACTIVE	=%00000001	; start/stop DMA fetch
+
+DAC_ST_BUSY	=%10000000	; dma is active or SPI is still active
+DAC_ST_IRQ	=%01000000	; IRQ is active (= last + irqen); clear by writing to CTRL
+DAC_ST_LAST	=%00100000	; if set, last fetch has happened, and is waiting for SPIout
+DAC_ST_FILL	=%00001111	; mask of number of bytes in fetch buffer
+
+DATA		=$0000	; file data in bank 9 
+RATE		=94	; approx 8kHz
+
+CDATA		=$8400; screen mem in CPU space
+
+LFN		=1
+CHKIN		=$ffc6	; x=lfn
+CHRIN		=$ffcf
+CLRCH		=$ffcc
+CLOSE		=$f2e2	; ac=lfn
+
+start	.(
+
+	lda #0
+	sta addr
+	sta addr+1
+
+	ldx #LFN
+	jsr CHKIN
+
+	.(
+ld0	jsr CHRIN
+&addr	=*+1
+	sta $090000
+	lda $96
+	bne end
+	inc addr
+	bne ld0
+	inc addr + 1
+	bne ld0
+end
+	.)
+
+	jsr CLRCH
+	lda #LFN
+	jsr CLOSE
+
+	; init DMA start pointer
+	lda #<DATA
+	sta DAC_BASE + DAC_START
+	lda #>DATA
+	sta DAC_BASE + DAC_START + 1
+	lda #1
+	sta DAC_BASE + DAC_START + 2
+
+	; init DMA data length
+	lda addr
+	sta DAC_BASE + DAC_LEN
+	lda addr + 1
+	sta DAC_BASE + DAC_LEN + 1
+
+	; init DMA rate; 
+	;
+	; base freq is 12MHz/16 = 750kHz
+	; multiplied by rate value is rate data
+	; is sent out to DAC.
+	; rate 17 = 44100 Hz
+	; rate 37 = 20270 Hz
+	; ..
+	lda #<RATE
+	sta DAC_BASE + DAC_RATE
+	lda #>RATE
+	sta DAC_BASE + DAC_RATE + 1
+
+	lda #DAC_CTRL_ACTIVE + DAC_CTRL_CHAN
+	sta DAC_BASE + DAC_CTRL
+	rts
+
+	.)
+
+	.assert *<1022, "Memory overflow at 1022"
+
