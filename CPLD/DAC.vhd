@@ -68,11 +68,11 @@ architecture Behavioral of DAC is
 	signal dma_stereo: std_logic;
 	signal dma_channel: std_logic;	-- only if stereo == 0
 	signal dma_start: std_logic_vector(19 downto 0);
-	signal dma_len: std_logic_vector(15 downto 0);
+	signal dma_len: std_logic_vector(19 downto 0);
 	
 	signal dma_ce: std_logic;
 	signal dma_addr_int: std_logic_vector(19 downto 0);
-	signal dma_count: std_logic_vector(15 downto 0);
+	signal dma_count: std_logic_vector(19 downto 0);
 	signal dma_active_d: std_logic;
 	signal dma_load: std_logic;
 	signal dma_last: std_logic;	-- last byte has been loaded
@@ -346,6 +346,7 @@ begin
 				when "0100" =>	-- R4
 					dma_len(15 downto 8) <= din;
 				when "0101" =>	-- R5
+					dma_len(19 downto 16) <= din(3 downto 0);
 				when "0110" =>	-- R6
 					dac_rate(7 downto 0) <= din;
 				when "0111" =>	-- R7 -
@@ -391,7 +392,8 @@ begin
 				dout <= dma_len(7 downto 0);
 			when "0100" => -- R4
 				dout <= dma_len(15 downto 8);
-			when "0101" => -- R5 - reserved
+			when "0101" => -- R5
+				dout(3 downto 0) <= dma_len(19 downto 16);
 			when "0110" => -- R6
 				dout <= dac_rate(7 downto 0);
 			when "0111" =>		-- R7 - 
