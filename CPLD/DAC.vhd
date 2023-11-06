@@ -94,7 +94,7 @@ architecture Behavioral of DAC is
 	signal spi_phase: std_logic_vector(1 downto 0);
 	signal spi_cnt: std_logic_vector(6 downto 0);
 	signal spi_start: std_logic;
-	signal spi_buf: std_logic_vector(7 downto 0);
+	signal spi_buf: AOA8(0 to 1); --std_logic_vector(7 downto 0);
 	signal spi_msg: std_logic_vector(15 downto 0);
 	signal spi_chan: std_logic;
 	signal spi_direct: std_logic;
@@ -126,7 +126,6 @@ begin
 			dma_req <= '0';
 			dma_last <= '0';
 		elsif (falling_edge(qclk) and dma_ce = '1') then
-			dma_active_d <= dma_active;
 			
 			if (dma_load = '1' or dma_count = dma_len) then
 				-- start DMA, or re-start in loop
@@ -135,6 +134,8 @@ begin
 				if (dma_load = '0' and dma_loop = '0') then
 					-- not just loaded, and no loop - then last byte was loaded
 					dma_last <= '1';
+				else
+					dma_last <= '0';
 				end if;
 				
 			elsif (dma_ack = '1') then
@@ -187,27 +188,36 @@ begin
 			spi_done <= '0';
 		elsif (falling_edge(qclk) and spi_ce = '1') then
 						
-			if (spi_phase = "00" and dma_active = '0') then
-				dac_rp <= (others => '0');
-				spi_done <= '0';
-			end if;
+--			if (spi_phase = "00" and dma_active = '0') then
+--				dac_rp <= (others => '0');
+--				spi_done <= '0';
+--			end if;
 			
 			if (spi_start = '1') then
 				-- start work
 				spi_phase <= "01";
 				spi_cnt <= (others => '0');
-				spi_buf <= dac_buf(to_integer(unsigned(dac_rp)));
 				if (dma_stereo = '1') then
 					spi_chan <= '0';
+					spi_buf(0) <= dac_buf(to_integer(unsigned(dac_rp)));
 				else
 					spi_chan <= dma_channel;
+					if (dma_channel = '0') then
+						spi_buf(0) <= dac_buf(to_integer(unsigned(dac_rp)));
+					else
+						spi_buf(1) <= dac_buf(to_integer(unsigned(dac_rp)));
+					end if;
 				end if;
 				spi_done <= '0';
 				dac_rp <= dac_rp + 1;
 			elsif (spi_direct = '1') then
 				spi_phase <= "01";
 				spi_cnt <= (others => '0');
-				spi_buf <= din;
+				if (regsel(0) = '0') then
+					spi_buf(0) <= din;
+				else
+					spi_buf(0) <= din;
+				end if;
 				spi_chan <= regsel(0);
 				spi_done <= '0';
 			elsif (spi_phase = "01" and spi_cnt = "000010") then
@@ -229,13 +239,14 @@ begin
 					spi_chan <= '1';
 					spi_phase <= "01";
 					spi_cnt <= (others => '0');
-					spi_buf <= dac_buf(to_integer(unsigned(dac_rp)));
+					spi_buf(1) <= dac_buf(to_integer(unsigned(dac_rp)));
 					dac_rp <= dac_rp + 1;
 				else
 					nldac <= '0';
 					spi_cnt <= spi_cnt + 1;
 					if (dma_last = '1' and dac_rp = dac_wp) then
 						spi_done <= '1';
+						dac_rp <= (others => '0');
 					end if;
 				end if;
 			elsif (spi_phase = "11" and spi_cnt = "00100") then
@@ -265,7 +276,7 @@ begin
 	spi_msg(14) <= '0';	-- n/a bit
 	spi_msg(13) <= '0';	-- gain TODO
 	spi_msg(12) <= '1';	-- active
-	spi_msg(11 downto 4) <= spi_buf;
+	spi_msg(11 downto 4) <= spi_buf(0) when spi_chan = '0' else spi_buf(1);
 	spi_msg(3 downto 0) <= (others => '0');
 	
 	mosi_p: process(qclk, reset, spi_ce, mosi_ce, spi_start)
@@ -298,7 +309,7 @@ begin
 	
 	irq <= irq_int;
 				
-	regw_p: process(reset, phi2, sel, regsel, rwb, spi_done, dma_last, dma_irqen)
+	regw_p: process(reset, phi2, sel, regsel, rwb, spi_done, dma_last, dma_irqen, dma_active)
 	begin
 			
 		if (reset = '1' or dma_irqen = '0') then
@@ -315,11 +326,16 @@ begin
 		if (reset = '1') then -- or spi_done = '1') then
 			dma_active <= '0';
 		elsif (falling_edge(phi2)) then
-			if (dma_last = '1') then
+			dma_active_d <= dma_active;
+			--dma_load <= '0';
+			if (spi_done = '1') then
 				dma_active <= '0';
 			elsif (sel = '1' and rwb = '0' and regsel = "1111") then
 				-- write to register 15
 				dma_active <= din(0);
+				if (din(0) = '1' and dma_last = '1') then
+					dma_active_d <= '0';
+				end if;
 			end if;
 		end if;
 
@@ -373,7 +389,7 @@ begin
 	end process;
 	
 	reqr_p: process(phi2, sel, rwb, regsel, dma_start, dma_len, dac_rate, dma_active, dma_channel, dma_stereo, dma_loop, dac_rp, dac_wp,
-				irq_int, dma_last, dma_irqen, spi_busy)
+				irq_int, dma_last, dma_irqen, spi_busy, spi_buf)
 	begin
 		dout <= (others => '0');
 		
@@ -401,7 +417,9 @@ begin
 			when "1010" =>		-- R10 -
 			when "1011" =>		-- R11 -
 			when "1100" =>		-- R12 write only
+				dout <= spi_buf(0);
 			when "1101" =>		-- R13 write only
+				dout <= spi_buf(1);
 			when "1110" =>		-- R14 status read only
 				dout(7) <= dma_active or spi_busy;
 				dout(6) <= irq_int;

@@ -131,10 +131,24 @@ l	lda DAC_BASE + DAC_CTRL
 	lda DAC_BASE + DAC_ST
 	sta $8000,y
 	iny
-	bne l
+	bpl l
 
-clrirq	lda #0
+clrirq	;lda #0
+	lda #DAC_CTRL_ACTIVE + DAC_CTRL_STEREO + DAC_CTRL_IRQEN
 	sta DAC_BASE + DAC_CTRL
+
+ll	lda DAC_BASE + DAC_CTRL
+	sta $8000,y
+	iny
+	lda DAC_BASE + DAC_ST
+	sta $8000,y
+	iny
+	bne ll
+
+	lda #41
+	sta 59520
+	inc 59521
+
 	jmp endirq
 
 	.)
