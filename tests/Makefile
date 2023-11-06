@@ -1,5 +1,5 @@
 
-ASM=low32k virtpet dacdma dacfile
+ASM=low32k virtpet dacdma dacfile dacirq
 BASIC=readflash rtcc batmem sdcard showcols dacfload
 
 all: ${ASM} ${BASIC} upeteth

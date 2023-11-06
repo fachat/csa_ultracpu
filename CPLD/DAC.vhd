@@ -101,7 +101,6 @@ architecture Behavioral of DAC is
 	signal spi_done: std_logic;
 	signal spi_busy: std_logic;
 	
-	signal irq_ack: std_logic;
 	signal irq_int: std_logic;
 	
 	signal rate_ce: std_logic;
@@ -235,7 +234,7 @@ begin
 				else
 					nldac <= '0';
 					spi_cnt <= spi_cnt + 1;
-					if (dma_last = '1') then
+					if (dma_last = '1' and dac_rp = dac_wp) then
 						spi_done <= '1';
 					end if;
 				end if;
@@ -297,29 +296,28 @@ begin
 	spi_busy <= '0' when spi_phase = "00"
 			else '1';
 	
-	irq_int <= '1' when 
-				dma_irqen = '1'
-				and dma_last = '1'
-				and irq_ack = '0' 
-			else '0';
 	irq <= irq_int;
 				
 	regw_p: process(reset, phi2, sel, regsel, rwb, spi_done, dma_last, dma_irqen)
 	begin
-	
-		if (reset = '1' or dma_last = '0' or dma_irqen = '0') then
-			irq_ack <= '0';
+			
+		if (reset = '1' or dma_irqen = '0') then
+			irq_int <= '0';
+		elsif (dma_irqen = '1' and dma_last = '1') then
+			irq_int <= '1';
 		elsif (falling_edge(phi2)) then
 			if (sel = '1' and rwb = '0' and regsel = "1111") then
 				-- write to register 15
-				irq_ack <= '1';
+				irq_int <= '0';
 			end if;
 		end if;
 
-		if (reset = '1' or spi_done = '1') then
+		if (reset = '1') then -- or spi_done = '1') then
 			dma_active <= '0';
 		elsif (falling_edge(phi2)) then
-			if (sel = '1' and rwb = '0' and regsel = "1111") then
+			if (dma_last = '1') then
+				dma_active <= '0';
+			elsif (sel = '1' and rwb = '0' and regsel = "1111") then
 				-- write to register 15
 				dma_active <= din(0);
 			end if;
