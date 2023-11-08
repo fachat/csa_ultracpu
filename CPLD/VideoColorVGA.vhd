@@ -48,9 +48,10 @@ entity Video is
 	   is_graph : in std_logic;	-- graphic mode (from PET I/O)
 	   
 	   crtc_sel : in std_logic;
-	   crtc_rs : in std_logic_vector(3 downto 0);
+	   crtc_rs : in std_logic_vector(6 downto 0);
 	   crtc_rwb : in std_logic;
-	   
+	   mode_regmap: out std_logic;
+		
 	   qclk: in std_logic;		-- Q clock (50MHz)
 		dotclk: in std_logic_vector(3 downto 0);	-- 25Mhz, 1/2, 1/4, 1/8, 1/16
       memclk : in STD_LOGIC;	-- system clock (12.5MHz)
@@ -96,6 +97,7 @@ architecture Behavioral of Video is
 	signal mode_bitmap_reg: std_logic;	
 	signal mode_extended_reg: std_logic;	
 	signal mode_attrib_reg: std_logic;	
+	signal mode_regmap_int: std_logic;
 	signal alt_match_modes : std_logic;
 	signal alt_match_vaddr : std_logic;
 	signal alt_match_attr : std_logic;
@@ -154,7 +156,10 @@ architecture Behavioral of Video is
 	-- crtc register emulation
 	signal crtc_reg: std_logic_vector(7 downto 0);
 	signal crtc_is_data: std_logic;
-	
+	signal regsel: std_logic_vector(7 downto 0);
+	signal crtc_rs_int : std_logic_vector(7 downto 0);
+	signal crtc_mapped: std_logic;
+
 	signal rows_per_char: std_logic_vector(3 downto 0);
 	signal slots_per_line: std_logic_vector(6 downto 0);
 	signal clines_per_screen: std_logic_vector(7 downto 0);
@@ -788,14 +793,14 @@ begin
 		end if;
 	end process;
 	
-	sdo_p: process(crtc_reg, crtc_sel, crtc_rs, sprite_dout)
+	sdo_p: process(regsel, crtc_sel, crtc_is_data, sprite_dout)
 	begin
 	
 		sprite_sel <= (others => '0');
 		sprite_d <= (others => '0');
 		
-		if (crtc_sel = '1' and (crtc_rs = x"1" or crtc_rs = x"3")) then
-			case crtc_reg(6 downto 2) is
+		if (crtc_sel = '1' and crtc_is_data = '1') then
+			case regsel(6 downto 2) is
 			when "01100" =>	-- sprite 0
 				sprite_sel(0) <= '1';
 				sprite_d <= sprite_dout(0);
@@ -880,7 +885,7 @@ begin
 		phi2,
 		sprite_sel(0),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(0),
 		sprite_fgcol(0),
@@ -913,7 +918,7 @@ begin
 		phi2,
 		sprite_sel(1),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(1),
 		sprite_fgcol(1),
@@ -946,7 +951,7 @@ begin
 		phi2,
 		sprite_sel(2),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(2),
 		sprite_fgcol(2),
@@ -979,7 +984,7 @@ begin
 		phi2,
 		sprite_sel(3),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(3),
 		sprite_fgcol(3),
@@ -1012,7 +1017,7 @@ begin
 		phi2,
 		sprite_sel(4),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(4),
 		sprite_fgcol(4),
@@ -1045,7 +1050,7 @@ begin
 		phi2,
 		sprite_sel(5),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(5),
 		sprite_fgcol(5),
@@ -1078,7 +1083,7 @@ begin
 		phi2,
 		sprite_sel(6),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(6),
 		sprite_fgcol(6),
@@ -1111,7 +1116,7 @@ begin
 		phi2,
 		sprite_sel(7),
 		crtc_rwb,
-		crtc_reg(1 downto 0),
+		regsel(1 downto 0),
 		CPU_D,
 		sprite_dout(7),
 		sprite_fgcol(7),
@@ -1454,8 +1459,8 @@ begin
 				irq_raster_ack <= '0';
 			end if;
 			
-			if (crtc_sel = '1' and crtc_rs(0) = '1' and crtc_reg = x"2b"
-					--and crtc_rwb = '0'	-- note this seems to break display...???
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"2b"
+					and crtc_rwb = '0'
 					) then
 				--if (CPU_D(0) = '1') then
 					irq_raster_ack <= '1';
@@ -1502,12 +1507,12 @@ begin
 		end if;
 	end process;
 
-	Writemode_p: process(phi2, h_zero, crtc_reg, crtc_sel, crtc_rs, reset)
+	Writemode_p: process(phi2, h_zero, regsel, crtc_sel, crtc_is_data, reset)
 	begin
 		if (h_zero = '1') then
 			mode_set_flag <= '0';
 		elsif (falling_edge(phi2)) then
-			if (crtc_sel = '1' and crtc_rs(0) = '1' and (crtc_reg = x"19" or crtc_reg = x"27")
+			if (crtc_sel = '1' and crtc_is_data = '1' and (regsel = x"19" or regsel = x"27")
 					and crtc_rwb = '0'	-- note this seems to break display...???
 					) then
 				mode_set_flag <= '1';
@@ -1524,24 +1529,43 @@ begin
 	is_double_int <= mode_double;
 	interlace_int <= mode_interlace;
 
-	crtc_is_data <= '1' when crtc_sel = '1' and (crtc_rs = x"1" or crtc_rs = x"3")
-			else '0';
+	crtc_rs_int(1 downto 0) <= crtc_rs(1 downto 0);
+	crtc_rs_int(6 downto 2) <= crtc_rs(6 downto 2) when mode_regmap_int = '1' 
+										else "00000";
+	crtc_rs_int(7) <= '0';
+	
+	crtc_mapped <= '0' when mode_regmap_int = '0' or crtc_rs(6 downto 2) = "00000"		-- lowest 4 addresses not mapped
+					else '1';												-- anythings else is mapped
+
+	regsel <= crtc_reg when crtc_mapped = '0'
+				else crtc_rs_int;
+
+	crtc_is_data <= '1' when crtc_rs_int(1 downto 0) = "01" 
+								or crtc_rs_int(1 downto 0) = "11"
+								or crtc_mapped = '1'
+				else '0';
+	
+	mode_regmap <= mode_regmap_int;
 	
 	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, reset) 
 	begin
 		if (reset = '1') then
 			crtc_reg <= (others => '0');
-		elsif (falling_edge(phi2) and crtc_sel = '1' ) then
+		elsif (falling_edge(phi2) and crtc_sel = '1') then
 		
-			if (crtc_rs=x"3") then
+			if (crtc_rs_int = x"03") then
+				-- if accessing address 3, auto-increment the register number
 				crtc_reg(6 downto 0) <= crtc_reg(6 downto 0) + 1;
-			elsif (crtc_rs=x"0" and crtc_rwb = '0' ) then
+				
+			elsif ((crtc_rs_int = x"00" or crtc_rs_int = x"02") and crtc_rwb = '0' ) then
+				-- writing to either address 0 or 2 sets the register number
 				crtc_reg(6 downto 0) <= CPU_D(6 downto 0);
 			end if;
 		end if;
 	end process;
 	
-	reg9: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, crtc_reg, reset) 
+	
+	reg9: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, regsel, reset) 
 	begin
 		if (reset = '1') then
 			mode_rev <= '0';
@@ -1557,6 +1581,7 @@ begin
 			mode_interlace <= '0';
 			mode_80 <= '0';
 			mode_altreg <= '0';
+			mode_regmap_int <= '0';
 			alt_match_modes <= '0';
 			alt_match_vaddr <= '0';
 			alt_match_attr <= '0';
@@ -1592,10 +1617,11 @@ begin
 			sprite_mcol1 <= "0000";
 			sprite_base <= "10010111";
 		elsif (falling_edge(phi2) 
+				and crtc_sel = '1'
 				and crtc_is_data = '1' 
 				and crtc_rwb = '0'
 				) then
-			case (crtc_reg) is
+			case (regsel) is
 			when x"01" =>
 				-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
 				if (mode_upet = '1' or is_80 = '0') then
@@ -1604,7 +1630,17 @@ begin
 				else
 					slots_per_line(6 downto 0) <= CPU_D(6 downto 0);
 				end if;
-			when x"02" => 
+			when x"05" => 
+				-- mirror of R1 when regmap is set
+				if (mode_regmap_int = '1') then
+					-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+					if (mode_upet = '1' or is_80 = '0') then
+						slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+						slots_per_line(0) <= '0';
+					else
+						slots_per_line(6 downto 0) <= CPU_D(6 downto 0);
+					end if;
+				end if;
 			when x"06" => 
 				clines_per_screen <= CPU_D;
 			when x"08" =>
@@ -1696,6 +1732,7 @@ begin
 			when x"27" =>	-- R39
 				mode_extended_reg <= CPU_D(2);
 				dispen <= CPU_D(4);
+				mode_regmap_int <= CPU_D(6);
 				mode_upet <= CPU_D(7);
 			when x"28" => 	-- R40
 				col_bg1 <= CPU_D(3 downto 0);
@@ -1748,7 +1785,7 @@ begin
 		end if;
 	end process;
 
-	readreg: process(crtc_rwb, crtc_sel, crtc_rs, crtc_reg, reset) 
+	readreg: process(crtc_rwb, crtc_sel, crtc_rs, regsel, reset) 
 	begin
 		if (reset = '1') then
 			vd_out <= (others => '0');
@@ -1760,14 +1797,13 @@ begin
 				and crtc_rwb = '1'
 				) then
 				
-				if (crtc_rs = x"2") then
+				if (crtc_rs_int = x"02") then
 					vd_out <= crtc_reg;
-				elsif (crtc_rs = x"0") then
+				elsif (crtc_rs_int = x"00") then
 					-- TODO: status register at address 0
-				elsif (crtc_rs = x"1" or crtc_rs = x"3") then
-
+				elsif (crtc_is_data = '1') then
 					
-					case (crtc_reg) is
+					case (regsel) is
 					when x"01" =>
 						-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
 						if (mode_upet = '1' or is_80 = '0') then
@@ -1775,7 +1811,16 @@ begin
 						else
 							vd_out(6 downto 0) <= slots_per_line(6 downto 0);
 						end if;
-					when x"02" =>
+					when x"05" =>
+						-- mirrors R1 for memory-mapped mode
+						if (mode_regmap_int = '1') then
+							-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+							if (mode_upet = '1' or is_80 = '0') then
+								vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+							else
+								vd_out(6 downto 0) <= slots_per_line(6 downto 0);
+							end if;
+						end if;
 					when x"06" => 
 						vd_out <= clines_per_screen;
 					when x"08" =>
@@ -1862,6 +1907,7 @@ begin
 					when x"27" =>	-- R39
 						vd_out(2) <= mode_extended;
 						vd_out(4) <= dispen;
+						vd_out(6) <= mode_regmap_int;
 						vd_out(7) <= mode_upet;
 					when x"28" => 	-- R40
 						vd_out(3 downto 0) <= col_bg1;

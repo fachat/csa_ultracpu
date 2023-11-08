@@ -160,7 +160,7 @@ architecture Behavioral of Top is
 	signal m_memsel: std_logic;
 
 	signal sel0 : std_logic;
-	signal sel8 : std_logic;
+	signal vid_sel : std_logic;
 	
 	signal mode : std_logic_vector(1 downto 0);
 	signal boot : std_logic;
@@ -183,6 +183,7 @@ architecture Behavioral of Top is
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
 	signal v_out: std_logic_vector(3 downto 0);
+	signal vis_regmap: std_logic;		-- when set, Viccy occupies not 4, but 96 addresses due to register-to-memory mapping
 	
 	-- cpu
 	signal ca_in: std_logic_vector(15 downto 0);
@@ -307,8 +308,9 @@ architecture Behavioral of Top is
 	   is_graph : in std_logic;	-- from PET I/O
 	   
 	   crtc_sel : in std_logic;	-- select line for CRTC
-	   crtc_rs  : in std_logic_vector(3 downto 0);	-- register select
+	   crtc_rs  : in std_logic_vector(6 downto 0);	-- register select
 	   crtc_rwb : in std_logic;	-- r/-w
+	   mode_regmap: out std_logic;
 	   
 	   qclk: in std_logic;		-- Q clock
 		dotclk: in std_logic_vector(3 downto 0);	-- pixel clock
@@ -559,7 +561,10 @@ begin
 	-- internal selects
 	sel0 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"0" else '0';
 	dac_sel 	<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"3" else '0';
-	sel8 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"8" else '0';
+	vid_sel	<= '1' when m_iosel = '1' and 
+							((vis_regmap = '0' and ca_in(7 downto 4) = x"8")
+							or (vis_regmap = '1' and ca_in(7) = '1' and not(ca_in(6 downto 5) = "11")))
+						else '0';
 
 	nbussel_p: process(reset, memclk)
 	begin
@@ -580,7 +585,7 @@ begin
 			--else 
 			'0' when m_iosel = '1' 
 --				and not(ca_in(6 downto 4) = "000") 
-				and sel0 = '0' and sel8 = '0' and dac_sel = '0'
+				and sel0 = '0' and vid_sel = '0' and dac_sel = '0'
 			else '1';
 
 	nmemsel_int <= not (m_memsel); -- not for now
@@ -623,9 +628,10 @@ begin
 		vis_enable,
 		vis_80_in,
 		vgraphic,
-		sel8,
-		ca_in(3 downto 0),
+		vid_sel,
+		ca_in(6 downto 0),
 		rwb,
+		vis_regmap,
 		q50m,		-- Q clock (50MHz)
 		dotclk,	-- pixel clock, 25MHz
 		memclk,		-- sysclk (12.5MHz)
@@ -869,7 +875,7 @@ begin
 			spi_dout when spi_cs = '1'
 				and rwb = '1'
 		else
-			vd_out when sel8 = '1'
+			vd_out when vid_sel = '1'
 				and rwb = '1'
 				and phi2_int = '1'
 		else
