@@ -135,9 +135,15 @@ NET NLDAC		LOC=P135 | IOSTANDARD = LVTTL;
 
 NET INIT_B		LOC=P40 | IOSTANDARD = LVTTL;
 
+INST "NFRAMSEL"					TNM = "ram_tnm";
+INST "NVRAMSEL"					TNM = "ram_tnm";
+INST "RAMRWB"						TNM = "ram_tnm";
+
+INST "SPI_CLK"						BUFG=CLK | TNM = "dotclk_tnm";
 #INST "clocky/memclk_int"		BUFG=CLK;
 INST "clocky/dotclk_int_1"		BUFG=CLK | TNM = "dotclk_tnm";
 INST "q50m"							TNM = "qclk_tnm";
 #INST "viccy/vid_fetch"			BUFG=CLK | TNM = "vidfetch_tnm";
 TIMESPEC "ts_dotclk" = FROM "qclk_tnm" TO "dotclk_tnm" 3 ns DATAPATHONLY;
 #TIMESPEC "ts_vidfetch" = FROM "qclk_tnm" to "vidfetch_tnm" 3 ns DATAPATHONLY;
+TIMESPEC "ts_ram" = FROM "qclk_tnm" TO "ram_tnm" 4 ns DATAPATHONLY;

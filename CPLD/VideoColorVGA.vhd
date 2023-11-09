@@ -142,7 +142,8 @@ architecture Behavioral of Video is
 	signal sr_reverse_p : std_logic;
 	signal sr_underline_p: std_logic;
 	signal is_outbit: std_logic_vector(1 downto 0);
-	signal raster_out: AOA4(0 to 6);
+	signal raster_out: AOA4(0 to 7);
+	signal raster_bg: std_logic_vector(6 downto 0);
 	signal raster_outbit: std_logic_vector(3 downto 0);
 	signal sr_buf: std_logic_vector(7 downto 0);
 	signal raster_isbg: std_logic;
@@ -219,7 +220,7 @@ architecture Behavioral of Video is
 	signal y_addr_latch: std_logic_vector(9 downto 8); 	-- latch upper two bits when reading lower bits from r38
 	
 	-- border
-	signal h_shift: std_logic_vector(3 downto 0);
+	signal h_shift: std_logic_vector(2 downto 0);
 	signal h_extborder: std_logic;
 	signal v_extborder: std_logic;
 	signal v_shift: std_logic_vector(3 downto 0);
@@ -327,6 +328,12 @@ architecture Behavioral of Video is
 	signal sprite_data_ptr: std_logic_vector(7 downto 0);
 	signal sprite_fetch_ce: std_logic_vector(7 downto 0);
 	signal sprite_fetch_ptr: std_logic_vector(15 downto 0);
+	
+	-- collision
+	signal collision_trigger_sprite_border: std_logic_vector(7 downto 0);
+	signal collision_accum_sprite_border: std_logic_vector(7 downto 0);
+	signal collision_trigger_sprite_raster: std_logic_vector(7 downto 0);
+	signal collision_accum_sprite_raster: std_logic_vector(7 downto 0);
 	
 	-- helpers
 	
@@ -1333,67 +1340,67 @@ begin
 					raster_outbit <= col_border;
 				end case;
 			end if;
+			if (is_80 = '1' or dotclk(1) = '1') then
+				raster_out(6) <= raster_out(7);
+				raster_out(5) <= raster_out(6);
+				raster_out(4) <= raster_out(5);
+				raster_out(3) <= raster_out(4);
+				raster_out(2) <= raster_out(3);
+				raster_out(1) <= raster_out(2);
+				raster_out(0) <= raster_out(1);
+			end if;
+			raster_out(to_integer(unsigned(h_shift))) <= raster_outbit;
+			raster_bg(to_integer(unsigned(h_shift))) <= raster_isbg;
 		end if;
 	end process;
 	
---	collision_p: process(qclk, dena_int)
---	begin
---		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
---
---			if (x_border = '1' or y_border = '1' or dispen = '0') then
---				if (sprite_on = '1') then
---					collision_trigger_sprite_border(sprite_no) <= '1';
---				end if;
---			end if;
+	collision_p: process(qclk, dena_int, collision_trigger_sprite_border)
+	begin
+		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 	
-	vid_out_p: process (qclk, dena_int)
+			collision_accum_sprite_border <= collision_trigger_sprite_border or collision_accum_sprite_border;
+			collision_accum_sprite_raster <= collision_trigger_sprite_raster or collision_accum_sprite_raster;
+			
+			if (dotclk(1) = '1' and crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+				if (regsel = 89) then
+					-- reading the sprite-border collision register
+					collision_accum_sprite_border <= (others => '0');
+				elsif (regsel = 91) then
+					collision_accum_sprite_raster <= (others => '0');
+				end if;
+			end if;
+		end if;
+	end process;
+	
+	vid_mixer_p: process (qclk, dena_int)
 	begin
 		if (dena_int = '0') then
 			vid_out <= (others => '0');
 		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 
+			collision_trigger_sprite_border <= (others => '0');
+			collision_trigger_sprite_raster <= (others => '0');
+
 			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				if (sprite_on = '1' and sprite_onborder = '1') then
 					-- sprite on top of border
 					vid_out <= sprite_outcol;
+					collision_trigger_sprite_border(sprite_no) <= '1';
 				else
 					-- BORDER
 					vid_out <= col_border;
 				end if;
-			elsif (sprite_on = '1' and (raster_isbg = '1' or sprite_onraster = '1')) then
+			elsif (sprite_on = '1' and (raster_bg(0) = '1' or sprite_onraster = '1')) then
 				-- sprite on top of raster
 				vid_out <= sprite_outcol;
+				if (raster_bg(0) = '0') then
+					collision_trigger_sprite_raster(sprite_no) <= '1';
+				end if;
+				
 			elsif (is_80 = '1' or dotclk(1) = '1') then
 				-- raster
-				case (h_shift(2 downto 0)) is
-				when "000" =>
-					vid_out <= raster_outbit;
-				when "001" =>
-					vid_out <= raster_out(0);
-				when "010" =>
-					vid_out <= raster_out(1);
-				when "011" =>
-					vid_out <= raster_out(2);
-				when "100" =>
-					vid_out <= raster_out(3);
-				when "101" =>
-					vid_out <= raster_out(4);
-				when "110" =>
-					vid_out <= raster_out(5);
-				when "111" =>
-					vid_out <= raster_out(6);
-				when others =>
-					vid_out <= col_border;
-				end case;
-			end if;
-			
-			raster_out(6) <= raster_out(5);
-			raster_out(5) <= raster_out(4);
-			raster_out(4) <= raster_out(3);
-			raster_out(3) <= raster_out(2);
-			raster_out(2) <= raster_out(1);
-			raster_out(1) <= raster_out(0);
-			raster_out(0) <= raster_outbit;			
+				vid_out <= raster_out(0);
+			end if;			
 		end if;
 	end process;
 	
@@ -1753,7 +1760,7 @@ begin
 				cblink_mode <= CPU_D(5);
 				mode_rev <= CPU_D(6);
 			when x"19" =>	-- R25
-				h_shift <= CPU_D(3 downto 0);
+				h_shift <= CPU_D(2 downto 0);
 				h_extborder <= CPU_D(4);
 				mode_attrib_reg <= CPU_D(6);
 				mode_bitmap_reg <= CPU_D(7);
@@ -1928,7 +1935,7 @@ begin
 						vd_out(5) <= cblink_mode;
 						vd_out(6) <= mode_rev;
 					when x"19" =>	-- R25
-						vd_out(3 downto 0) <= h_shift;
+						vd_out(2 downto 0) <= h_shift;
 						vd_out(4) <= h_extborder;
 						vd_out(6) <= mode_attrib;
 						vd_out(7) <= mode_bitmap;
@@ -1997,6 +2004,10 @@ begin
 						vd_out(3 downto 0) <= sprite_fgcol(7);
 					when x"58" =>	-- R88
 						vd_out <= sprite_base;
+					when x"59" =>	-- R89
+						vd_out <= collision_accum_sprite_border;
+					when x"5b" =>	-- R91
+						vd_out <= collision_accum_sprite_raster;
 					when x"5c" =>	-- R92
 						vd_out(3 downto 0) <= sprite_mcol1;
 					when x"5d" =>	-- R93
