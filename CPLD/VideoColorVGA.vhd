@@ -161,6 +161,8 @@ architecture Behavioral of Video is
 	signal crtc_mapped: std_logic;
 
 	signal rows_per_char: std_logic_vector(3 downto 0);
+	signal bits_per_char: std_logic_vector(3 downto 0);
+	signal vis_rows_per_char: std_logic_vector(3 downto 0);
 	signal slots_per_line: std_logic_vector(6 downto 0);
 	signal clines_per_screen: std_logic_vector(7 downto 0);
 	signal hsync_pos: std_logic_vector(6 downto 0);
@@ -228,6 +230,8 @@ architecture Behavioral of Video is
 	signal last_line_of_char : std_logic := '0';
 	-- pulse at end of screen
 	signal last_line_of_screen : std_logic := '0';
+	-- when char rows are actually visible
+	signal vis_line_of_char: std_logic;
 	
 	-- enable
 	signal h_enable : std_logic := '0';	
@@ -384,6 +388,7 @@ architecture Behavioral of Video is
 			v_zero: in std_logic;
 			vsync_pos: in std_logic_vector(7 downto 0);
 			rows_per_char: in std_logic_vector(3 downto 0);
+			vis_rows_per_char: in std_logic_vector(3 downto 0);
 			clines_per_screen: in std_logic_vector(7 downto 0);
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
@@ -394,6 +399,7 @@ architecture Behavioral of Video is
 			is_border: out std_logic;			
 			is_last_row_of_char: out std_logic;
 			is_last_row_of_screen: out std_logic;
+			is_visible: out std_logic;
 			rcline_cnt: out std_logic_vector(3 downto 0);
 			rline_cnt0: out std_logic;
 			
@@ -629,6 +635,7 @@ begin
 			v_zero,
 			vsync_pos,
 			rows_per_char,
+			vis_rows_per_char,
 			clines_per_screen,
 			v_extborder,
 			is_double_int,
@@ -638,6 +645,7 @@ begin
 			y_border,
 			last_line_of_char,
 			last_line_of_screen,
+			vis_line_of_char,
 			rcline_cnt,
 			rline_cnt0,
 			reset
@@ -1151,7 +1159,7 @@ begin
 	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int,
 		mode_rev, sr_crsr, sr_blink, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
 	begin
-		
+
 		if (falling_edge(qclk)) then
 			if (fetch_ce = '1' and chr_fetch_int = '1') then
 				char_index_buf <= VRAM_D;
@@ -1167,7 +1175,11 @@ begin
 
 		if (falling_edge(qclk)) then
 			if (fetch_ce = '1' and pxl_fetch_int = '1') then
-				pxl_buf <= VRAM_D;
+				if (mode_bitmap = '1' or vis_line_of_char = '1') then
+					pxl_buf <= VRAM_D;
+				else
+					pxl_buf <= (others => '0');
+				end if;
 			end if;
 		end if;
 
@@ -1233,6 +1245,29 @@ begin
 					is_outbit(1) <= '0';
 					is_outbit(0) <= sr_buf(7);
 				end if;
+				
+				case (bits_per_char) is
+				when "0000" =>
+					sr <= (others => '0');
+					is_outbit(0) <= '0';
+					is_outbit(1) <= '0';
+				when "0001" =>
+					sr <= (others => '0');
+				when "0010" =>
+					sr(5 downto 0) <= (others => '0');
+				when "0011" =>
+					sr(4 downto 0) <= (others => '0');
+				when "0100" =>
+					sr(3 downto 0) <= (others => '0');
+				when "0101" =>
+					sr(2 downto 0) <= (others => '0');
+				when "0110" =>
+					sr(1 downto 0) <= (others => '0');
+				when "0111" =>
+					sr(0 downto 0) <= (others => '0');
+				when others =>
+				end case;
+				
 			elsif (dotclk(0) = '0' and (is_80 = '1' or dotclk(1) = '1')) then
 				sr(6 downto 1) <= sr(5 downto 0);
 				sr(0) <= '1';
@@ -1248,8 +1283,8 @@ begin
 					is_outbit(1) <= '0';
 					is_outbit(0) <= sr(6);
 				end if;
-
 			end if;
+						
 		end if;
 	end process;
 					
@@ -1591,6 +1626,8 @@ begin
 			crsr_mode <= (others => '0');
 			crsr_address <= (others => '0');
 			rows_per_char <= "0111"; -- 7
+			bits_per_char <= "1000"; -- 8
+			vis_rows_per_char <= "1111"; -- 15
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= "0001101";	-- 13
 			vsync_pos <= std_logic_vector(to_unsigned(84,10));
@@ -1706,6 +1743,10 @@ begin
 				else
 					attr_base(7 downto 0) <= CPU_D;
 				end if;
+			when x"16" => 	-- R22
+				bits_per_char <= CPU_D(3 downto 0);
+			when x"17" => 	-- R23
+				vis_rows_per_char <= CPU_D(3 downto 0);
 			when x"18" =>	-- R24
 				v_shift <= CPU_D(3 downto 0);
 				v_extborder <= CPU_D(4);
@@ -1877,6 +1918,10 @@ begin
 						else
 							vd_out <= attr_base(7 downto 0);
 						end if;
+					when x"16" => 	-- R22
+						vd_out(3 downto 0) <= bits_per_char;
+					when x"17" => 	-- R23
+						vd_out(3 downto 0) <= vis_rows_per_char;
 					when x"18" =>	-- R24
 						vd_out(3 downto 0) <= v_shift;
 						vd_out(4) <= v_extborder;

@@ -266,8 +266,8 @@ begin
 			s_overborder <= '0';
 			s_multi <= '0';
 			s_fine <= '0';
-			x_pos <= "0100000000";	-- (others => '0');
-			y_pos <= "0010000000";	-- (others => '0');
+			x_pos <= "0000000000";	-- (others => '0');
+			y_pos <= "0000000000";	-- (others => '0');
 		elsif (falling_edge(phi2)
 			and sel = '1' and rwb = '0'
 			) then

@@ -42,6 +42,7 @@ entity VBorder is
 			v_zero: in std_logic;
 			vsync_pos: in std_logic_vector(7 downto 0);
 			rows_per_char: in std_logic_vector(3 downto 0);
+			vis_rows_per_char: in std_logic_vector(3 downto 0);
 			clines_per_screen: in std_logic_vector(7 downto 0);
 			v_extborder: in std_logic;			
 			is_double: in std_logic;
@@ -52,6 +53,7 @@ entity VBorder is
 			is_border: out std_logic;			
 			is_last_row_of_char: out std_logic;
 			is_last_row_of_screen: out std_logic;
+			is_visible: out std_logic;
 			rcline_cnt: out std_logic_vector(3 downto 0);
 			rline_cnt0: out std_logic;
 			
@@ -78,6 +80,9 @@ architecture Behavioral of VBorder is
 	signal is_matchon: std_logic;
 	signal is_matchoff: std_logic;
 	signal is_nextcr: std_logic;
+	
+	signal is_vis_start: std_logic;
+	signal is_vis_end: std_logic;
 begin
 
 	--next_row <= not(rline_cnt0_int) or is_double;
@@ -131,8 +136,19 @@ begin
 		end if;
 	end process;
 
-	State: process (vh_cnt, v_state, vsync_pos, h_zero, rcline_cnt_ext, rows_per_char, next_row, v_shift, rline_cnt0_int, is_double)
+	State: process (vh_cnt, v_state, vsync_pos, h_zero, rcline_cnt_ext, rows_per_char, next_row, v_shift, rline_cnt0_int, is_double, vis_rows_per_char)
 	begin		
+
+		if (rcline_cnt_ext = vis_rows_per_char and (rline_cnt0_int = '0' or is_double = '1')) then -- rows_per_char
+			is_vis_end <= '1';
+		else
+			is_vis_end <= '0';
+		end if;
+		if (rcline_cnt_ext = 0) then -- rows_per_char
+			is_vis_start <= '1';
+		else
+			is_vis_start <= '0';
+		end if;
 	
 		-- end of character (last pixel row)
 		if (rcline_cnt_ext = rows_per_char and next_row = '1') then -- rows_per_char
@@ -171,6 +187,13 @@ begin
 
 				if (is_nextcr = '1') then
 					is_last_row_of_char_ext <= '1';
+				end if;
+				
+				if (is_vis_end = '1') then
+					is_visible <= '0';
+				end if;
+				if (is_vis_start = '1') then
+					is_visible <= '1';
 				end if;
 				
 				if (v_extborder = '0') then

@@ -64,10 +64,8 @@ The following are the internal Viccy registers:
 - r21: attribute start address low (VDC)
 - r22: (not used: character horizontal - define character width total and displayed (VDC)
   - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
-  - bits 7-4: total: total number of horizontal bits timed for a char, -1.)
-  - TODO: while total h.bits will always be 8, implement displayed h.bits (.0-.3)
+  - bits 7-4: n/a (note, in VDC this is total number of horizontal bits timed for a char, -1. But here fixed to 7)
 - r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
-    - TODO
 - r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of scan lines to scroll the screen up
   - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
