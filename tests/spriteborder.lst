@@ -1,7 +1,7 @@
 
 10 rem sprite demo, based on up,up, and away
 20 if a=0 then a=1:load"spriteborderirq",8
-30 sys828
+30 sys32768+6*256
 40 print "{CLR}"
 100 v=59520:rem start of display chip
 
@@ -20,10 +20,10 @@
 910 poke v,56:poke v+1,x:rem update x coordinates
 920 poke v,57:poke v+1,x:rem update y coordinates
 940 get a$:if a$="" then 990
-950 if a$="{up}" then poke v,53:poke v+1, peek(v+1) - 1: goto 990
-952 if a$="{down}" then poke v,53:poke v+1, peek(v+1) + 1: goto 990
-954 if a$="{left}" then poke v,52:poke v+1, peek(v+1) - 1: goto 990
-956 if a$="{right}" then poke v,52:poke v+1, peek(v+1) + 1: goto 990
+950 if a$="8" then poke v,53:poke v+1, peek(v+1) - 1: goto 990
+952 if a$="2" then poke v,53:poke v+1, peek(v+1) + 1: goto 990
+954 if a$="4" then poke v,52:poke v+1, peek(v+1) - 1: goto 990
+956 if a$="6" then poke v,52:poke v+1, peek(v+1) + 1: goto 990
 990 next x
 995 goto 900
 

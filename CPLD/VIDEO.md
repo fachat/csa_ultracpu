@@ -62,7 +62,7 @@ The following are the internal Viccy registers:
 - r15: cursor position low (CRTC)
 - r20: attribute start address high (VDC)
 - r21: attribute start address low (VDC)
-- r22: (not used: character horizontal - define character width total and displayed (VDC)
+- r22: Horizontal displayed pixel per char
   - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
   - bits 7-4: n/a (note, in VDC this is total number of horizontal bits timed for a char, -1. But here fixed to 7)
 - r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
