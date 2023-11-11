@@ -657,6 +657,8 @@ l	bit VDC+1
 	inc VDC+1
 	rts
 
+mode	.byt 0
+
 itab	.word idemo5-1
 	.word 325
 	.word 0
@@ -667,8 +669,12 @@ idemox	ldx #9
 
 	lda cnt2
 	and #15
-	bne l3
+	bne end
 
+	ldy mode
+	bne mode1
+
+mode0	.(
 	; scroll a single char
 	ldx #15
 	lda CHAR,x
@@ -689,7 +695,47 @@ l1	inx
 	bcc l2
 	ora #$80
 l2	sta CHAR,x
-l3	
+	jmp checkmode
+	.)
+mode1	.(
+	; R22/R23 horizontal/vertical displayed pixel per char
+	lda cnt2
+	lsr
+	lsr
+	lsr
+	lsr
+	dey
+	bne m	; mode2, jump r23
+	ldx #22
+	sta tmp
+	lda #15
+	sec
+	sbc tmp
+	bne store
+	lda #1
+	sta vdctab+23	; initialize next mode
+	lda #8
+	bne store
+	
+m	ldx #23
+	clc
+	adc #1
+store	sta vdctab,x
+	.)
+checkmode .(
+	lda cnt2
+	and #$f0
+	eor #$f0
+	bne end
+	inc mode
+	lda mode
+	sec
+	sbc #3
+	bne end
+	sta mode
+	.)
+
+end	
 	lda #41
 	sta VDC
 	inc VDC+1
@@ -700,7 +746,7 @@ itab2	.word idemox-1
 	.word 353
 	.word 0
 
-txt 	.asc "           * RE-DEFINABLE CHARACTER SET AND LARGE CHAR HEIGHT"
+txt 	.asc "           * RE-DEFINABLE CHARACTER SET, LARGE HEIGHT AND CUT-OFF"
 	.asc CR,0
 	.)
 
