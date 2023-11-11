@@ -247,11 +247,22 @@ architecture Behavioral of Video is
 	signal raster_match: std_logic_vector(9 downto 0);
 	signal is_raster_match: std_logic;
 	
+	-- interrupts
 	signal irq_raster_ack: std_logic;
 	signal irq_raster: std_logic;
 	signal irq_raster_en: std_logic;
 	signal irq_out_int: std_logic;
-	
+
+	signal irq_sprite_raster_ack: std_logic;
+	signal irq_sprite_raster: std_logic;
+	signal irq_sprite_raster_en: std_logic;
+	signal irq_sprite_sprite_ack: std_logic;
+	signal irq_sprite_sprite: std_logic;
+	signal irq_sprite_sprite_en: std_logic;
+	signal irq_sprite_border_ack: std_logic;
+	signal irq_sprite_border: std_logic;
+	signal irq_sprite_border_en: std_logic;
+
 	-- intermediate
 	signal h_zero: std_logic;
 	signal v_zero: std_logic;
@@ -334,6 +345,8 @@ architecture Behavioral of Video is
 	signal collision_accum_sprite_border: std_logic_vector(7 downto 0);
 	signal collision_trigger_sprite_raster: std_logic_vector(7 downto 0);
 	signal collision_accum_sprite_raster: std_logic_vector(7 downto 0);
+	signal collision_trigger_sprite_sprite: std_logic_vector(7 downto 0);
+	signal collision_accum_sprite_sprite: std_logic_vector(7 downto 0);
 	
 	-- helpers
 	
@@ -805,6 +818,29 @@ begin
 				sprite_onraster <= '0';
 				sprite_no <= 0;
 			end if;
+		end if;
+	end process;
+
+	spritesprite_p: process(phi2, dena_int, collision_trigger_sprite_sprite)
+	begin
+
+		if (falling_edge(qclk)) then -- and dotclk(0) = '0') then
+			
+			outer_l: for i in 0 to 7 loop
+			
+				collision_trigger_sprite_sprite(i) <= '0';
+				
+				inner_l: for j in 0 to 7 loop
+				
+					if (i /= j) then
+					
+						if (sprite_ison(i) = '1' and sprite_ison(j) = '1') then
+						
+							collision_trigger_sprite_sprite(i) <= '1';
+						end if;
+					end if;
+				end loop;
+			end loop;
 		end if;
 	end process;
 	
@@ -1369,6 +1405,17 @@ begin
 				end if;
 			end if;
 			
+			if (collision_trigger_sprite_sprite(i) = '1') then
+				collision_accum_sprite_sprite(i) <= '1';
+			elsif (falling_edge(phi2)) then
+				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+					if (regsel = 90) then
+						-- reading the sprite-border collision register
+						collision_accum_sprite_sprite(i) <= '0';
+					end if;
+				end if;
+			end if;
+			
 			if (collision_trigger_sprite_raster(i) = '1') then
 				collision_accum_sprite_raster(i) <= '1';
 			elsif (falling_edge(phi2)) then
@@ -1387,11 +1434,12 @@ begin
 	begin
 		if (dena_int = '0' or reset = '1') then
 			vid_out <= (others => '0');
-			collision_trigger_sprite_border <= (others => '0');
-			collision_trigger_sprite_raster <= (others => '0');
 			
 		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 
+			collision_trigger_sprite_border <= (others => '0');
+			collision_trigger_sprite_raster <= (others => '0');
+			
 			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				if (sprite_on = '1' and sprite_onborder = '1') then
 					-- sprite on top of border
@@ -1511,13 +1559,13 @@ begin
 			if (is_raster_match = '0') then
 				irq_raster_ack <= '0';
 			end if;
-			
+
 			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"2b"
 					and crtc_rwb = '0'
 					) then
-				--if (CPU_D(0) = '1') then
+				if (CPU_D(0) = '1') then
 					irq_raster_ack <= '1';
-				--end if;
+				end if;
 			end if;
 			
 		end if;
@@ -1668,6 +1716,9 @@ begin
 			va_offset <= (others => '0');
 			raster_match <= (others => '0');
 			irq_raster_en <= '0';
+			irq_sprite_sprite_en <= '0';
+			irq_sprite_border_en <= '0';
+			irq_sprite_raster_en <= '0';
 			sprite_mcol1 <= "0000";
 			sprite_mcol1 <= "0000";
 			sprite_base <= "10010111";
@@ -1800,6 +1851,9 @@ begin
 				col_border <= CPU_D(3 downto 0);
 			when x"2a" =>	-- R42
 				irq_raster_en <= CPU_D(0);
+				irq_sprite_raster_en <= CPU_D(1);
+				irq_sprite_sprite_en <= CPU_D(2);
+				irq_sprite_border_en <= CPU_D(3);
 			when x"2c" =>	-- R44
 				-- horizontal sync
 				hsync_pos <= CPU_D(6 downto 0);
@@ -1979,8 +2033,14 @@ begin
 						vd_out(3 downto 0) <= col_border;
 					when x"2a" =>	-- R44
 						vd_out(0) <= irq_raster_en;
+						vd_out(1) <= irq_sprite_raster_en;
+						vd_out(2) <= irq_sprite_sprite_en;
+						vd_out(3) <= irq_sprite_border_en;
 					when x"2b" =>	-- R44
 						vd_out(0) <= irq_raster;
+						vd_out(1) <= irq_sprite_raster;
+						vd_out(2) <= irq_sprite_sprite;
+						vd_out(3) <= irq_sprite_border;
 						vd_out(7) <= irq_out_int;
 					when x"2c" =>	-- R44
 						vd_out(6 downto 0) <= hsync_pos;
@@ -2017,6 +2077,8 @@ begin
 						vd_out <= sprite_base;
 					when x"59" =>	-- R89
 						vd_out <= collision_accum_sprite_border;
+					when x"5a" =>	-- R90
+						vd_out <= collision_accum_sprite_sprite;
 					when x"5b" =>	-- R91
 						vd_out <= collision_accum_sprite_raster;
 					when x"5c" =>	-- R92
