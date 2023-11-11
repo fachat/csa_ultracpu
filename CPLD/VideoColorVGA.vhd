@@ -1354,32 +1354,43 @@ begin
 		end if;
 	end process;
 	
-	collision_p: process(qclk, dena_int, collision_trigger_sprite_border)
+	collision_p: process(phi2, dena_int, collision_trigger_sprite_border, collision_trigger_sprite_raster)
 	begin
-		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 	
-			collision_accum_sprite_border <= collision_trigger_sprite_border or collision_accum_sprite_border;
-			collision_accum_sprite_raster <= collision_trigger_sprite_raster or collision_accum_sprite_raster;
-			
-			if (dotclk(1) = '1' and crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
-				if (regsel = 89) then
-					-- reading the sprite-border collision register
-					collision_accum_sprite_border <= (others => '0');
-				elsif (regsel = 91) then
-					collision_accum_sprite_raster <= (others => '0');
+		coll_l: for i in 0 to 7 loop
+			if (collision_trigger_sprite_border(i) = '1') then
+				collision_accum_sprite_border(i) <= '1';
+			elsif (falling_edge(phi2)) then
+				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+					if (regsel = 89) then
+						-- reading the sprite-border collision register
+						collision_accum_sprite_border(i) <= '0';
+					end if;
 				end if;
 			end if;
-		end if;
+			
+			if (collision_trigger_sprite_raster(i) = '1') then
+				collision_accum_sprite_raster(i) <= '1';
+			elsif (falling_edge(phi2)) then
+				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+					if (regsel = 91) then
+						-- reading the sprite-border collision register
+						collision_accum_sprite_raster(i) <= '0';
+					end if;
+				end if;
+			end if;
+			
+		end loop;
 	end process;
 	
-	vid_mixer_p: process (qclk, dena_int)
+	vid_mixer_p: process (qclk, dena_int, reset)
 	begin
-		if (dena_int = '0') then
+		if (dena_int = '0' or reset = '1') then
 			vid_out <= (others => '0');
-		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
-
 			collision_trigger_sprite_border <= (others => '0');
 			collision_trigger_sprite_raster <= (others => '0');
+			
+		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 
 			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				if (sprite_on = '1' and sprite_onborder = '1') then
