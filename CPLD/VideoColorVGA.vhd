@@ -1407,19 +1407,21 @@ begin
 		end if;
 	end process;
 	
-	collision_p: process(phi2, dena_int, collision_trigger_sprite_border, collision_trigger_sprite_raster, 
+	collision_p: process(qclk, phi2, dena_int, collision_trigger_sprite_border, collision_trigger_sprite_raster, 
 			collision_accum_sprite_raster, collision_accum_sprite_border, collision_trigger_sprite_sprite)
 	begin
 	
-		collision_sprite_raster_none <= '0';
-		if (collision_accum_sprite_raster = "00000000") then
-			collision_sprite_raster_none <= '1';
+		if (falling_edge(qclk)) then
+			collision_sprite_raster_none <= '0';
+			if (collision_accum_sprite_raster = "00000000") then
+				collision_sprite_raster_none <= '1';
+			end if;
+			collision_sprite_border_none <= '0';
+			if (collision_accum_sprite_border = "00000000") then
+				collision_sprite_border_none <= '1';
+			end if;
 		end if;
-		collision_sprite_border_none <= '0';
-		if (collision_accum_sprite_border = "00000000") then
-			collision_sprite_border_none <= '1';
-		end if;
-
+		
 		irq_sprite_raster_trigger <= '0';
 		irq_sprite_border_trigger <= '0';
 

@@ -13,7 +13,6 @@ IRQV	=$90
 	sta IRQV
 	lda #>newvec
 	sta IRQV+1
-	cli
 
 	; enable memory mapped registers
 	lda #39
@@ -22,9 +21,25 @@ IRQV	=$90
 	ora #64
 	sta $e881
 
+	lda #38
+	sta $e885	; show right border
+	lda #2
+	sta $e89b	; 2 offset to compensate
+	lda #%00001110
+	sta $e8aa	; interrupt enable for all sprite collisions
+	cli
+
 	rts
 
-newvec	lda $e8d9	; sprite-border
+newvec	lda $e8ab
+	bpl normal	; no sprite IRQ
+	sta $8027
+	sta $e8ab	; acknowledge IRQ
+	inc $e8a9	; border color
+rvx	jmp $e600
+	
+normal
+	lda $e8d9	; sprite-border
 	sta $8000
 	beq rv1
 	inc $e8a9	; border color
@@ -34,9 +49,10 @@ rv1	lda $e8da	; sprite-sprite
 	inc $e8a9	; border color
 rv2	lda $e8db	; sprite-raster
 	sta $8002
-	beq rv
-	inc $e8a9	; border color
-rv	jmp (oldvec)
+
+rv	lda #1
+	sta $e8a9	; reset border color
+	jmp (oldvec)
 
 
 oldvec	.word 0

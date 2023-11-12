@@ -1,15 +1,17 @@
 
 10 rem sprite demo, based on up,up, and away
-20 if a=0 then a=1:load"spriteborderirq",8
+20 if a=0 then a=1:load"sprite2irq",8
 30 sys32768+6*256
 40 print "{CLR}"
+50 print "{down}{down}{down}{down}USE NUMPAD TO CONTROL BALLOON"
 100 v=59520:rem start of display chip
 
 110 poke v,55:poke v+1,1+2+4+32:rem enable sprite 1, x-expand, y-expand, over border
 120 poke v,52:poke v+1,200:rem update x coordinates
 130 poke v,53:poke v+1,210:rem update y coordinates
 140 poke 32768+2048-8+1,80:rem sprite 2 data from block 80
-220 poke v,81:poke v+1,8:rem set sprite foreground color
+150 poke v,81:poke v+1,8:rem set sprite foreground color
+160 x1=100:y1=100
 
 200 poke v,59:poke v+1,1+2+4+32:rem enable sprite 2, x-expand, y-expand, over border
 210 poke 32768+2048-8+2,80:rem sprite 2 data from block 80
@@ -20,10 +22,13 @@
 910 poke v,56:poke v+1,x:rem update x coordinates
 920 poke v,57:poke v+1,x:rem update y coordinates
 940 get a$:if a$="" then 990
-950 if a$="8" then poke v,53:poke v+1, peek(v+1) - 1: goto 990
-952 if a$="2" then poke v,53:poke v+1, peek(v+1) + 1: goto 990
-954 if a$="4" then poke v,52:poke v+1, peek(v+1) - 1: goto 990
-956 if a$="6" then poke v,52:poke v+1, peek(v+1) + 1: goto 990
+950 if a$="8" or a$="{up}" then poke v,53:y1 = y1 - 1
+952 if a$="2" or a$="{down}" then poke v,53:y1 = y1 + 1
+954 if a$="4" or a$="{left}" then poke v,52:x1 = x1 - 1
+956 if a$="6" or a$= "{right}" then poke v,52:x1 = x1 + 1
+960 poke v,52: poke v+3, x1 and 255
+961 poke v+3, y1 and 255
+962 poke v+1, ((x1 / 256) and 15) or ((y1 / 16) and 240)
 990 next x
 995 goto 900
 
