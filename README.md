@@ -1,5 +1,10 @@
 # Ultra-CPU
 
+NOTE: This branch refactors out the sprite handling into an own file.
+However, this breaks timing, and uses more resources than before (2196 vs. 2127 slices)
+So, this is abandoned and only here for (potential) re-try at a later time
+
+
 This is the CPU board for a re-incarnation of the Commodore PET or other computer(s) from the later 1970s.
 
 It is build on a Eurocard board and has only parts that can still be obtained new in 2021.
