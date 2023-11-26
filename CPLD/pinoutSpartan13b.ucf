@@ -147,3 +147,5 @@ INST "q50m"							TNM = "qclk_tnm";
 TIMESPEC "ts_dotclk" = FROM "qclk_tnm" TO "dotclk_tnm" 3 ns DATAPATHONLY;
 #TIMESPEC "ts_vidfetch" = FROM "qclk_tnm" to "vidfetch_tnm" 3 ns DATAPATHONLY;
 TIMESPEC "ts_ram" = FROM "qclk_tnm" TO "ram_tnm" 4 ns DATAPATHONLY;
+
+NET "A<3>" CLOCK_DEDICATED_ROUTE = FALSE;

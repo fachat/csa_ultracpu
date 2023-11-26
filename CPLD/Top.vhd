@@ -122,6 +122,9 @@ architecture Behavioral of Top is
 		
 	attribute NOREDUCE : string;
 	
+	-- control
+	signal s0_d: std_logic_vector(7 downto 0);
+	
 	-- Initial program load
 	signal ipl: std_logic;		-- Initial program load from SPI flash
 	signal ipl_d: std_logic;		-- Initial program load from SPI flash
@@ -157,6 +160,7 @@ architecture Behavioral of Top is
 	signal nvramsel_int: std_logic;
 	signal nframsel_int: std_logic;
 	signal m_iosel: std_logic;
+	signal m_iowin: std_logic;
 	signal m_memsel: std_logic;
 
 	signal sel0 : std_logic;
@@ -215,6 +219,8 @@ architecture Behavioral of Top is
 	
 	signal bus_window_c: std_logic;	-- map $00Cxxx to MEMSEL too
 	signal bus_window_9: std_logic; -- map $009xxx to MEMSEL
+	signal bus_win_9_is_io: std_logic;
+	signal bus_win_c_is_io: std_logic;
 	
 	-- DAC
 	signal dac_sel: std_logic;
@@ -261,12 +267,13 @@ architecture Behavioral of Top is
 	   
 	   qclk : in std_logic;
 	   
-           cfgld : in  STD_LOGIC;	-- set when loading the cfg
+      cfgld : in  STD_LOGIC;	-- set when loading the cfg
 	   
-           RA : out std_logic_vector (19 downto 8);	-- mapped CPU address (FRAM)
-	   --VA : out std_logic_vector (13 downto 12);	-- separate VRAM address for screen win
+      RA : out std_logic_vector (19 downto 8);	-- mapped CPU address (FRAM)
+
 	   ffsel: out std_logic;
 	   iosel: out std_logic;
+		iowin: out std_logic;
 	   memsel: out std_logic;
 	   vramsel: out std_logic;
 	   framsel: out std_logic;
@@ -281,6 +288,8 @@ architecture Behavioral of Top is
 	   -- bus
 	   bus_window_9: in std_logic;
 	   bus_window_c: in std_logic;
+	   bus_win_9_is_io: in std_logic;
+	   bus_win_c_is_io: in std_logic;
 
 	   forceb0: in std_logic;
 	   screenb0: in std_logic;
@@ -537,6 +546,7 @@ begin
 	   --ma_vout,
 	   m_ffsel_out,
 	   m_iosel,
+		m_iowin,
 	   m_memsel,
 	   m_vramsel_out,
 	   m_framsel_out,
@@ -549,6 +559,8 @@ begin
 	   wp_romPET,
 	   bus_window_9,
 	   bus_window_c,
+		bus_win_9_is_io,
+		bus_win_c_is_io,
 	   forceb0,
 	   screenb0
 	);
@@ -583,9 +595,9 @@ begin
 	niosel_int <= --'0' when extio = '1'			-- external I/O
 			--else '1' when ioinh = '1'	-- I/O inhibit
 			--else 
-			'0' when m_iosel = '1' 
---				and not(ca_in(6 downto 4) = "000") 
-				and sel0 = '0' and vid_sel = '0' and dac_sel = '0'
+			'0' when (m_iosel = '1'  
+					and sel0 = '0' and vid_sel = '0' and dac_sel = '0')
+				or (m_iowin = '1')
 			else '1';
 
 	nmemsel_int <= not (m_memsel); -- not for now
@@ -696,7 +708,7 @@ begin
 	);
 
 	-- CPU access to SPI registers
-	spi_cs <= To_Std_Logic(sel0 = '1' and ca_in(3) = '1' and ca_in(2) = '0' and phi2_int = '1');
+	spi_cs <= To_Std_Logic(sel0 = '1' and ca_in(3) = '1' and ca_in(2) = '0');
 	
 	-- SPI serial data in - shared except IN3 for SD card
 	spi_in <= spi_in3 when spi_sel = "011" else
@@ -743,6 +755,8 @@ begin
 			lockb0 <= '0';
 			bus_window_c <= '0';
 			bus_window_9 <= '0';
+			bus_win_c_is_io <= '0';
+			bus_win_9_is_io <= '0';
 		elsif (falling_edge(phi2_int) and sel0='1' and rwb='0' and ca_in(3) = '0') then
 			-- Write to $E80x
 			case (ca_in(2 downto 0)) is
@@ -771,11 +785,55 @@ begin
 				-- bus controls
 				bus_window_9 <= D(0);
 				bus_window_c <= D(1);
+				bus_win_9_is_io <= D(2);
+				bus_win_c_is_io <= D(3);
 			when others =>
 				null;
 			end case;
 		end if;
 	end process;
+
+	Ctrl_Rd: process(sel0, phi2_int, rwb, reset, ca_in, D)
+	begin
+	
+		s0_d <= (others => '0');
+
+		if (sel0='1' and rwb='1' and ca_in(3) = '0') then
+			-- Read from to $E80x			
+			case (ca_in(2 downto 0)) is
+			when "000" =>
+				-- video controls
+				s0_d(1) <= vis_80_in;
+				s0_d(2) <= screenb0;
+				s0_d(7) <= vis_enable;
+			when "001" =>
+				-- memory map controls
+				s0_d(0) <= lockb0;
+				s0_d(1) <= boot;
+				s0_d(3) <= is8296;
+				s0_d(4) <= wp_rom9;
+				s0_d(5) <= wp_romA;
+				s0_d(6) <= wp_romB;
+				s0_d(7) <= wp_romPET;
+			when "010" =>
+				-- bank controls
+				s0_d(3 downto 0) <= lowbank;
+				s0_d(6 downto 4) <= vidblock;
+			when "011" =>
+				-- speed controls
+				s0_d(1 downto 0) <= mode(1 downto 0); -- speed bits
+			when "100" =>
+				-- bus controls
+				s0_d(0) <= bus_window_9;
+				s0_d(1) <= bus_window_c;
+				s0_d(2) <= bus_win_9_is_io;
+				s0_d(3) <= bus_win_c_is_io;
+			when others =>
+				s0_d <= (others => '0');
+			end case;
+		end if;
+	end process;
+
 
 
 	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
@@ -874,6 +932,7 @@ begin
 		else
 			spi_dout when spi_cs = '1'
 				and rwb = '1'
+			   and phi2_int = '1'
 		else
 			vd_out when vid_sel = '1'
 				and rwb = '1'
@@ -882,6 +941,10 @@ begin
 			dac_dout when dac_sel = '1'
 				and rwb = '1'
 				and phi2_int = '1'
+--		else
+--			s0_d when sel0 = '1'
+--				and rwb = '1'
+--				and phi2_int = '1'
 		else
 			(others => 'Z');
 		

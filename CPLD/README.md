@@ -136,7 +136,9 @@ in bank 0 of the CPU, two windows of the CS/A bus can be mapped into bank 0 of t
 
 - Bit 0: map $9xxx of the CS/A bus into $9xxx of CPU bank 0
 - Bit 1: map $Cxxx of the CS/A bus into $Cxxx of CPU bank 0
-- Bit 2-7: unused, must be 0
+- Bit 2: if bit 0=1, when set, maps $9xxx to CS/A I/O instead of memory
+- Bit 3: n/a (if bit 1=1, when set, maps $cxxx to CS/A I/O instead of memory)
+- Bit 4-7: unused, must be 0
 
 ## CRTC emulation
 

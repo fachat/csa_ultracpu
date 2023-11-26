@@ -43,29 +43,33 @@ entity Mapper is
 	   
 	   qclk: in std_logic;
 	   
-           cfgld : in  STD_LOGIC;	-- set when loading the cfg
+      cfgld : in  STD_LOGIC;	-- set when loading the cfg
 	   
 	   -- mapped address lines
-           RA : out std_logic_vector (19 downto 8);	-- mapped FRAM address
+      RA : out std_logic_vector (19 downto 8);	-- mapped FRAM address
+		
 	   ffsel: out std_logic;
 	   iosel: out std_logic;
+		iowin: out std_logic;
 	   memsel: out std_logic;	-- bus memory
-	   
+		
 	   vramsel: out std_logic;
 	   framsel: out std_logic;
 	   
 	   boot: in std_logic;
 	   lowbank: in std_logic_vector(3 downto 0);
 	   vidblock: in std_logic_vector(2 downto 0);
-   	   wp_rom9: in std_logic;
-   	   wp_romA: in std_logic;
+   	wp_rom9: in std_logic;
+   	wp_romA: in std_logic;
 	   wp_romB: in std_logic;
 	   wp_romPET: in std_logic;
 	   
 	   -- bus
 	   bus_window_9: in std_logic;
 	   bus_window_c: in std_logic;
-	   
+	   bus_win_9_is_io: in std_logic;
+	   bus_win_c_is_io: in std_logic;
+		
 	   -- force bank0 (used in emulation mode)
 	   forceb0: in std_logic;
 	   -- is screen in bank0?
@@ -97,6 +101,7 @@ architecture Behavioral of Mapper is
 	signal avalid: std_logic;
 	signal screenwin: std_logic;
 	signal buswin: std_logic;
+	signal iowin_int: std_logic;
 	
 	signal bank: std_logic_vector(7 downto 0);
 	
@@ -255,11 +260,24 @@ begin
 	
 	buswin <= '0' when low64k = '0'
 			else '1' when
-				A(15 downto 12) = "1100"
+				(A(15 downto 12) = "1100"
 				and bus_window_c = '1'
-			else '1' when
-				A(15 downto 12) = "1001"
+				and bus_win_c_is_io = '0')
+			or
+				(A(15 downto 12) = "1001"
 				and bus_window_9 = '1'
+				and bus_win_9_is_io = '0')
+			else '0';
+
+	iowin_int <= '0' when low64k = '0'
+			else '1' when
+--				(A(15 downto 12) = "1100"
+--				and bus_window_c = '1'
+--				and bus_win_c_is_io = '1')
+--			or
+				(A(15 downto 12) = "1001"
+				and bus_window_9 = '1'
+				and bus_win_9_is_io = '1')
 			else '0';
 			
 	vramsel <= '0' when avalid = '0' else
@@ -270,7 +288,7 @@ begin
 	framsel <= '0' when avalid='0' 
 					or boota19 = '1' else	-- not in upper half of 1M address space is ROM (4-7 are ignored, only 1M addr space)
 			'1' when low64k = '0' or A(15) = '0' else	-- lowest 32k or 64k-512k is RAM, i.e. all above 64k besides ROM
-			'0' when screenwin = '1' or buswin = '1' or wprot = '1' else	-- not in screen window
+			'0' when screenwin = '1' or iowin_int = '1' or buswin = '1' or wprot = '1' else	-- not in screen window
 			'1' when c8296ram = '1' else	-- upper half mapped (except peek through)
 			'0' when petio = '1' else	-- not in I/O space
 			'1';
@@ -280,7 +298,10 @@ begin
 					or c8296ram = '1' else 	-- or if in 8296 ram instead of normal address map and no peekthrough
 			'1' when petio ='1' else 
 			'0';
-		
+			
+	iowin <= '0' when avalid = '0' 
+			else iowin_int;
+	
 	memsel <= '1' when
 		bank(7 downto 4) = "0001" else
 			buswin;
