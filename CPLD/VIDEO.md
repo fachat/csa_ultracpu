@@ -33,46 +33,46 @@ Note that the last two registers are new and should provide easier access to the
 
 The following are the internal Viccy registers:
 
-- r1: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
+- r1: HDISP: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
   - note: if upet compatibility (r39.7) is set, this is always for 40 columns even if in 80 column mode.
-- r5: if registers are memory-mapped (r39.6 = 1), same as r1.
-- r6: vertial displayed - the number of character rows displayed in a frame (CRTC)
-- r8: mode register
+- r5: HDISP_MM: if registers are memory-mapped (r39.6 = 1), same as r1.
+- r6: VDISP: vertial displayed - the number of character rows displayed in a frame (CRTC)
+- r8: MODE: mode register
   - bit 7: 1=80 columns
     - TODO: see r22
   - bit 1-0: 
     - 0x= normal display
     - 10= interlace (show every scanline twice, i.e. r9 is effectivly twice its value)
     - 11= double vertical resolution
-- r9: (bits 3-0) scan lines per character - 1 (CRTC)
+- r9: CHEIGHT: (bits 3-0) scan lines per character - 1 (CRTC)
   - note: in upet compat mode, also sets vertical position (r45)
-- r10: cursor start scan line:  (CRTC)
+- r10: CRSR_STRT: cursor start scan line:  (CRTC)
   - bits 4-0: number of scan line where reverse video cursor starts (0=top)
   - bits 6-5: 
     - 00: solid cursor
     - 01: cursor off
     - 10: blink at 1/16th of the frame rate
     - 11: blink at 1/32th of the frame rate
-- r11: cursor end scan line + 1 (CRTC)
-- r12: start of video memory high (CRTC)
+- r11: CRSR_END: cursor end scan line + 1 (CRTC)
+- r12: MEM_STRT_H: start of video memory high (CRTC)
   - note: if upet compat mode, high bit (A15) is inverted
-- r13: start of video memory low (CRTC)
-- r14: cursor position high (CRTC)
+- r13: MEM_STRT_L: start of video memory low (CRTC)
+- r14: CRSR_POS_H: cursor position high (CRTC)
   - note: if upet compat mode, high bit (A15) is inverted
-- r15: cursor position low (CRTC)
-- r20: attribute start address high (VDC)
-- r21: attribute start address low (VDC)
-- r22: Horizontal displayed pixel per char
+- r15: CRSR_POS_L: cursor position low (CRTC)
+- r20: ATT_STRT_H: attribute start address high (VDC)
+- r21: ATT_STRT_L: attribute start address low (VDC)
+- r22: CHR_HDISP: Horizontal displayed pixel per char
   - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
   - bits 7-4: n/a (note, in VDC this is total number of horizontal bits timed for a char, -1. But here fixed to 7)
-- r23: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
-- r24: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
+- r23: CHR_VDISP: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
+- r24: VSCRL: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 2-0: number of scan lines to scroll the screen up
   - bit 3: -
   - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
   - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)
   - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
-- r25: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
+- r25: HSCRL: horizontal smooth scroll (partly VDC, scroll similar to VIC-II)
   - bits 3-0: number of pixels to shift the output to the right
   - bit 4: CSEL: if set, extend left border by 8 pixels and right border by 8 pixels
     - TODO: according to https://www.c64-wiki.de/wiki/VDC bit4=1 is 40 col moddde
@@ -80,31 +80,18 @@ The following are the internal Viccy registers:
     - TODO: implement together with parts of R22
   - bit 6: attribute enable (VDC)
   - bit 7: bitmap mode (hires)
-- r26: default colours (VDC)
+- r26: FGBG_COLS: default colours (VDC)
   - bits 3-0: background color
   - bits 7-4: foreground color
-- r27: address increment per row: add this to the memory address after each character row (VDC)
-- r28: character set start address
+- r27: ROW_INC: address increment per row: add this to the memory address after each character row (VDC)
+- r28: CSET_STRT_H: character set start address
   - bits 7-5: character generator address bits A13-A15. (VDC)
-- r29: underline scan line count (VDC)
+- r29: ULINE: underline scan line count (VDC)
 
-- r30: read: rasterline counter low (bits 0-7); write: rasterline match value
-- r31: read: rasterline counter high (bits 0-1); write: rasterline match value
+- r30: RLINE_L: read: rasterline counter low (bits 0-7); write: rasterline match value
+- r31: RLINE_H: read: rasterline counter high (bits 0-1); write: rasterline match value
 
-- (r30) block copy/fill word count)
-- (r31) data register
-- (r32) block copy source (a15-a8)
-- (r33) block copy source (a7-a0)
-- (r34) display enable begin
-- (r35) display enable end
-- (r36) DRAM refresh cycles per rasterline
-
-- r37: sync status
-  - bit 5: vsync
-  - bit 6: hsync
-
-- r38: -
-- r39: control register
+- r32 (was r39): CTRL: control register
   - bit 1-0: -
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
@@ -112,29 +99,33 @@ The following are the internal Viccy registers:
   - bit 6: if set, map registers into memory (see below)
   - bit 7: Micro-PET compatible (see r1)
 
-- r40: extended background colour 
+- r33 (was r40): EXT_BGCOLS: extended background colour 
   - bits 3-0 background colour 1
   - bits 7-4 background colour 2
-- r41: border colour
+- r34 (was r41): BRDR_COL: border colour
   - bits 3-0: border colour
-- r42 IRQ control (VIC-II)
+- r35 (was r42): IRQ_CTRL: IRQ control (VIC-II)
   - bit 0: raster match enable
   - bit 1: sprite/bitmap collision enable (TODO)
   - bit 2: sprite/sprite collision enable (TODO)
   - bit 3: sprite/border collision enable (TODO)
   - bit 7-4: unused
-- r43 IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
+- r36 (was r43): IRQ_STAT: IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
   - bit 0: raster match occured
   - bit 1: sprite/bitmap collision occured
   - bit 2: sprite/sprite collision occured
   - bit 3: sprite/border collision occured
   - bit 6-4: unused
   - bit 7: one when interrupt has occurred
-- r44 horizontal position (in chars); replaces r2
+- r37: SYNC: sync status
+  - bit 5: vsync
+  - bit 6: hsync
+
+- r38 (was r44): HPOS: horizontal position (in chars); replaces r2
   - bit 0-6, defaults to 8
-- r45 vertical position (in rasterlines) of start of raster screen; replaces r7
+- r39 (was r45): VPOS: vertical position (in rasterlines) of start of raster screen; replaces r7
   - bit 0-7, defaults to 84 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
-- r46 alternate register control I
+- r40 (was r46): ALT1: alternate register control I
   - bit 0: if set, enable access to alternate r12/r13 video memory and r20/r21 attribute memory addresses
   - bit 1: alternate bitmap mode bit
   - bit 2: alternate attribute mode bit
@@ -143,12 +134,25 @@ The following are the internal Viccy registers:
   - bit 5: if set, set bitmap, attribute and extended mode bits to alternate values on raster match - reset to orig values at start of screen
   - bit 6: if set, set attribute address memory counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
   - bit 7: if set, set video memory address counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
-- r47 alternate register control I
+- r41 (was r47): ALT2: alternate register control II
   - bit 0-3: alternate raster row counter for a character cell
   - bit 7: if set, set the raster row counter to alternate value on raster match
 
 Sprite registers (subject to change):
 
+- r42 (was r88): SPRT_BASE: sprite block base (high)
+  - top 8 bytes in page given here are sprite pointers
+  - in addition, bits 7/6 are bits 15/14 of sprite data base address
+  - initializes to $97, so mapped pointers are at $87f8-$87ff
+
+- r43 (was r89): SPRT_BRDR: sprite-border collision (TODO)
+- r44 (was r90): SPRT_SPRT: sprite-sprite collision (VIC-II) (TODO)
+- r45 (was r91): SPRT_RSTR: sprite-data collision (VIC-II) (TODO)
+
+- r46 (was r92): SPRT_MCOL1: sprite multicolor 0 (VIC-II)
+- r47 (was r93): SPRT_MCOL2: sprite multicolor 1 (VIC-II)
+
+- r48-51: VCCY_SPRT_BASE_0: Sprite 0
 - r48: X coordinate sprite 0 (VIC-II)
   - note: X coordinates are 2x2 pixels in 40 column modes, except fine mode is set (r51.6)
 - r49: Y coordinate sprite 0 (VIC-II)
@@ -166,34 +170,26 @@ Sprite registers (subject to change):
   - bit 4: sprite data priority: if set high, background overlays the sprite
   - bit 5: sprite border flag (if set, show sprite over border)
   - bit 6: if set, use 80 col coordinates
-- r52-: sprite 1
-- r56-: sprite 2
-- r60-: sprite 3
-- r64-: sprite 4
-- r68-: sprite 5
-- r72-: sprite 6
-- r76-: sprite 7
+- r52-: SPRT_BASE_1: sprite 1
+- r56-: SPRT_BASE_2: sprite 2
+- r60-: SPRT_BASE_3: sprite 3
+- r64-: SPRT_BASE_4: sprite 4
+- r68-: SPRT_BASE_5: sprite 5
+- r72-: SPRT_BASE_6: sprite 6
+- r76-: SPRT_BASE_7: sprite 7
 
-- r80: color sprite 0 (VIC-II)
-- r81: color sprite 1 (VIC-II)
-- r82: color sprite 2 (VIC-II)
-- r83: color sprite 3 (VIC-II)
-- r84: color sprite 4 (VIC-II)
-- r85: color sprite 5 (VIC-II)
-- r86: color sprite 6 (VIC-II)
-- r87: color sprite 7 (VIC-II)
+- r80: SPRT_COL_0: color sprite 0 (VIC-II)
+- r81: SPRT_COL_1: color sprite 1 (VIC-II)
+- r82: SPRT_COL_2: color sprite 2 (VIC-II)
+- r83: SPRT_COL_3: color sprite 3 (VIC-II)
+- r84: SPRT_COL_4: color sprite 4 (VIC-II)
+- r85: SPRT_COL_5: color sprite 5 (VIC-II)
+- r86: SPRT_COL_6: color sprite 6 (VIC-II)
+- r87: SPRT_COL_7: color sprite 7 (VIC-II)
 
-- r88: sprite block base (high)
-  - top 8 bytes in page given here are sprite pointers
-  - in addition, bits 7/6 are bits 15/14 of sprite data base address
-  - initializes to $97, so mapped pointers are at $87f8-$87ff
+Palette registers (future extension):
 
-- r89: sprite-border collision (TODO)
-- r90: sprite-sprite collision (VIC-II) (TODO)
-- r91: sprite-data collision (VIC-II) (TODO)
-
-- r92: sprite multicolor 0 (VIC-II)
-- r93: sprite multicolor 1 (VIC-II)
+- r88 - r95: reserved for future colour palette extensions (mapped twice for 16 cols)
 
 ### Memory-mapped registers
 

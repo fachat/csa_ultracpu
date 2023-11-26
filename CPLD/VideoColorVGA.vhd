@@ -1408,7 +1408,8 @@ begin
 	end process;
 	
 	collision_p: process(qclk, phi2, dena_int, collision_trigger_sprite_border, collision_trigger_sprite_raster, 
-			collision_accum_sprite_raster, collision_accum_sprite_border, collision_trigger_sprite_sprite)
+			collision_accum_sprite_raster, collision_accum_sprite_border, collision_trigger_sprite_sprite,
+			collision_sprite_border_none, collision_sprite_raster_none)
 	begin
 	
 		if (falling_edge(qclk)) then
@@ -1435,7 +1436,7 @@ begin
 			elsif (falling_edge(phi2)) then
 			
 				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
-					if (regsel = 89) then
+					if (regsel = x"2b") then
 						-- reading the sprite-border collision register
 						collision_accum_sprite_border(i) <= '0';
 					end if;
@@ -1450,7 +1451,7 @@ begin
 				collision_accum_sprite_sprite(i) <= '1';
 			elsif (falling_edge(phi2)) then
 				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
-					if (regsel = 90) then
+					if (regsel = x"2c") then
 						-- reading the sprite-border collision register
 						collision_accum_sprite_sprite(i) <= '0';
 					end if;
@@ -1461,7 +1462,7 @@ begin
 				collision_accum_sprite_raster(i) <= '1';
 			elsif (falling_edge(phi2)) then
 				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
-					if (regsel = 91) then
+					if (regsel = x"2d") then
 						-- reading the sprite-border collision register
 						collision_accum_sprite_raster(i) <= '0';
 					end if;
@@ -1601,7 +1602,7 @@ begin
 				irq_raster_ack <= '0';
 			end if;
 
-			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"2b"
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24"
 					and crtc_rwb = '0'
 					) then
 				if (CPU_D(0) = '1') then
@@ -1629,7 +1630,7 @@ begin
 		if (irq_sprite_raster_trigger = '1') then
 			irq_sprite_raster <= '1';
 		elsif (falling_edge(phi2)) then
-			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"2b" and crtc_rwb = '0') then
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24" and crtc_rwb = '0') then
 				if (CPU_D(1) = '1') then
 					irq_sprite_raster <= '0';
 				end if;
@@ -1639,7 +1640,7 @@ begin
 		if (irq_sprite_sprite_trigger = '1') then
 			irq_sprite_sprite <= '1';
 		elsif (falling_edge(phi2)) then
-			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"2b" and crtc_rwb = '0') then
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24" and crtc_rwb = '0') then
 				if (CPU_D(2) = '1') then
 					irq_sprite_sprite <= '0';
 				end if;
@@ -1649,7 +1650,7 @@ begin
 		if (irq_sprite_border_trigger = '1') then
 			irq_sprite_border <= '1';
 		elsif (falling_edge(phi2)) then
-			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"2b" and crtc_rwb = '0') then
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24" and crtc_rwb = '0') then
 				if (CPU_D(3) = '1') then
 					irq_sprite_border <= '0';
 				end if;
@@ -1915,27 +1916,31 @@ begin
 				raster_match(7 downto 0) <= CPU_D;
 			when x"1f" =>	-- R31
 				raster_match(9 downto 8) <= CPU_D(1 downto 0);
-			when x"27" =>	-- R39
+			when x"20" =>	-- R32 (was: R39)
 				mode_extended_reg <= CPU_D(2);
 				dispen <= CPU_D(4);
 				mode_regmap_int <= CPU_D(6);
 				mode_upet <= CPU_D(7);
-			when x"28" => 	-- R40
+			when x"21" => 	-- R33 (was: R40)
 				col_bg1 <= CPU_D(3 downto 0);
 				col_bg2 <= CPU_D(7 downto 4);
-			when x"29" =>	-- R41
+			when x"22" =>	-- R34 (was: R41)
 				col_border <= CPU_D(3 downto 0);
-			when x"2a" =>	-- R42
+			when x"23" =>	-- R35 (was: R42)
 				irq_raster_en <= CPU_D(0);
 				irq_sprite_raster_en <= CPU_D(1);
 				irq_sprite_sprite_en <= CPU_D(2);
 				irq_sprite_border_en <= CPU_D(3);
-			when x"2c" =>	-- R44
+			when x"24" =>	-- R36 (was: R43 / 2b)
+				-- IRQ status
+			when x"25" => 	-- R37
+				-- read sync status
+			when x"26" =>	-- R38 (was R44)
 				-- horizontal sync
 				hsync_pos <= CPU_D(6 downto 0);
-			when x"2d" =>	-- R45
+			when x"27" =>	-- R39 (was R45)
 				vsync_pos <= CPU_D;
-			when x"2e" =>	-- R46 (alternate control I)
+			when x"28" =>	-- R40 (was R46) (alternate control I)
 				mode_altreg <= CPU_D(0);
 				mode_bitmap_alt <= CPU_D(1);
 				mode_attrib_alt <= CPU_D(2);
@@ -1943,9 +1948,24 @@ begin
 				alt_match_modes <= CPU_D(5);
 				alt_match_attr <= CPU_D(6);
 				alt_match_vaddr <= CPU_D(7);				
-			when x"2f" =>	-- R47 (alternate control II)
+			when x"29" =>	-- R41 (was R47) (alternate control II)
 				alt_rc_cnt <= CPU_D(3 downto 0);
 				alt_set_rc <= CPU_D(7);
+			when x"2a" =>	-- R42 (was R88)
+				sprite_base <= CPU_D;
+			when x"2b" =>	-- R43 (was R89 / 59)
+				-- sprite border collisions
+			when x"2c" =>	-- R44 (was R90 / 5a)
+				-- sprite sprite collisions
+			when x"2d" =>	-- R45 (was R91 / 5b)
+				-- sprite raster collisions
+			when x"2e" =>	-- R46 (was R92 / 5c)
+				sprite_mcol1 <= CPU_D(3 downto 0);
+			when x"2f" =>	-- R47 (was R93)
+				sprite_mcol2 <= CPU_D(3 downto 0);
+			--
+			-- R48-R79 (x"30" - x"4f") are decoded separately in the sprites section
+			--
 			when x"50" =>	-- R80
 				sprite_fgcol(0) <= CPU_D(3 downto 0);
 			when x"51" =>	-- R81
@@ -1962,12 +1982,9 @@ begin
 				sprite_fgcol(6) <= CPU_D(3 downto 0);
 			when x"57" =>	-- R87
 				sprite_fgcol(7) <= CPU_D(3 downto 0);
-			when x"58" =>	-- R88
-				sprite_base <= CPU_D;
-			when x"5c" =>	-- R92
-				sprite_mcol1 <= CPU_D(3 downto 0);
-			when x"5d" =>	-- R93
-				sprite_mcol2 <= CPU_D(3 downto 0);
+			--
+			-- R88 - R95 are reserved for future palette extensions
+			--
 			when others =>
 				null;
 			end case;
@@ -2094,35 +2111,35 @@ begin
 						y_addr_latch(9 downto 8) <= y_addr(9 downto 8);
 					when x"1f" =>	-- R31
 						vd_out(1 downto 0) <= y_addr_latch(9 downto 8);
-					when x"25" => 	-- R37
-						vd_out(6) <= h_sync_int;
-						vd_out(5) <= v_sync_int;
-					when x"27" =>	-- R39
+					when x"20" =>	-- R32 (was R39)
 						vd_out(2) <= mode_extended;
 						vd_out(4) <= dispen;
 						vd_out(6) <= mode_regmap_int;
 						vd_out(7) <= mode_upet;
-					when x"28" => 	-- R40
+					when x"21" => 	-- R33 (was R40)
 						vd_out(3 downto 0) <= col_bg1;
 						vd_out(7 downto 4) <= col_bg2;
-					when x"29" =>	-- R41
+					when x"22" =>	-- R34 (was R41)
 						vd_out(3 downto 0) <= col_border;
-					when x"2a" =>	-- R44
+					when x"23" =>	-- R35 (was R42)
 						vd_out(0) <= irq_raster_en;
 						vd_out(1) <= irq_sprite_raster_en;
 						vd_out(2) <= irq_sprite_sprite_en;
 						vd_out(3) <= irq_sprite_border_en;
-					when x"2b" =>	-- R44
+					when x"24" =>	-- R36 (was R43)
 						vd_out(0) <= irq_raster;
 						vd_out(1) <= irq_sprite_raster;
 						vd_out(2) <= irq_sprite_sprite;
 						vd_out(3) <= irq_sprite_border;
 						vd_out(7) <= irq_out_int;
-					when x"2c" =>	-- R44
+					when x"25" => 	-- R37
+						vd_out(6) <= h_sync_int;
+						vd_out(5) <= v_sync_int;
+					when x"26" =>	-- R38 (was R44)
 						vd_out(6 downto 0) <= hsync_pos;
-					when x"2d" =>	-- R45
+					when x"27" =>	-- R39 (was R45)
 						vd_out(7 downto 0) <= vsync_pos;
-					when x"2e" =>	-- R46 (alternate control I)
+					when x"28" =>	-- R40 (was R46) (alternate control I)
 						vd_out(0) <= mode_altreg;
 						vd_out(1) <= mode_bitmap_alt;
 						vd_out(2) <= mode_attrib_alt;
@@ -2130,9 +2147,22 @@ begin
 						vd_out(5) <= alt_match_modes;
 						vd_out(6) <= alt_match_attr;
 						vd_out(7) <= alt_match_vaddr;
-					when x"2f" =>	-- R47 (alternate control II)
+					when x"29" =>	-- R41 (was R47) (alternate control II)
 						vd_out(3 downto 0) <= alt_rc_cnt;
 						vd_out(7) <= alt_set_rc;
+					when x"2a" =>	-- R42 (was R88)
+						vd_out <= sprite_base;
+					when x"2b" =>	-- R43 (was R89)
+						vd_out <= collision_accum_sprite_border;
+					when x"2c" =>	-- R44 (was R90)
+						vd_out <= collision_accum_sprite_sprite;
+					when x"2d" =>	-- R45 (was R91)
+						vd_out <= collision_accum_sprite_raster;
+					when x"2e" =>	-- R46 (was R92)
+						vd_out(3 downto 0) <= sprite_mcol1;
+					when x"2f" =>	-- R47 (was R93)
+						vd_out(3 downto 0) <= sprite_mcol2;
+						
 					when x"50" =>	-- R80
 						vd_out(3 downto 0) <= sprite_fgcol(0);
 					when x"51" =>	-- R81
@@ -2149,18 +2179,6 @@ begin
 						vd_out(3 downto 0) <= sprite_fgcol(6);
 					when x"57" =>	-- R87
 						vd_out(3 downto 0) <= sprite_fgcol(7);
-					when x"58" =>	-- R88
-						vd_out <= sprite_base;
-					when x"59" =>	-- R89
-						vd_out <= collision_accum_sprite_border;
-					when x"5a" =>	-- R90
-						vd_out <= collision_accum_sprite_sprite;
-					when x"5b" =>	-- R91
-						vd_out <= collision_accum_sprite_raster;
-					when x"5c" =>	-- R92
-						vd_out(3 downto 0) <= sprite_mcol1;
-					when x"5d" =>	-- R93
-						vd_out(3 downto 0) <= sprite_mcol2;
 					when others =>
 						vd_out <= sprite_d;
 					end case;

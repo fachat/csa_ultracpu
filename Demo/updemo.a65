@@ -1,4 +1,6 @@
 
+#include "viccy.i65"
+
 ; if defined, print out some measurements for timers etc instead of just OKing
 #define	DEBUG
 
@@ -27,8 +29,6 @@ tmp2	=$0a
 
 BSOUT	=$ffd2
 
-V_RLINE	=30
-
 	.word $0401
 	* = $0401
 
@@ -50,8 +50,8 @@ loop
 	jsr inichain
 	cli
 
-	lda #0
-	sta vdctab+24
+	;lda #0
+	;sta vdctab+VCCY_VSCRL
 
 	jsr demo1	; print header
 	jsr demoborders	; rasterline ints & borders
@@ -115,14 +115,14 @@ l0	tya
 	jmp wait
 
 idemo2	
-	ldx #39
+	ldx #VCCY_CTRL
 	lda #16
 	jsr sreg	; disable ColourPet mode
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda #64+16
 	jsr sreg	; enable VDC attribute mode
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -158,14 +158,14 @@ l0	tya
 	jmp wait
 
 idemo3	
-	ldx #39
+	ldx #VCCY_CTRL
 	lda #20
 	jsr sreg	; enable ColourPet mode
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda #0+16
 	jsr sreg	; disable VDC attribute mode
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -200,14 +200,14 @@ l0	tya
 	jmp wait
 
 idemo3	
-	ldx #39
+	ldx #VCCY_CTRL
 	lda #20
 	jsr sreg	; enable ColourPet mode (+attrib = multicolour)
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda #64+16
 	jsr sreg	; enable VDC attribute mode (+cpet =multicolour)
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -235,15 +235,15 @@ txt 	.asc "           * MULTI-COLOUR MODE"
 	jmp wait
 
 idemo4	
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda #16
 	jsr sreg
 
-	ldx #8
+	ldx #VCCY_MODE
 	lda #2+128
 	jsr sreg	; interlace mode
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -275,11 +275,11 @@ idemo5
 	lda #0+64		; cursor blink on 
 	jsr sreg
 
-	ldx #8
+	ldx #VCCY_MODE
 	lda #128
 	jsr sreg	; interlace mode off
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -319,7 +319,7 @@ idemo5
 	lda #20		; compensate
 	jsr sreg	
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -350,14 +350,14 @@ idemo5
 	ldx #44
 	lda vdctab+44	; reset shift
 	jsr sreg
-	ldx #1
+	ldx #VCCY_HDISP
 	lda #80		; reset chars to 80
 	jsr sreg
-	ldx #27
+	ldx #VCCY_ROW_INC
 	lda #0		; reset compensate
 	jsr sreg	
 
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda cnt2
 	lsr
 	lsr
@@ -366,7 +366,7 @@ idemo5
 	ora #16
 	jsr sreg
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -391,16 +391,16 @@ txt 	.asc "           * HORIZONTAL SMOOTH SCROLL"
 	ldy #>itab
 	jsr addirq
 
-	ldx #41
+	ldx #VCCY_BRDR_COL
 	lda #5
 	jsr sreg
 
-	inc vdctab+41
+	inc vdctab+VCCY_BRDR_COL
 
 	jmp wait
 
 idemo5	
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -443,7 +443,7 @@ cur	.byt 0
 	jmp wait
 
 idemo5	
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda #16
 	jsr sreg
 
@@ -459,11 +459,11 @@ idemo5
 	lda #0
 x1	sta cur
 
-	ldx #24
+	ldx #VCCY_VSCRL
 	jsr sreg
 	sta $8002
 noinc
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -478,10 +478,10 @@ txt 	.asc "           * VERTICAL SMOOTH SCROLL + VARIABLE CHAR HEIGHT"
 idemo2
 	lda cur
 	adc #7
-	ldx #9
+	ldx #VCCY_CHEIGHT
 	jsr sreg
 
-	ldx #41
+	ldx #VCCY_BRDR_COL
 	stx VDC
 	inc VDC+1
 	rts
@@ -491,15 +491,15 @@ itab2	.word idemo2-1
 	.word 0
 
 idemo3
-	ldx #9
+	ldx #VCCY_CHEIGHT
 	lda #8
 	jsr sreg
 
-	ldx #24
+	ldx #VCCY_VSCRL
 	lda #0
 	jsr sreg
 	
-	ldx #41
+	ldx #VCCY_BRDR_COL
 	stx VDC
 	inc VDC+1
 	rts
@@ -510,10 +510,10 @@ itab3	.word idemo3-1
 	.word 0
 
 idemores
-	ldx #25
+	ldx #VCCY_HSCRL
 	lda #16
 	jsr sreg
-	ldx #41
+	ldx #VCCY_BRDR_COL
 	stx VDC
 	inc VDC+1
 	rts
@@ -539,17 +539,17 @@ itabres	.word idemores-1
 
 	jmp wait
 
-idemo5	ldx #8
+idemo5	ldx #VCCY_MODE
 	lda #0
 	jsr sreg
 
-	ldx #1
+	ldx #VCCY_HDISP
 	lda #40		; 40 cols per line
 	jsr sreg
-	ldx #27		; compensate 40 chars 
+	ldx #VCCY_ROW_INC		; compensate 40 chars 
 	jsr sreg
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -586,23 +586,23 @@ txt 	.asc "           * 50 ROW MODES"
 	.asc CR,0
 
 idemo5	
-	ldx #37
+	ldx #VCCY_SYNC
 	stx VDC
 l0	bit VDC+1
 	bvc l0
 
-	ldx #8
+	ldx #VCCY_MODE
 	lda #128+3	; 50x80 mode
 	jsr sreg
 	
-	ldx #1
+	ldx #VCCY_HDISP
 	lda #80		; reset 40 cols per line
 	jsr sreg
 	lda #0
-	ldx #27		; reset compensate 40 chars 
+	ldx #VCCY_ROW_INC		; reset compensate 40 chars 
 	jsr sreg
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -611,7 +611,7 @@ itab	.word idemo5-1
 	.word 325-18
 	.word 0
 
-idemox	ldx #8
+idemox	ldx #VCCY_MODE
 	lda #128
 	jmp sreg	
 
@@ -639,20 +639,20 @@ itab2	.word idemox-1
 	jmp wait
 
 idemo5	
-	ldx #37
+	ldx #VCCY_SYNC
 	stx VDC
 l	bit VDC+1
 	bvc l
 
-	ldx #8
+	ldx #VCCY_MODE
 	lda #128	; 25x80 mode
 	jsr sreg
 
-	ldx #9
+	ldx #VCCY_CHEIGHT
 	lda #11		; 12 rasterlines/char
 	jsr sreg	
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -663,7 +663,7 @@ itab	.word idemo5-1
 	.word 325
 	.word 0
 
-idemox	ldx #9
+idemox	ldx #VCCY_CHEIGHT
 	lda #8		; 9 rasterlines/char
 	jsr sreg
 
@@ -676,7 +676,7 @@ idemox	ldx #9
 
 mode0	.(
 	; scroll a single char
-	ldx #15
+	ldx #VCCY_CRSR_POS_L
 	lda CHAR,x
 	pha
 
@@ -706,7 +706,7 @@ mode1	.(
 	lsr
 	dey
 	bne m	; mode2, jump r23
-	ldx #22
+	ldx #VCCY_CHR_HDISP
 	sta tmp
 	lda #15
 	sec
@@ -717,7 +717,7 @@ mode1	.(
 	lda #8
 	bne store
 	
-m	ldx #23
+m	ldx #VCCY_CHR_VDISP
 	clc
 	adc #1
 store	sta vdctab,x
@@ -736,7 +736,7 @@ checkmode .(
 	.)
 
 end	
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -933,7 +933,7 @@ dottab	.word $0080
 	.xs
 
 idemo5	; if alt registers are set during raster match, they are effective in the next rasterline already!
-	ldx #46
+	ldx #VCCY_ALT1
 	lda #1
 	jsr sreg
 
@@ -944,14 +944,14 @@ idemo5	; if alt registers are set during raster match, they are effective in the
 	beq text
 
 hres1	
-	ldx #12
+	ldx #VCCY_MEM_STRT_H
 	lda #>$4000
 	jsr sreg
 	inx
 	lda #<$4000
 	jsr sreg
 
-	ldx #20
+	ldx #VCCY_ATT_STRT_H
 	lda #>$d000+5*80
 	jsr sreg
 	inx
@@ -962,7 +962,7 @@ hres1
 	bne hres2
 
         lda #128+64+32+2
-set     ldx #46
+set     ldx #VCCY_ALT1
 	jsr sreg        ; disable ColourPet mode
 
 	jmp common
@@ -983,21 +983,21 @@ hres4	lda #128+64+32+8+4+2
 	bne set
 		
 text
-	ldx #12
+	ldx #VCCY_MEM_STRT_H
 	lda #>$9000+5*80
 	jsr sreg
 	inx
 	lda #<$9000+5*80
 	jsr sreg
 
-	ldx #20
+	ldx #VCCY_ATT_STRT_H
 	lda #>$d000+5*80
 	jsr sreg
 	inx
 	lda #<$d000+5*80
 	jsr sreg
 
-        ldx #46
+        ldx #VCCY_ALT1
         lda #128+64+32+8
         jsr sreg        ; disable ColourPet mode
 
@@ -1005,7 +1005,7 @@ text
 
 common
 	lda #128
-	ldx #47
+	ldx #VCCY_ALT2
 	jsr sreg
 
 	lda resmode
@@ -1042,7 +1042,7 @@ l1	sta cur
 	sbc #0
 	sta line+1
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 
@@ -1053,11 +1053,11 @@ line	.word 404
 	.word 0
 
 iclr
-	ldx #46
+	ldx #VCCY_ALT1
 	lda #0
 	jsr sreg
 
-	ldx #47
+	ldx #VCCY_ALT2
 	lda #0
 	jsr sreg
 
@@ -1071,10 +1071,10 @@ l0	tay
 	tya
 	lsr
 	ora #16
-	ldx #24
+	ldx #VCCY_VSCRL
 ;	jsr sreg
 
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -1107,7 +1107,7 @@ l	lda s_balloon,x
 	lda #63
 	sta $8800-8	; sprite pointer
 
-	ldx #48		; x-pos
+	ldx #VCCY_SPRT_BASE_0 + SPRT_XPOS		; x-pos
 	lda #40
 	jsr sreg
 
@@ -1119,18 +1119,18 @@ l	lda s_balloon,x
 	lda #0
 	jsr sreg
 
-	ldx #80
+	ldx #VCCY_SPRT_COL_0
 	lda #5
 	jsr sreg	; fg colour
 
-	ldx #92
+	ldx #VCCY_SPRT_MCOL1
 	lda #3		; mcol1
 	jsr sreg
 	inx
 	lda #9		; mcol2
 	jsr sreg
 
-	ldx #51
+	ldx #VCCY_SPRT_BASE_0 + SPRT_CTRL
 	lda #1+2+4+32+64	; enable, x+y-expand, over border, fine coords
 	jsr sreg
 
@@ -1145,12 +1145,12 @@ idemo
 	and #$01
 	bne end
 
-	ldx #48
+	ldx #VCCY_SPRT_BASE_0 + SPRT_XPOS
 	stx VDC
 	inc VDC+1
 	bne y
 
-	ldx #50
+	ldx #VCCY_SPRT_BASE_0 + SPRT_XYPOS
 	stx VDC
 	lda VDC+1
 	clc 
@@ -1158,7 +1158,7 @@ idemo
 	and #%00110011
 	sta VDC+1
 	
-	ldx #80
+	ldx #VCCY_SPRT_COL_0
 	stx VDC
 	inc VDC+1
 y
@@ -1172,13 +1172,13 @@ y
 ;	inc VDC+1
 multi	lda cnt2
 	bne end
-	ldx #51
+	ldx #VCCY_SPRT_BASE_0 + SPRT_CTRL
 	stx VDC
 	lda VDC+1
 	eor #8		; multicolour bit
 	sta VDC+1
 end
-	lda #41
+	lda #VCCY_BRDR_COL
 	sta VDC
 	inc VDC+1
 	rts
@@ -1206,7 +1206,7 @@ start	.word 0
 chain	.word 0
 
 doirq	.(
-	ldx #43
+	ldx #VCCY_IRQ_STAT
 	lda #127	; clear all Viccy interrupts
 	jsr sreg
 
@@ -1236,21 +1236,21 @@ end	lda start
 	sta chain+1
 	sta p2+1
 
-;	ldx #41
+;	ldx #VCCY_BRDR_COL
 ;	lda #0
 ;	jsr sreg
 next
 
 	ldy #2
 	lda (p2),y
-	ldx #V_RLINE
+	ldx #VCCY_RLINE_L
 	jsr sreg
 	iny
 	inx
 	lda (p2),y
 	jsr sreg
 
-	ldx #42
+	ldx #VCCY_IRQ_CTRL
 	lda #1
 	jsr sreg	; re-enable raster irq
 	
@@ -1334,7 +1334,7 @@ next	ldy #4
 	.)
 
 stopirq	.(
-	ldx #42
+	ldx #VCCY_IRQ_CTRL
 	lda #0
 	jmp sreg
 	.)
@@ -1350,13 +1350,13 @@ inichain .(
 	sta last+1
 
 	lda itab+2
-	ldx #V_RLINE
+	ldx #VCCY_RLINE_L
 	jsr sreg
 	lda itab+3
 	inx
 	jsr sreg
 
-	ldx #42
+	ldx #VCCY_IRQ_CTRL
 	lda #1			; enable raster irq
 	jsr sreg
 	rts
@@ -1366,14 +1366,14 @@ itab	.word resetscr-1
 	.word 0
 
 resetscr
-	;inc vdctab+41
+	;inc vdctab+VCCY_BRDR_COL
 	jsr setviccy
 	rts
 	.)
 
 setr39 .(
 	sta tmp
-	ldx #39
+	ldx #VCCY_CTRL
 	stx VDC
 	lda VDC+1
 	and #%11111100
@@ -1388,7 +1388,7 @@ setr39 .(
 irqsave	.word 0
 
 newirq  .(
-        lda #43
+        lda #VCCY_IRQ_STAT
 	sta VDC
 	lda VDC+1	; irq status
         bpl noloop
@@ -1445,13 +1445,13 @@ setviccy .(
 	sta SCTRL	; 12 MHz CPU
 	lda #0		; 40 column, display enable
 	sta VCTRL
-	ldx #39		; r39
+	ldx #VCCY_CTRL	; r39
 	lda #20
 	jsr sreg	; disable uPET compat mode
-	ldx #8		; r8
+	ldx #VCCY_MODE	; r8
 	lda #128
 	jsr sreg	; 80 col mode via Viccy
-	ldx #46		; r46
+	ldx #VCCY_ALT1	; r46
 	lda #0		; disable any alt modes
 	jsr sreg
 
@@ -1460,7 +1460,7 @@ setviccy .(
 l0	lda vdctab,y
 	sta VDC+3	; register value w/ auto-inc of register number
 lx	iny
-	cpy #47
+	cpy #42
 	bcc l0
 	rts
 
@@ -1470,7 +1470,6 @@ lx	iny
 	.byt 25		; r6 char rows displayed
 	.byt 0		; r7 ignored
 	.byt 128	; r8: b7= 80 col mode; b1=interlace, b0=double
-	;.byt 7		; r9: rows per char (-1)
 	.byt 8		; r9: rows per char (-1)
 	.byt 32		; r10: cursor start (b0-4, b6/5= mode, 00=solid, 01=off, 1x= blink)
 	.byt 7		; r11: cursor end line
@@ -1490,19 +1489,16 @@ lx	iny
 	.byt >$0000	; r28: char set address high
 	.byt 7		; r29: underline scanline
 	.byt 0,0	; r30/31: rasterline counter low/high
-	.byt 0,0,0,0,0	; r32-r36 ignored
+	.byt 4+16	; r32 (was r39): b2: extended (cpet compat), b4: disp en, b7: upet compat
+	.byt $0f	; r33 (was r40): b0-3: bg colour 1, b4-7: bg colour 2
+	.byt BRDCOL	; r34 (was r41): border colour (b0-3)
+	.byt 0		; r35 (was r42): irq control
+	.byt 127	; r36 (was r43): irq status (clear all sources)
 	.byt 0		; r37: v/h sync status (VDC)
-	.byt 0		; n/a
-	.byt 4+16	; r39: b2: extended (cpet compat), b4: disp en, b7: upet compat
-	.byt $0f	; r40: b0-3: bg colour 1, b4-7: bg colour 2
-	.byt BRDCOL	; r41: border colour (b0-3)
-	.byt 0		; r42: irq control
-	.byt 127	; r43: irq status (clear all sources)
-	.byt 13		; r44: horizontal position (chars)
-	;.byt 84		; r45: vertical position (rasterlines)
-	.byt 59		; r45: vertical position (rasterlines)
-	.byt 0		; r46: alt match
-
+	.byt 13		; r38 (was r44): horizontal position (chars)
+	.byt 59		; r39 (was r45): vertical position (rasterlines)
+	.byt 0		; r40 (was r46): alt match
+	.byt 0		; r41 (was r47): alt raster row
 	.)
 
 

@@ -5,7 +5,7 @@ all: updemo
 
 updemo: updemo.a65 *.a65 
 	#xa -w -M -XCA65 -OPETSCII -l $@.lab -o $@ $<
-	xa -w -M -XCA65 -Pupdemo.lst -l $@.lab -o $@ $<
+	xa -w -XCA65 -Pupdemo.lst -l $@.lab -o $@ $<
 
 updemo.hex: updemo
 	hexdump -C $< > $@.hex
