@@ -804,8 +804,8 @@ begin
 			when "000" =>
 				-- video controls
 				s0_d(1) <= vis_80_in;
-				s0_d(2) <= screenb0;
-				s0_d(7) <= vis_enable;
+				s0_d(2) <= not(screenb0);
+				s0_d(7) <= not(vis_enable);
 			when "001" =>
 				-- memory map controls
 				s0_d(0) <= lockb0;
@@ -941,10 +941,10 @@ begin
 			dac_dout when dac_sel = '1'
 				and rwb = '1'
 				and phi2_int = '1'
---		else
---			s0_d when sel0 = '1'
---				and rwb = '1'
---				and phi2_int = '1'
+		else
+			s0_d when sel0 = '1'
+				and rwb = '1'
+				and phi2_int = '1'
 		else
 			(others => 'Z');
 		
