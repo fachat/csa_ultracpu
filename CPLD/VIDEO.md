@@ -34,8 +34,8 @@ Note that the last two registers are new and should provide easier access to the
 The following are the internal Viccy registers:
 
 - r1: HDISP: horizontal displayed - defines how many characters are displayed on a character row. (CRTC)
-  - note: if upet compatibility (r39.7) is set, this is always for 40 columns even if in 80 column mode.
-- r5: HDISP_MM: if registers are memory-mapped (r39.6 = 1), same as r1.
+  - note: if upet compatibility (r32.7) is set, this is always for 40 columns even if in 80 column mode.
+- r5: HDISP_MM: if registers are memory-mapped (r32.6 = 1), same as r1.
 - r6: VDISP: vertial displayed - the number of character rows displayed in a frame (CRTC)
 - r8: MODE: mode register
   - bit 7: 1=80 columns
@@ -193,7 +193,7 @@ Palette registers (future extension):
 
 ### Memory-mapped registers
 
-If r39.6 is set, then the registers are not only accessible via the standard two bytes interface (and the extended 4 byte interface described above), but also mapped into I/O memory from $E884-$E8DF. The register number directly translates to the address by calculating $E880 + regnumber.
+If r32.6 is set, then the registers are not only accessible via the standard two bytes interface (and the extended 4 byte interface described above), but also mapped into I/O memory from $E884-$E8DF. The register number directly translates to the address by calculating $E880 + regnumber.
 
 Note that the first four registers would not be available as memory-mapped. However, only register 1 is implemented for compatibility with the (Micro-) PET. Thus, register 1 is then directly accessible on address $E885 (as $E881 is still occupied by the 4 address interface).
 
