@@ -170,11 +170,8 @@ begin
 			-- next phi2 end
 			chold <= '1';
 			if (	(clk_cnt(5 downto 0) = "101111")
-				--(clk_cnt(5 downto 3) = "101")
 				or 
 				(clk_cnt(5 downto 0) = "000000")
-				--(clk_cnt(5 downto 2) = "0000"
-				--	and not( clk_cnt(1 downto 0) = "11" ) )
 				) then
 				chold <= '0';
 			end if;

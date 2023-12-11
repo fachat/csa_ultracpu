@@ -144,6 +144,7 @@ architecture Behavioral of Top is
 	signal clk1m: std_logic;
 	signal clk2m: std_logic;
 	signal clk4m: std_logic;
+	signal cphi2_int: std_logic;
 	
 	signal phi2_int: std_logic;
 	signal phi2_out: std_logic;
@@ -406,12 +407,16 @@ begin
 	   clk4m,
 	   c8phi2,
 	   c2phi2,
-	   cphi2,
+	   cphi2_int,
 	   chold,
 	   csetup,
 	   dotclk
 	);
 
+	-- shorten bus phi2 a tad bit on write cycles, to keep bus hold time
+	-- for slightly slower devices.
+	cphi2 <= cphi2_int and (chold or rwb or not(is_bus));
+	
 	reset <= not(nres);
 	
 	nirq <= '0' when irq_out = '1' or dac_irq = '1' else 'Z';
@@ -477,7 +482,8 @@ begin
 	release3_p: process(reset, q50m, is_bus, chold, csetup)
 	begin
 		if (reset = '1'
-			or chold = '0') then
+			or chold = '0'
+			) then
 			wait_setup <= '0';
 		-- elsif (rising_edge(memclk_d)) then
 		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
@@ -502,7 +508,8 @@ begin
 				-- priority over setting it
 				wait_bus <= '0';
 			elsif (is_bus = '1' 
-				and csetup = '0')
+				and csetup = '0'
+				)
 				then wait_bus <= '1';
 			end if;
 		end if;	
@@ -574,6 +581,7 @@ begin
 	sel0 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"0" else '0';
 	dac_sel 	<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"3" else '0';
 	vid_sel	<= '1' when m_iosel = '1' and 
+--														ca_in(7 downto 4) = x"8"
 							((vis_regmap = '0' and ca_in(7 downto 4) = x"8")
 							or (vis_regmap = '1' and ca_in(7) = '1' and not(ca_in(6 downto 5) = "11")))
 						else '0';
