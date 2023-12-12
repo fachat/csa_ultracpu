@@ -71,8 +71,7 @@ The following are the internal Viccy registers:
   - bits 7-4: n/a (note, in VDC this is total number of horizontal bits timed for a char, -1. But here fixed to 7)
 - r23: CHR_VDISP: character displayed vertical: number of scan lines -1 of the displayed part of a character (VDC)
 - r24: VSCRL: vertical smooth scroll (partly VDC, scroll similar to VIC-II)
-  - bits 2-0: number of scan lines to scroll the screen up
-  - bit 3: -
+  - bits 3-0: number of scan lines to scroll the screen up
   - bit 4: RSEL: if set, extend upper and lower border 4 scanlines into the display window, or 8 scanlines if r9 > 7
   - bit 5: character blink rate - 0 blinks characters in 1/16th frame rate, 1 in 1/32th (VDC)
   - bit 6: reverse screen - exchange foreground and background colours when set (VDC)
