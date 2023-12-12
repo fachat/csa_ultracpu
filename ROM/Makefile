@@ -129,6 +129,17 @@ ${EDITROMS}: %.bin: %.asm cbm-edit-rom
 	-test -e cbm-edit-rom/cpetrom.bin && mv cbm-edit-rom/cpetrom.bin cbm-edit-rom/editrom.bin
 	cp cbm-edit-rom/editrom.bin $@
 
+
+usb65: 
+	git clone https://github.com/fachat/usb65.git
+	(cd usb65; git checkout upet)
+
+usbroms: usb65
+	(cd usb65/platforms/upet; make petromcomp usbrom)
+	cp usb65/platforms/upet/petromcomp .
+	cp usb65/platforms/upet/usbrom .
+
+
 edit80_grfkb_ext_chk.bin: edit80_grfkb_ext.bin romcheck
 	./romcheck -s 0xe0 -l 0x800 -i 0x7ff -o $@ $<
 
@@ -157,5 +168,6 @@ clean:
 
 rebuildclean:
 	rm -f $(EDITROMS)
+	rm -f usbrom petromcomp
 
 
