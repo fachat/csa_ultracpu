@@ -56,7 +56,7 @@ The main functionality is "hidden" inside the FPGA. It does:
 3. video generation.
 4. SPI interface and boot
 
-On the CPU side of the CPLD it is actually a rather almost normal 65816 computer, 
+On the CPU side of the FPGA it is actually a rather almost normal 65816 computer, 
 with the exception that the bank register (that catches and stores the address lines 
 A16-23 from the CPU's data bus) is in the FPGA, and that there is no ROM. The ROM has been
 replaced with some code in the FPGA that copies the initial program to the CPU accessible
@@ -77,7 +77,7 @@ character data (e.g. at $08xxx in the PET), and the second one to fetch the "cha
 data, i.e. the pixel data for a character. This is also stored in VRAM, and is being loaded
 there from the Flash Boot ROM by the initial boot loader.
 
-The CPLD reads the character data, stores it to fetch the character pixel data, and streams
+The FPGA reads the character data, stores it to fetch the character pixel data, and streams
 that out using its internal video shift register.
 
 For more detailled descriptions of the features and how to use them, pls see the subdirectory,
@@ -88,7 +88,7 @@ as described in the next section.
 Here are four subdirectories:
 
 - [Board](Board/) that contains the board schematics and layout
-- [CPLD](CPLD/) contains the VHDL code to program the CPLD logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) usage
+- [CPLD](CPLD/) contains the VHDL code to program the FPGA logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) usage and the [Video](CPLD/VIDEO.md) feature and register description.
 - [ROM](ROM/) ROM contents to boot
 - [Demo](Demo/) Some demo programs
 - [tests](tests/) Some test programs
@@ -128,7 +128,17 @@ These are future expansions I want to look into. Not all may be possible to impl
 
 ## Gallery
 
-### Full system views
+![A full system](images/ultra2.jpg)
+
+![The board only](images/newboard.jpg)
+
+![Graphics feature overview](images/graphics.jpg)
+
+Note that this version is without the (optional) "Brown Fix" that is included in version 1.0B of the board.
+
+![Colour palette](images/showcols.jpg)
+
+### Full system views (V1.2)
 
 ![A full system with nano488 disk and keyboard](images/system2.jpg)
 
@@ -147,12 +157,6 @@ These are future expansions I want to look into. Not all may be possible to impl
 ![OS Boot screen](images/newrom.jpg)
 
 ### Graphics features
-
-![Graphics feature overview](images/graphics.jpg)
-
-Note that this version is without the (optional) "Brown Fix" that is included in version 1.0B of the board.
-
-![Colour palette](images/showcols.jpg)
 
 ### Debugging during development
 
