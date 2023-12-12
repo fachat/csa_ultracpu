@@ -88,7 +88,7 @@ as described in the next section.
 Here are four subdirectories:
 
 - [Board](Board/) that contains the board schematics and layout
-- [CPLD](CPLD/) contains the VHDL code to program the FPGA logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) usage and the [Video](CPLD/VIDEO.md) feature and register description.
+- [CPLD](CPLD/) contains the VHDL code to program the FPGA logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) and [DAC](CPLD/DAC.md) usage and the [Video](CPLD/VIDEO.md) feature and register description.
 - [ROM](ROM/) ROM contents to boot
 - [Demo](Demo/) Some demo programs
 - [tests](tests/) Some test programs
