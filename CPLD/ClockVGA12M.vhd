@@ -32,38 +32,33 @@ entity Clock is
 	   qclk 	: in std_logic;		-- input clock
 	   reset	: in std_logic;
 	   
-	   memclk 	: out std_logic;	-- memory access clock signal
+	   memclk: out std_logic;	-- memory access clock signal
 	   
-	   clk1m 	: out std_logic;	-- trigger CPU access @ 1MHz
+	   clk1m : out std_logic;	-- trigger CPU access @ 1MHz
 	   clk2m	: out std_logic;	-- trigger CPU access @ 2MHz
 	   clk4m	: out std_logic;	-- trigger CPU access @ 4MHz
 	   
 	   -- CS/A out bus timing
-	   c8phi2	: out std_logic;
-	   c2phi2	: out std_logic;
+	   c8phi2: out std_logic;
+	   c2phi2: out std_logic;
 	   cphi2	: out std_logic;
 	   chold	: out std_logic;	-- high for duration of Addr hold time
-	   csetup	: out std_logic;
+	   csetup: out std_logic;
 	   
-	   dotclk	: out std_logic;	-- pixel clock for video
-	   dot2clk	: out std_logic;	-- half the pixel clock
-	   slotclk	: out std_logic;	-- 1 slot = 8 pixel; 
-	   slot2clk	: out std_logic;	-- 1 slot = 16 pixel; 
-	   cpu_window	: out std_logic;	-- 1 during CPU window on VRAM
-	   chr_window	: out std_logic;	-- 1 during character fetch window
-	   pxl_window	: out std_logic;	-- 1 during pixel fetch window
-	   col_window	: out std_logic;	-- 1 during color load (end of slot)
-	   sr_load	: out std_logic		-- load pixel SR on falling edge of dotclk, when this is set
+	   dotclk: out std_logic_vector(3 downto 0) -- 1x, 1/2, 1/4, 1/8 pixel clock for video
 	 );
+	 attribute maxskew: string;
+	 attribute maxdelay: string;
+	 attribute maxskew of dotclk : signal is "4 ns";
+	 attribute maxdelay of dotclk : signal is "4 ns";
+	 attribute maxskew of memclk : signal is "4 ns";
+	 attribute maxdelay of memclk : signal is "4 ns";
 end Clock;
 
 architecture Behavioral of Clock is
 
 	signal clk_cnt : std_logic_vector(5 downto 0);
-	signal cpu_cnt1 : std_logic_vector(3 downto 0);
-	signal memclk_int : std_logic;
-	
-	signal clk_cnt4 : std_logic_vector(0 downto 0);
+	signal dotclk_int: std_logic_vector(3 downto 0);
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
@@ -81,29 +76,21 @@ begin
 	begin
 		if (reset = '1') then 
 			clk_cnt <= (others => '0');
-			clk_cnt4 <= (others => '0');
 		elsif rising_edge(qclk) then
 			if (clk_cnt = "101111") then
 				clk_cnt <= (others => '0');
 			else
 				clk_cnt <= clk_cnt + 1;
 			end if;
-			if (clk_cnt(3 downto 0) = "1111") then
-				clk_cnt4 <= clk_cnt4 + 1;
-			end if;
 		end if;
 	end process;
 	
 	-- We have 16 pixels with 40ns each (at 80 cols). 
 	-- We run the CPU with 80ns clock cycle, i.e. 12.5 MHz
-	out_p: process(qclk, reset, clk_cnt, memclk_int)
+	out_p: process(qclk, reset, clk_cnt, dotclk_int)
 	begin
 		if (reset = '1') then
-			memclk_int <= '0';
-			pxl_window <= '0';
-			chr_window <= '0';
-			col_window <= '0';
-			sr_load <= '0';
+--			memclk <= '0';
 
 			c8phi2 <= '0';
 			c2phi2 <= '0';
@@ -111,39 +98,10 @@ begin
 			chold <= '0';
 			csetup <= '0';
 		elsif (falling_edge(qclk)) then
-			cpu_window <= '0';
-			pxl_window <= '0';
-			chr_window <= '0';
-			col_window <= '0';
-			sr_load <= '0';
 
 			-- memory clock (12.5MHz)
-			memclk_int <= clk_cnt(1);
-
-			if (clk_cnt(3 downto 2) = "00") then
-				cpu_window <= '1';
-			end if;
-			
-			-- access windows for pixel data, character data, or chr ROM
-			if (clk_cnt(3 downto 2) = "01") then
-				chr_window <= '1';
-			end if;
-			
-			if (clk_cnt(3 downto 2) = "10") then
-				pxl_window <= '1';
-			end if;
-			
-			if (clk_cnt(3 downto 2) = "11") then
-				col_window <= '1';
-			end if;
-			
-			-- load the video shift register
-			-- note: the 74HCT166 needs more than the 20ns for a 25MHz half-clock...
-			-- TODO: real phase?
-			if (clk_cnt(3 downto 1) = "111") then
-				sr_load <= '1';
-			end if;
-			
+			--memclk <= clk_cnt(1);
+						
 			-- CS/A bus clocks (phi2, 2phi2, 8phi2)
 			-- which are 1.04MHz, 2.1MHz and 8MHz 
 			-- in a phase locked setup
@@ -212,11 +170,8 @@ begin
 			-- next phi2 end
 			chold <= '1';
 			if (	(clk_cnt(5 downto 0) = "101111")
-				--(clk_cnt(5 downto 3) = "101")
 				or 
 				(clk_cnt(5 downto 0) = "000000")
-				--(clk_cnt(5 downto 2) = "0000"
-				--	and not( clk_cnt(1 downto 0) = "11" ) )
 				) then
 				chold <= '0';
 			end if;
@@ -231,61 +186,11 @@ begin
 			end if;
 			
 			----------------- 
-			dotclk <= clk_cnt (0);
-			dot2clk <= clk_cnt (1);
-			slotclk <= clk_cnt (3);
-			slot2clk <= clk_cnt4 (0);
+			dotclk_int <= clk_cnt (3 downto 0);
 		end if;
+		memclk <= dotclk_int(1);
+		dotclk <= dotclk_int;
 	end process;
 	
-	memclk <= memclk_int;
-
---	-- count 12 qclk cycles @12 MHz, then transform into clk1m/2m/4m
---	cpu_cnt1_p: process(reset, cpu_cnt1, memclk_int)
---	begin
---		if (reset = '1') then
---			cpu_cnt1 <= "0000";
---		elsif (rising_edge(memclk_int)) then
---			if (cpu_cnt1 = "1011") then
---				cpu_cnt1 <= "0000";
---			else
---				cpu_cnt1 <= cpu_cnt1 + 1;
---			end if;
---		end if;
---	end process;
---
---	-- generate clk1m/2m/4m
---	-- note: those are sampled at falling edge of memclk
---	-- also note: these clocks are not symmetrical. 
---	-- it's just 4M cycles of 12.5M length
---	cpu_cnt2_p: process(qclk, reset, cpu_cnt1)
---	begin
---		if (reset = '1') then
---			clk4m <= '0';
---			clk2m <= '0';
---			clk1m <= '0';
---		elsif (rising_edge(qclk)) then	
---			clk4m <= '0';
---			clk2m <= '0';
---			clk1m <= '0';
---			case (cpu_cnt1) is
---			when "0000" =>
---				clk1m <= '1';
---				clk2m <= '1';
---				clk4m <= '1';
---			when "0011" =>
---				clk4m <= '1';
---			when "0110" => 
---				clk2m <= '1';
---				clk4m <= '1';
---			when "1001" => 
---				clk4m <= '1';
---			when others =>
---				null;
---			end case;
---			
---		end if;
---	end process;
-			
 end Behavioral;
 

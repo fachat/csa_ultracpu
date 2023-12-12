@@ -2,23 +2,23 @@
 
 This is the CPU board for a re-incarnation of the Commodore PET or other computer(s) from the later 1970s.
 
-It is build on a Eurocard board and has only parts that can still be obtained new in 2021.
+It is build on a Eurocard board and has only parts that can still be obtained new in 2023.
 It uses the [CS/A bus interface](http://www.6502.org/users/andre/csa/index.html) to use other I/O boards.
 
-As the memory mapping is programmable using the CPLD on the board, multiple types of computers can
+As the memory mapping is programmable using the FPGA on the board, multiple types of computers can
 potentially re-created. I started with my favourite one, the Commodore PET.
 
 The reason this board is called Ultra-CPU is because it has colour over the [MicroPET](http://www.6502.org/users/andre/upet/index.html), and it can potentially be used to recreate not only the Commodore PET.
 The downside compared to the Micro-PET is, that it needs a separate I/O board to re-create a Commodore PET.
 This can be found [here on my CS/A page](http://www.6502.org/users/andre/csa/petio/index.html).
 
-![Picture of an Ultra-CPU board with a PETIO](images/cover.jpg)
+![The board](images/newboard.jpg)
 
 ## Features
 
 The board is built with a number of features:
 
-- Commodore 3032 / 4032 / 8032 with options menu to select at boot
+- Commodore 3032 / 4032 / 8032 / 8296 with options menu to select at boot
   - Boot-menu to select different PET versions to run (BASIC 1, 2, 4)
   - 40 col character display
   - 80 col character display
@@ -26,7 +26,7 @@ The board is built with a number of features:
   - 512k video RAM, plus 512k fast RAM, accessible using banks on the W65816 CPU
   - boot from an SPI Flash ROM
   - up to 12.5 MHz mode (via configuration register)
-  - VGA color video output (RGBI in 640x480 mode, up to 640x450 usable)
+  - VGA color video output (RGBI in 640x480 mode)
   - Write protection for the PET ROMs once copied to RAM
   - lower 32k RAM mappable from all of the 512k fast RAM
 - Improved Video output:
@@ -34,20 +34,32 @@ The board is built with a number of features:
   - 40/80 column display switchable
   - 25/50 rows display switch
   - multiple video pages mappable to $8000 video mem address
+  - Mulitple colour modes (Colour-PET, C128 VDC-compatible, Multicolour)
+  - Colour Hires (VDC-compatible, Multicolour)
+- DAC audio output
+  - DMA engine to play audio samples on stereo sound output
+- Built-in extra hardware:
+  - USB host mode interface (for keyboard / mouse)
+  - Real-Time-Clock (battery-buffered)
+  - Ethernet (via Breakout board)
+  - SD-Card (via Breakout board)
+- CS/A bus interface
+  - multiple options to use bus devices, e.g. in I/O window
+  - Together with [Ultra-Bus](https://github.com/fachat/csa_ultrabus) backplane Apple-II and RC2014 devices can be used
 
 ## Overview
 
-The main functionality is "hidden" inside the CPLD. It does:
+The main functionality is "hidden" inside the FPGA. It does:
 
 1. clock generation and management
 2. memory mapping
 3. video generation.
 4. SPI interface and boot
 
-On the CPU side of the CPLD it is actually a rather almost normal 65816 computer, 
+On the CPU side of the FPGA it is actually a rather almost normal 65816 computer, 
 with the exception that the bank register (that catches and stores the address lines 
-A16-23 from the CPU's data bus) is in the CPLD, and that there is no ROM. The ROM has been
-replaced with some code in the CPLD that copies the initial program to the CPU accessible
+A16-23 from the CPU's data bus) is in the FPGA, and that there is no ROM. The ROM has been
+replaced with some code in the FPGA that copies the initial program to the CPU accessible
 RAM, taking it from the Flash Boot ROM via SPI. This actually simplifies the design,
 as 
 
@@ -65,7 +77,7 @@ character data (e.g. at $08xxx in the PET), and the second one to fetch the "cha
 data, i.e. the pixel data for a character. This is also stored in VRAM, and is being loaded
 there from the Flash Boot ROM by the initial boot loader.
 
-The CPLD reads the character data, stores it to fetch the character pixel data, and streams
+The FPGA reads the character data, stores it to fetch the character pixel data, and streams
 that out using its internal video shift register.
 
 For more detailled descriptions of the features and how to use them, pls see the subdirectory,
@@ -76,22 +88,25 @@ as described in the next section.
 Here are four subdirectories:
 
 - [Board](Board/) that contains the board schematics and layout
-- [CPLD](CPLD/) contains the VHDL code to program the CPLD logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) usage
+- [CPLD](CPLD/) contains the VHDL code to program the FPGA logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) usage and the [Video](CPLD/VIDEO.md) feature and register description.
 - [ROM](ROM/) ROM contents to boot
+- [Demo](Demo/) Some demo programs
+- [tests](tests/) Some test programs
 
 ### Board
 
 To build the board, you have to find a provider that builds PCBs from Eagle .brd files.
 Currently no gerbers are provided.
 
-### CPLD
+### FPGA
 
-The CPLD is a Xilinx xc95288xl programmable logic chip. It runs on 3.3V, but is 5V tolerant,
-so can be directly connected to 5V TTL chips. I programmed it in VHDL.
+The FPGA is a Xilinx Spartan 3E programmable logic chip. It runs on 3.3V, 
+so the bus interface has to convert between 3.3V and 5V. Compared to previous versions and the Micro-PET, also
+the RAM and CPU on this board run on 3.3V now.
+I programmed the FPGA in VHDL.
 
-Unfortunately the W65xx parts are "only" CMOS, and not TTL input chips - but 3.3V is still above
-the VCC/2 for the 5V chips. Only Phi2 needs improvements on the signal quality using a pull-up resistor
-and specific VHDL programming.
+The FPGA programming is actually stored in an SPI Flash Prom, so makes re-creating it even easier compared to 
+the previous versions that used a CPLD - the CPLD required a separate programmer, now a (serial) Flash programmer suffices.
 
 ### ROM
 
@@ -108,20 +123,29 @@ For more details see the [ROM description](ROM/README.md)
 
 These are future expansions I want to look into. Not all may be possible to implement.
 
-- Add clamping diodes to the VGA output
 - Look into using the CPU as part of an Apple II clone?
+- replace the 50MHz base clock with 70MHz and try to up the video to 768x576@60Hz
 
 ## Gallery
 
-### Full system views
+### The system
 
-![A full system with nano488 disk and keyboard](images/system2.jpg)
+![A full system](images/ultra2.jpg)
 
-![Another view of a full system with nano488 disk and keyboard](images/system.jpg)
+![A full system](images/ultra.jpg)
+
+
+### Graphics feature overview
+
+![Graphics feature overview](images/graphics.jpg)
+
+Note that this version is without the (optional) "Brown Fix" that is included in version 1.0B of the board.
+
+![Colour palette](images/showcols.jpg)
 
 ### Board
 
-![Picture of an Ultra-CPU board](images/board.jpg)
+![The board](images/newboard.jpg)
 
 ### Boot menu and OS boot screen
 
@@ -129,11 +153,15 @@ These are future expansions I want to look into. Not all may be possible to impl
 
 ![OS Boot screen](images/newrom.jpg)
 
-### Colour palette
+### V1.2 system views
 
-Note that this version is without the (optional) "Brown Fix" that is included in version 1.0B of the board.
+![A full system with nano488 disk and keyboard](images/system2.jpg)
 
-![Colour palette](images/showcols.jpg)
+![Another view of a full system with nano488 disk and keyboard](images/system.jpg)
+
+![Picture of an (V1.2) Ultra-CPU board](images/board.jpg)
+
+![Picture of an (V1.2) Ultra-CPU board with PETIO board](images/cover.jpg)
 
 ### Debugging during development
 

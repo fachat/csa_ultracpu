@@ -1,0 +1,925 @@
+
+; if defined, print out some measurements for timers etc instead of just OKing
+#undef	DEBUG
+
+; if defined, copy the whole test program into CS/A video RAM to be run there, and take this out of the actual (destructive) test area
+;#define	RUN_CSA_VMEM		
+
+; run speed for tests on the Micro- and Ultra-PETs
+; 0 = 1 MHz
+; 1 = 2 MHz
+; 2 = 4 MHz
+; 3 = 12.5 MHz
+#define	UPET_RUNSPEED	3
+
+; do not to the extended RAM test,
+; as it takes a lot of time on lower speeds
+#undef	UPET_NOBANKTEST
+
+; order by preference which name should be displayed
+; note - bit order matters, esp. in mod_mode, to display actual name
+#define	MODE_UPET	%10000000
+#define	MODE_CSA	%01000000
+#define	MODE_8296	%00100000
+#define	MODE_40COL	%00010000
+#define	MODE_2MHZ	%00001000
+#define	MODE_ULTRACOL	%00000100
+#define	MODE_ANY	%00000001	
+
+#define	SYSPORT		$efe0
+#define	SYS_IRQEN	%00000010
+#define	SYS_LED		%00001000
+
+#undef	FIX
+
+tmp1	= $20			; general temp value for XOR, or adding
+ptr1	= $21			; general pointer / 16 bit counter
+ptr2	= ptr1+2		; general pointer / 16 bit counter (follows ptr1, so used as bank as well)
+cnt	= $25			; general 8 bit counter
+
+mode	= $26			; see MODE_* bits above
+
+blkno	= $27			; block number for 8x96 test
+memp1	= $28			; memory test pointer
+pattrn	= $2a			; memory test pattern; will be increased each cycle (starts initialized by zp mem test)
+
+screen	= $2b			; start of screen ptr
+scrptr	= $2d			; current screen pointer
+lineptr	= $2f			; start of current line
+cols	= $31			; number of columns
+revfl	= $32			; reverse flag
+
+cycles	= $33			; 3 byte cycle counter
+
+testp	= $36			; pointer to current test
+trow	= $38			; row where test is displayed
+trhold	= $39			; row where last test in left row was displayed
+trmax	= $3a			; lowest row where test was displayed
+tcol	= $3b			; col where test is displayed
+
+	.word $0400
+	* = $0400
+
+	.byt 0
+	.word link
+	.word 10		; line number
+	.byt $9e, "1040"
+	.byt 0
+link	.byt $00,$00
+
+	;.dsb 4096-*, $aa
+	;.dsb $2000-*, $aa
+
+	.dsb $0410-*, $aa
+l1000	; start of program
+
+	sei
+
+	; disable 8x96 mapping
+	lda #$60
+	sta $fff0
+
+	.(
+	; clear screen
+l1016	ldy #$00
+	lda #$20
+l101a	sta $8000,y
+	sta $8100,y
+	sta $8200,y
+	sta $8300,y
+	sta $8400,y
+	sta $8500,y
+	sta $8600,y
+	sta $8700,y
+	iny
+	bne l101a
+	.)
+
+	; check zeropage and stack memory
+#include "mod_zpstack.a65"
+
+	jmp inicopy
+
+	;=======================================
+	; relocated code
+	;
+	; the following code is copied to $0200-...
+
+	; clear bytes 1950-1961 on 80 column screen?
+
+startofprg:
+
+offset	=*-$0200
+	*=$0200
+
+#include "mod_mode.a65"
+#include "mod_cpu.a65"
+
+	; re-map block 0
+#ifdef RUN_CSA_VMEM
+	lda mode
+	and #MODE_CSA
+	beq nocsa
+#include "csa/csa_remap.a65"
+nocsa
+#endif
+
+
+	
+	;---------------------------------------
+	; to be replaced/removed (once my CS/A ROM auto-detects speed and sets CRTC correctly)
+	.(
+	lda mode
+	and #MODE_2MHZ+MODE_CSA
+	cmp #MODE_2MHZ+MODE_CSA
+	bne slow1
+
+	; set CRTC and video
+	ldy #$00
+l1008	sty $e880
+	lda l1150,y	; set CRTC parameters for 2MHz 80 col
+	sta $e881
+	iny
+;	cpy #$12
+	cpy #3
+	bne l1008
+slow1
+	lda #14
+	sta $e84c
+	.)
+
+	;---------------------------------------
+	; all machines
+l1193	lda #$60	; disable 8x96 mapping
+	sta $fff0
+
+	; init cycles counter
+	lda #$00
+	sta cycles
+	sta cycles+1
+	sta cycles+2
+
+	; init start of screen for chrout
+	jsr iniscr
+
+	; ------------------------------
+	; clear screen
+	lda #$93
+	jsr chrout	; l742
+
+	; ------------------------------
+	; output banner message
+	.(
+	lda mode
+	and #MODE_40COL
+	bne narrow
+	lda #80
+	.byt $2c
+narrow	lda #40		; 40 column?
+	sta cols
+
+	lda #<initmsg
+	ldx #>initmsg
+	jsr strout
+	.)
+
+	; ------------------------------
+	; print out screen codes 0-255
+l11d8	ldy #2
+	lda #6
+	jsr goxy
+
+	ldy #$00
+	ldx #$00
+l11f0	txa
+	sta (scrptr),y	; store value on screen
+	inx
+	inc scrptr
+	bne l11fa
+l11f8	inc scrptr+1
+l11fa	txa
+	and #$3f	; end of line (64 values/line)
+	bne l11f0
+
+l11ff	lda #$0d
+	jsr chrout	;l742
+	txa
+	bne l11f0
+
+	; ------------------------------
+	; set IRQ routine
+
+        ; set interrupt pointer to 08db
+        lda #<irq        ; $db
+        sta $90
+        lda #>irq        ; $08
+        sta $91
+
+	; =============================
+	; infinite test loop
+	;
+
+loop	.(
+	; sync with vsync
+	jsr measure50hz
+
+	lda #<tests
+	sta testp
+	lda #>tests
+	sta testp+1
+
+	lda #12
+	sta $e880
+	lda #$10
+	sta $e881
+
+	ldy #7
+	sty trow
+	dey
+	sty trhold
+	sty trmax
+	lda #0
+	sta tcol
+
+	lda #MODE_40COL
+	bit mode
+	beq test
+	inc trow
+	inc trhold
+	inc trmax
+
+	; ------------------------------
+	; loop over tests fitting to the mode
+test	
+
+	/* only needed for 1MHz 40 col CS/A screen */
+	.(
+	lda mode
+	and #MODE_40COL
+	beq fast1
+
+	ldy #1
+	lda (testp),y
+	cmp #$84		; test prints on upper or lower screen half?
+	bcc lower		; lower memory (upper screen)
+
+	lda #$13
+	ldx #$e8
+	bne setcrtc
+
+lower	lda #$10
+	ldx #0
+
+setcrtc	pha
+	lda #12
+	sta $e880
+	pla
+	sta $e881
+	lda #13
+	sta $e880
+	stx $e881
+fast1
+	.)
+
+	ldy #0
+	lda (testp),y
+	iny
+	ora (testp),y
+	beq endloop
+
+	ldy #2
+	lda (testp),y
+	and mode
+	bne notest
+	iny
+	lda mode
+	ora #MODE_ANY
+	and (testp),y
+	beq notest
+
+	.(
+	ldy trow
+	lda tcol
+	jsr goxy
+
+	ldy #0
+	lda (testp),y
+	jsr nextpos
+	.)
+
+	lda #"*"
+	jsr chrout
+
+	ldy #teststr-badstr
+	lda #0
+	jsr badout
+	ldy #5
+	lda (testp),y
+	tax
+	dey
+	lda (testp),y
+	jsr strout
+
+
+	lda #$1a
+	jsr gox
+
+	ldy #6
+	lda (testp),y
+	pha		; first parameter
+	iny
+	lda (testp),y
+	tax		; second parameter
+	iny
+	lda (testp),y
+	sta ptr1	; jmp pointer low
+	iny
+	lda (testp),y
+	sta ptr1+1	; jmp pointer high
+
+	pla		; restore AC, XR has 2nd param
+	jsr jmpind
+
+	lda #0
+	jsr gox
+	lda #" "
+	jsr chrout
+notest
+	lda #10
+	clc
+	adc testp
+	sta testp
+	bcc nopage
+	inc testp+1
+nopage	jmp test
+	.)	
+
+	; ------------------------------
+	; end of loop
+
+endloop	clc
+	inc pattrn
+
+	; increase cycles counter (in decimal mode)
+	sed
+	lda #$01
+	adc cycles
+	sta cycles
+	lda #$00
+	adc cycles+1
+	sta cycles+1
+	lda #$00
+	adc cycles+2
+	sta cycles+2
+	cld
+
+	; print cycle counter on screen
+	ldy #0
+	lda #$3d
+	jsr goxy
+
+	lda #$80		; REV flag
+	sta revfl
+
+	ldx #$02
+l1686	lda cycles,x
+	jsr hexout	; l72f
+	dex
+	bpl l1686
+
+l168e	jmp loop	; $02a5
+
+jmpind	jmp (ptr1)
+
+	; ----------------------------------------------------------------------
+	; test addresses, parameters etc
+	; byt 0/1 are display controls
+	;	if 0,1 then next test is in same section
+	;	if 1,0 then this is last test in section; next test is new section
+	; byt 2/3 are mode masks:
+	; 	if any bit from byte 2 is set, ignore test
+	; 	if any bit from byte 3 is set, do test 
+	;	BEQ notest
+	; byt 4/5 is address of the message
+	; byt 6/7 are two parameters given to test, 6 given in AC, 7 given in XR
+	; byt 8/9 is address of test executable
+tests
+
+	; RAM $0200-$7FFF (Actually $endofprg-, as it is destructive and should not overwrite this code)
+	.byt 0,1
+	.byt 0, MODE_ANY
+	.word m_sram
+	.byt >(endofprg+255), $7f ; start page, end page
+	.word test_ram
+
+	; RAM $8000-$8FFF Screen memory 
+	; run on uPET, CS/A and 8296
+	.byt 0,1
+	.byt 0,MODE_UPET+MODE_CSA+MODE_8296
+	.word m_vram4
+	.byt 0,16		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
+	.word test_screenmem
+
+	; RAM $8000-$87FF Screen memory 
+	; run on 8032 (just ignore uPET, CS/A and 8296 as well)
+	.byt 0,1
+	.byt MODE_40COL+MODE_UPET+MODE_CSA+MODE_8296, MODE_ANY
+	.word m_vram2
+	.byt 0,8		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
+	.word test_screenmem
+
+	; RAM $8000-$83FF Screen memory 
+	.byt 0,1
+	.byt MODE_UPET+MODE_CSA+MODE_8296, MODE_40COL
+	.word m_vram1
+	.byt 0,4		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
+	.word test_screenmem
+
+	; ----
+	; ROM BASIC & KERNAL
+	.byt 0,1
+	.byt 0, MODE_ANY
+	.word m_kern
+	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR, i.e. $b, $c, $d, $f)
+	.word test_rom
+
+	; ROM EDITOR
+	.byt 1,0
+	.byt 0, MODE_ANY
+	.word m_edit
+	.byt $e0, 1		; start page, number of 4k blocks 
+	.word test_rom
+
+	; IEEE488
+	.byt 0,1
+	.byt 0, MODE_ANY
+	.word m_ieee
+	.byt 0,0		; parameters
+	.word test_ieee	; exec addr
+
+	; Userport
+	.byt 0,1
+	.byt 0, MODE_ANY
+	.word m_user
+	.byt 0,0		; parameters
+	.word test_userp	; exec addr
+
+	; 50hz
+	; note, replaced by test_up_speed in MODE_UPET
+	.byt 0,1
+	.byt MODE_UPET, MODE_ANY
+	.word m_50hz
+	.byt 0,0		; parameters
+	.word test_50hz	; exec addr
+
+	; timers are there twice, once if system is same speed
+	; as CPU, and once for Ultra-PET that runs tests on 12 MHz
+	; but timers count at 1 MHz.
+
+	; Timer 1
+	.byt 0,1
+	.byt MODE_ULTRACOL, MODE_ANY
+	.word m_t1
+	.byt $6c,$06		; parameters
+	.word test_timer1 ; exec addr
+
+	; Timer 2
+	.byt 1,0
+	.byt MODE_ULTRACOL, MODE_ANY
+	.word m_t2
+	.byt $6c,$06		; parameters
+	.word test_timer2 ; exec addr
+
+	; Timer 1
+	.byt 0,1
+	.byt 0, MODE_ULTRACOL
+	.word m_t1
+	.byt $d6,$2a		; parameters
+	.word test_timer1 ; exec addr
+
+	; Timer 2
+	.byt 1,0
+	.byt 0, MODE_ULTRACOL
+	.word m_t2
+	.byt $d6,$2a		; parameters
+	.word test_timer2 ; exec addr
+
+	; ----
+	; 8296 block tests
+	.byt 0,1
+	.byt 0, MODE_8296
+	.word m_96_0
+	.byt 0,0		; blockno
+	.word test_8296
+
+	.byt 0,1
+	.byt 0, MODE_8296
+	.word m_96_1
+	.byt 0,1
+	.word test_8296
+
+	.byt 0,1
+	.byt 0, MODE_8296
+	.word m_96_2
+	.byt 2,0		; blockno
+	.word test_8296
+
+	.byt 1,0
+	.byt 0, MODE_8296
+	.word m_96_3
+	.byt 3,0		; blockno
+	.word test_8296
+
+	; 8296 FPLA MMU
+	; note: needs to be _after_ 8296 block tests, as they init some memory tested here
+	.byt 1,0
+	.byt 0, MODE_8296
+	.word m_96_mm
+	.byt 0,0		; blockno
+	.word test_fpla
+
+	; ----
+	; CS/A Video RAM $011800 - must not cross 16k boundaries
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_vm1
+	.byt $18,$27		; start page in bank 1, number of pages -1
+	.word test_vmem ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16k boundaries
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_vm2
+	.byt $40,$3f		; start page in bank 1, number of pages-1
+	.word test_vmem ; exec addr
+
+	; CS/A Video RAM $018000 - must not cross 16k boundaries
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_vm3
+	.byt $80,$3f		; start page in bank 1, number of pages-1
+	.word test_vmem ; exec addr
+
+	; CS/A Video RAM $01c000 - must not cross 16k boundaries
+	.byt 1,0
+	.byt 0,MODE_CSA
+	.word m_csa_vm4
+	.byt $c0,$3f		; start page in bank 1, number of pages-1
+	.word test_vmem ; exec addr
+
+	; ----
+	; CS/A Hi RAM mapping
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_himap
+#ifdef RUN_CSA_VMEM
+	.byt $80,0		; start block $80, end block $ff (+1)
+#else
+	.byt $82,0		; ignore first blocks as this is where we're running in 
+#endif
+	.word test_himap ; exec addr
+
+	; CS/A Hi RAM $800000 - must not cross 16k boundaries
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_hm1
+#ifdef RUN_CSA_VMEM
+	.byt $80,$3f		; start page in mmu, number of pages -1
+#else
+	.byt $82, $3f		; ignore the first blocks as this is where we're running in
+#endif
+	.word test_himem ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16 boundaries
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_hm2
+	.byt $a4,$3f		; start page in bank 1, number of pages-1
+	.word test_himem ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16 boundaries
+	.byt 0,1
+	.byt 0,MODE_CSA
+	.word m_csa_hm3
+	.byt $c8,$3f		; start page in bank 1, number of pages-1
+	.word test_himem ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16 boundaries
+	.byt 1,0
+	.byt 0,MODE_CSA
+	.word m_csa_hm4
+	.byt $ec,$3f		; start page in bank 1, number of pages-1
+	.word test_himem ; exec addr
+
+	; CS/A IEEE488 ATNA
+	.byt 1,0
+	.byt 0,MODE_CSA
+	.word m_csa_atna
+	.byt 0,0		; start page in bank 1, number of pages-1
+	.word test_atna ; exec addr
+
+	; ----
+	; Micro-PET checks
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_32k
+	.byt 0,0
+	.word test_map32k
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_vmap
+	.byt 0,0
+	.word test_vmap
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_wprom
+	.byt 0,0
+	.word test_wprom
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_speed
+	.byt 0,0
+	.word test_up_speed
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_rtc
+	.byt 0,0
+	.word test_up_rtc
+
+	; uPET IEEE488 ATNA
+	.byt 1,0
+	.byt 0,MODE_UPET
+	.word m_csa_atna
+	.byt 0,0		; start page in bank 1, number of pages-1
+	.word test_atna ; exec addr
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_up_forceb0
+	.byt 0,0
+	.word test_up_forceb0
+
+#ifndef UPET_NOBANKTEST
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank1
+	.byt 1,8
+	.word test_upmem
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank2
+	.byt 9,$10
+	.word test_upmem
+#endif
+	; end marker
+	.word 0
+
+	; ----------------------------------------------------------------------
+
+nextpos	.(
+	beq norm
+	; next section
+	lda #MODE_40COL		; in 40 col next section is just next line
+	and mode
+	bne c40			; next section is empty line
+
+	lda tcol
+	eor #40
+	sta tcol
+
+	beq nowleft
+
+	; now on right
+	lda trhold
+	sta trow
+	bne norm
+
+nowleft	lda trmax
+	cmp trow
+	bcs nl1
+c40	lda trow
+nl1	clc
+	adc #1
+	sta trow
+	sta trhold
+	;bne end
+	; normal next row
+norm	inc trow
+	lda trow
+	cmp trmax
+	bcc end
+	sta trmax
+end	rts
+	.)
+
+	; ----------------------------------
+	; output BIT: <addr>.<xor>.<type>
+	; for memory error
+badbitx	.(
+	pha
+	php
+	lda #$12
+	jsr chrout
+	txa
+	jsr hexout
+	tya
+	jsr hexout
+	lda #" "
+	jsr chrout
+	lda #"W"
+	plp
+	bcc rderr
+	.byt $2c
+rderr	lda #"R"
+	jsr chrout
+	lda #0
+	ldy #4
+	jsr badout
+	pla
+	jmp hexout
+	.)
+	; fall-through
+	; ----------------------------------
+	; output BAD string with bit number
+	; in: AC holds detected error bit
+badbit	
+	ldy #$00
+	ldx #$38		; "8"
+badbit2	dex			; count down bits
+	asl
+	bne badbit2		; on last 1-bit exit loop
+	
+
+errout	txa			; AC has bit number in ASCII
+
+	; output BAD string with bit number / char to print in
+	; AC in ASCII, Y has offset in BADSTR
+	; 0  = BAD BIT: 
+	; 10 = BAD ROM: UE
+	; 22 = BAD
+	; 26 = IEEE BAD: DIO
+badout	pha
+l172b	lda badstr,y
+	iny
+	jsr chrout
+	bpl l172b
+l1734	pla
+	jmp chrout
+
+	; output OK
+	; only in first cycle, don't overwrite potential errors in later cycles
+okout	ldy #$00
+	lda cycles
+	ora cycles+1
+	ora cycles+2
+	bne l1750		; only in first cycle
+l1747	lda okstr,y	; l8f5,y
+	iny
+	jsr chrout	; l742
+	bpl l1747
+l1750	rts
+
+
+
+	; ---------------------
+	; used in the 50 HZ IRQ test
+	; interrupt routine
+irq	.(
+	lda $0104,x		
+	ora #$04		; set I bit in status on the stack, basically SEI
+	sta $0104,x
+	lda cnt
+	sta ptr1
+	sty ptr1+1		; y leaks through from main program
+	pla
+	tay
+	pla
+	tax
+	pla
+	bit $e812
+	bit $e84d
+	rti
+	.)
+
+	; ---------------------
+okstr	.byt "O", "K"+$80
+badstr	.byt $12, "BAD BIT", ":"+$80, 0
+	.byt $12, "BAD ROM: P", "."+$80
+	.byt $12, "BA", "D"+$80
+	.byt $12, "IEEE BAD: DI", "O"+$80	; $44,$49,$cf
+teststr	.byt "TEST:"," "+$80
+
+	; CRTC init parameter
+l1150 	.byt 126, 80, 100
+
+m_sram		.asc "RAM 0200-7FFF",0
+m_vram4		.asc "RAM 8000-8FFF",0
+m_vram2		.asc "RAM 8000-87FF",0
+m_vram1		.asc "RAM 8000-83FF",0
+m_edit		.asc "ROM EDITOR",0
+m_kern		.asc "ROM KERNAL & BASIC",0
+m_ieee		.asc "IEEE 488 BUS",0
+m_user		.asc "USER PORT",0
+m_t1		.asc "TIMER 1",0
+m_t2		.asc "TIMER 2",0
+m_50hz		.asc "50 HZ IRQ",0
+m_96_0		.asc "8X96 BLOCK 0",0
+m_96_1		.asc "8X96 BLOCK 1",0
+m_96_2		.asc "8X96 BLOCK 2",0
+m_96_3		.asc "8X96 BLOCK 3",0
+m_96_mm		.asc "8X96 FPLA II",0
+
+m_csa_vm1	.asc "VMEM 10000-13FFF",0
+m_csa_vm2	.asc "VMEM 14000-17FFF",0
+m_csa_vm3	.asc "VMEM 18000-1BFFF",0
+m_csa_vm4	.asc "VMEM 1C000-1FFFF",0
+
+m_csa_himap	.asc "HIMEM MMU MAP",0
+m_csa_hm1	.asc "HIMEM 80000-83FFF",0
+m_csa_hm2	.asc "HIMEM A4000-A7FFF",0
+m_csa_hm3	.asc "HIMEM C8000-CBFFF",0
+m_csa_hm4	.asc "HIMEM EC000-EFFFF",0
+m_csa_atna	.asc "IEEE 488 ATNA",0
+
+m_upet_32k	.asc "UPET LOW 32K MAP",0
+m_upet_speed	.asc "UPET SPEED (60HZ)",0
+m_upet_rtc	.asc "UPET SRAM/RTC",0
+m_upet_bank1 	.asc "UPET BANK 1-7",0
+m_upet_bank2 	.asc "UPET BANK 9-F",0
+
+
+initmsg
+	.byt $92		; REV OFF
+	.byt "   "
+	.byt "   "
+	.byt "  "
+	.byt $12,$20,"DIAGNOSTIC "
+m_name	.byt "8032 65" 
+m_cpu 	.byt "02 "		; "02" / "C02" / "816"
+	.byt " V4.3 "
+	.byt "DATE: 15-05-2022 CYCLES: 000000 ", 0
+
+modes
+m_csa	.byt "CS/A"
+m_8296	.byt "8296"
+m_4032	.byt "4032"
+m_upet	.byt "UPET"
+m_ultr	.byt "ULTR"
+
+intvect	.byt $aa
+	.byt $aa,$aa,$aa
+	.byt $aa,$aa,$aa
+	.byt $aa,$aa,$aa
+	.byt $aa
+
+#include "mod_memtest.a65"
+#include "mod_mem816.a65"
+#include "mod_output.a65"
+
+#include "pet/test_50hz.a65"
+#include "pet/test_rom.a65"
+#include "pet/test_ram.a65"
+#include "pet/test_screenmem.a65"
+#include "pet/test_timer1.a65"
+#include "pet/test_timer2.a65"
+#include "pet/test_ieee.a65"
+#include "pet/test_userport.a65"
+
+	; 8296 extra memory and FPLA MMU
+#include "8296/test_8296.a65"
+#include "8296/test_fpla.a65"
+
+	; CS/A65 Video card memory
+#include "csa/test_vmem.a65"
+	; CS/A65 CPU MMU mapping and BIOS card with 512k SRAM at $80000-$fffff
+#include "csa/test_himap.a65"
+#include "csa/test_himem.a65"
+#include "csa/test_atna.a65"
+
+	; Micro-PET
+#include "upet/test_map32k.a65"
+#include "upet/test_vmap.a65"
+#include "upet/test_wprom.a65"
+#include "upet/test_speed.a65"
+#include "upet/test_rtc.a65"
+#include "upet/test_upmem.a65"
+#include "upet/test_forceb0.a65"
+
+	; check target program area, copy program to $0200 and start it
+endofprg:
+
+buffer	=endofprg
+
+	*=*+offset
+inicopy
+#include "mod_inicopy.a65"
+
+
+#print *
+
+

@@ -34,98 +34,205 @@ use ieee.numeric_std.all;
 entity Video is
     Port ( A : out  STD_LOGIC_VECTOR (15 downto 0);
 	   CPU_D: in std_logic_vector(7 downto 0);
+		VRAM_D: in std_logic_vector(7 downto 0);
+		vd_out: out std_logic_vector(7 downto 0);
 	   phi2: in std_logic;
 	   
-	   dena   : out std_logic;	-- display enable
-           v_sync : out  STD_LOGIC;
-           h_sync : out  STD_LOGIC;
+	   --dena   : out std_logic;	-- display enable
+	   v_sync : out  STD_LOGIC;
+      h_sync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;	-- for the PET screen interrupt
 
 	   is_enable: in std_logic;
-           is_80_in : in std_logic;	-- is 80 column mode?
-	   is_hires : in std_logic;	-- is hires mode?
+		is_80_in: in std_logic;
 	   is_graph : in std_logic;	-- graphic mode (from PET I/O)
-	   is_double: in std_logic;
-	   interlace: in std_logic;
-	   movesync:  in std_logic;
 	   
 	   crtc_sel : in std_logic;
-	   crtc_rs : in std_logic;
+	   crtc_rs : in std_logic_vector(6 downto 0);
 	   crtc_rwb : in std_logic;
+	   mode_regmap: out std_logic;
+		
+	   qclk: in std_logic;		-- Q clock (50MHz)
+		dotclk: in std_logic_vector(3 downto 0);	-- 25Mhz, 1/2, 1/4, 1/8, 1/16
+      memclk : in STD_LOGIC;	-- system clock (12.5MHz)
 	   
-	   qclk: in std_logic;		-- Q clock
-           memclk : in STD_LOGIC;	-- system clock 8MHz
-	   slotclk : in std_logic;
-	   slot2clk : in std_logic;
-	   chr_window : in std_logic;
-	   pxl_window : in std_logic;
-	   col_window : in std_logic;
-	   
-	   chr_fetch : out std_logic;
-	   crom_fetch: out std_logic;
-	   pxl_fetch : out std_logic;
-	   col_fetch : out std_logic;
+	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
-	   sr_load : in std_logic;
-	   
-           is_vid : out STD_LOGIC;	-- true during video access phase (all, character, chrom, and hires pixel data)
-	   
+	   vid_out: out std_logic_vector(3 downto 0);
+		
+		irq_out: out std_logic;
+		
 	   dbg_out : out std_logic;
 	   
 	   reset : in std_logic
 	   );
+		attribute maxskew: string;
+		attribute maxskew of vid_out : signal is "4 ns";
+		attribute maxdelay: string;
+		attribute maxdelay of vid_out : signal is "5 ns";
 end Video;
 
 architecture Behavioral of Video is
 
-	type T_REGNO is (RNONE, R9, R12);
+	type AOA2 is array(natural range<>) of std_logic_vector(1 downto 0);
+	type AOA4 is array(natural range<>) of std_logic_vector(3 downto 0);
+	type AOA6 is array(natural range<>) of std_logic_vector(5 downto 0);
+	type AOA8 is array(natural range<>) of std_logic_vector(7 downto 0);
+	
+	--- modes
+	signal mode_attrib: std_logic;			-- r25.6, enable attribute use
+	signal mode_extended: std_logic;		-- r33.2, enables full and multicolor modes
+	signal mode_bitmap: std_logic;
+	signal mode_upet: std_logic;			-- when Micro-PET compat, r1 and others behave differently
+	signal mode_rev: std_logic;			-- r24.6, reverse the screen
+	signal dispen: std_logic;
+	signal mode_double: std_logic;
+	signal mode_interlace: std_logic;
+	signal mode_80: std_logic;
+	
+	signal mode_altreg: std_logic;		-- enable access to alternate vid_base and attr_base
+	signal mode_bitmap_alt: std_logic;	
+	signal mode_extended_alt: std_logic;	
+	signal mode_attrib_alt: std_logic;	
+	signal mode_bitmap_reg: std_logic;	
+	signal mode_extended_reg: std_logic;	
+	signal mode_attrib_reg: std_logic;	
+	signal mode_regmap_int: std_logic;
+	signal alt_match_modes : std_logic;
+	signal alt_match_vaddr : std_logic;
+	signal alt_match_attr : std_logic;
+	signal alt_rc_cnt: std_logic_vector(3 downto 0);
+	signal alt_set_rc: std_logic;
+	signal alt_do_set_rc: std_logic;
+	signal mode_set_flag: std_logic;
+	
+	--- colours
+	signal col_fg: std_logic_vector(3 downto 0);
+	signal col_bg0: std_logic_vector(3 downto 0);
+	signal col_bg1: std_logic_vector(3 downto 0);
+	signal col_bg2: std_logic_vector(3 downto 0);
+	signal col_border: std_logic_vector(3 downto 0);
+	
+	--- blink
+	signal blink_cnt: std_logic_vector(5 downto 0);
+	signal blink_16: std_logic;			-- blink with 1/16 frame rate
+	signal blink_32: std_logic;			-- blink with 1/32 frame rate
+	
+	--- cursor
+	signal crsr_start_scan: std_logic_vector(4 downto 0);
+	signal crsr_end_scan: std_logic_vector(4 downto 0);
+	signal crsr_address: std_logic_vector(15 downto 0);
+	signal crsr_mode: std_logic_vector(1 downto 0);
+	signal crsr_active: std_logic;			-- set when cursor is active in scanline
+	signal crsr_addr_match: std_logic;		-- set when cursor is in current display cell
+
+	--- underline
+	signal uline_scan : std_logic_vector(4 downto 0);
+	signal uline_active: std_logic;			-- set when underline is active in scanline (but still needs attribute to be set)
+
+	--- new geo
+	signal x_border: std_logic;
+	signal x_start: std_logic;
+	signal y_border: std_logic;
+	signal rline_cnt0: std_logic;
+
+	---
+	signal cblink_mode: std_logic;			-- character blink mode, R24.5
+	signal cblink_active: std_logic;		-- when set, character blinking is active
+	signal sr_reverse_p : std_logic;
+	signal sr_underline_p: std_logic;
+	signal is_outbit: std_logic_vector(1 downto 0);
+	signal raster_out: AOA4(0 to 7);
+	signal raster_bg: std_logic_vector(7 downto 0);
+	signal raster_outbit: std_logic_vector(3 downto 0);
+	signal sr_buf: std_logic_vector(7 downto 0);
+	signal raster_isbg: std_logic;
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
 	
 	-- mode
 	signal is_80: std_logic;
-	signal is_hires_int: std_logic;
 	
 	-- crtc register emulation
-	-- only 8/9 rows per char are emulated right now
-	signal crtc_reg: T_REGNO;
-	
-	signal rows_per_char: std_logic_vector(3 downto 0);
-	signal slots_per_line: std_logic_vector(6 downto 0);
-	signal clines_per_screen: std_logic_vector(6 downto 0);
+	signal crtc_reg: std_logic_vector(7 downto 0);
+	signal crtc_is_data: std_logic;
+	signal regsel: std_logic_vector(7 downto 0);
+	signal crtc_rs_int : std_logic_vector(7 downto 0);
+	signal crtc_mapped: std_logic;
 
-	signal vpage : std_logic_vector(7 downto 0);
-	signal vpagelo : std_logic_vector(7 downto 0);
-		
+	signal rows_per_char: std_logic_vector(3 downto 0);
+	signal bits_per_char: std_logic_vector(3 downto 0);
+	signal vis_rows_per_char: std_logic_vector(3 downto 0);
+	signal slots_per_line: std_logic_vector(6 downto 0);
+	signal clines_per_screen: std_logic_vector(7 downto 0);
+	signal hsync_pos: std_logic_vector(6 downto 0);
+	signal vsync_pos: std_logic_vector(7 downto 0);
+	
+	signal vid_base : std_logic_vector(15 downto 0);
+	signal attr_base : std_logic_vector(15 downto 0);
+	signal crom_base : std_logic_vector(7 downto 0);
+	
+	signal vid_base_alt : std_logic_vector(15 downto 0);
+	signal attr_base_alt : std_logic_vector(15 downto 0);
+
 	-- count "slots", i.e. 8pixels
 	-- 
 	-- one slot may need none (out of screen), one (hires), or two (character display) 
 	-- memory accesses. At 16MHz pixel, a slot has four potential memory accesses at 8MHz
 	-- up to 127 slots/line
-	signal slot_cnt : std_logic_vector (6 downto 0) := (others => '0');
-	-- count raster lines
-	signal rline_cnt : std_logic_vector (9 downto 0) := (others => '0');
+	--
+	-- now see ClockBorder.vhd
+	
 	-- count raster lines per character lines
 	signal rcline_cnt : std_logic_vector (3 downto 0) := (others => '0');
-	-- count character lines
-	signal cline_cnt : std_logic_vector (6 downto 0) := (others => '0');
+
+	-- vdc r27
+	signal va_offset: std_logic_vector(7 downto 0);
 	
 	-- computed video memory address
-	signal vid_addr : std_logic_vector (13 downto 0) := (others => '0');
+	signal vid_addr : std_logic_vector (15 downto 0) := (others => '0');
 	-- computed video memory address at start of line (to re-load chars each raster line)
-	signal vid_addr_hold : std_logic_vector(13 downto 0) := (others => '0');
+	signal vid_addr_hold : std_logic_vector(15 downto 0) := (others => '0');
+
+	-- computed attribute memory address
+	signal attr_addr : std_logic_vector (15 downto 0) := (others => '0');
+	-- computed attribute memory address at start of line (to re-load chars each raster line)
+	signal attr_addr_hold : std_logic_vector(15 downto 0) := (others => '0');
 	
+	-- replacement for csa_ultracpu IC7 when holding character data for the crom fetch
+	signal char_index_buf : std_logic_vector(7 downto 0);
+	signal attr_buf : std_logic_vector(7 downto 0);
+	signal pxl_buf : std_logic_vector(7 downto 0);
+	-- replacements for shift register
+	signal sr : std_logic_vector(6 downto 0);
+	signal nsrload : std_logic;
+	signal dena_int : std_logic;
+	signal sr_attr: std_logic_vector(7 downto 0); -- the attributes for the bitmap in sr
+	signal sr_crsr: std_logic;
+	signal sr_blink: std_logic;
+	signal sr_odd: std_logic;
+
 	-- geo signals
 	--
-	-- pulse at end of raster line; falling slotclk
-	signal last_slot_of_line : std_logic := '0'; 
+   signal x_addr: std_logic_vector(9 downto 0);    -- x coordinate in pixels
+   signal y_addr: std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
+	signal y_addr_latch: std_logic_vector(9 downto 8); 	-- latch upper two bits when reading lower bits from r38
+	
+	-- border
+	signal h_shift: std_logic_vector(2 downto 0);
+	signal h_extborder: std_logic;
+	signal v_extborder: std_logic;
+	signal v_shift: std_logic_vector(3 downto 0);
+	
 	-- pulse for last visible character/slot; falling slotclk
 	signal last_vis_slot_of_line : std_logic := '0';
 	-- pulse at end of character line; falling slotclk
 	signal last_line_of_char : std_logic := '0';
 	-- pulse at end of screen
 	signal last_line_of_screen : std_logic := '0';
+	-- when char rows are actually visible
+	signal vis_line_of_char: std_logic;
 	
 	-- enable
 	signal h_enable : std_logic := '0';	
@@ -136,26 +243,116 @@ architecture Behavioral of Video is
 	signal h_sync_int : std_logic := '0';	
 	signal v_sync_int : std_logic := '0';
 	
-	-- intermediate
-	signal a_out : std_logic_vector (15 downto 0);
+	-- raster interrupt
+	signal raster_match: std_logic_vector(9 downto 0);
+	signal is_raster_match: std_logic;
 	
-	-- convenience
-	signal chr40 : std_logic;
-	signal chr80 : std_logic;
-	signal pxl40 : std_logic;
-	signal pxl80 : std_logic;
-	signal col40 : std_logic;
-	signal col80 : std_logic;
+	-- interrupts
+	signal irq_raster_ack: std_logic;
+	signal irq_raster: std_logic;
+	signal irq_raster_en: std_logic;
+	signal irq_out_int: std_logic;
 
+	signal irq_sprite_raster_trigger: std_logic;
+	signal irq_sprite_raster: std_logic;
+	signal irq_sprite_raster_en: std_logic;
+	signal irq_sprite_sprite_trigger: std_logic;
+	signal irq_sprite_sprite: std_logic;
+	signal irq_sprite_sprite_en: std_logic;
+	signal irq_sprite_border_trigger: std_logic;
+	signal irq_sprite_border: std_logic;
+	signal irq_sprite_border_en: std_logic;
+
+	-- intermediate
+	signal h_zero: std_logic;
+	signal v_zero: std_logic;
+	signal a_out : std_logic_vector (15 downto 0);
+	signal chr_window : std_logic;
+	signal pxl_window : std_logic;
+	signal attr_window : std_logic;
+	signal sr_window : std_logic;
+	signal sprite_ptr_window: std_logic;
+	signal sprite_data_window: std_logic;
+	
+	-- clock phases (16 half-pixels in one slot)
+--	signal pxl0_ce: std_logic;
+--	signal pxl1_ce: std_logic;
+--	signal pxl2_ce: std_logic;
+--	signal pxl3_ce: std_logic;
+--	signal pxl4_ce: std_logic;
+--	signal pxl5_ce: std_logic;
+--	signal pxl6_ce: std_logic;
+--	signal pxl7_ce: std_logic;
+--	signal pxl8_ce: std_logic;
+--	signal pxl9_ce: std_logic;
+--	signal pxla_ce: std_logic;
+	signal pxlb_ce: std_logic;
+--	signal pxlc_ce: std_logic;
+	signal pxld_ce: std_logic;
+	signal pxle_ce: std_logic;
+--	signal pxlf_ce: std_logic;
+	signal fetch_ce: std_logic;
+	
+	signal fetch_int: std_logic;
+	signal fetch_sprite_en: std_logic;
+	
 	signal chr_fetch_int : std_logic;
 	signal crom_fetch_int: std_logic;
 	signal pxl_fetch_int : std_logic;
-	signal col_fetch_int : std_logic;
+	signal attr_fetch_int : std_logic;
+	signal sr_fetch_int : std_logic;
 	
-	signal sr_load_d : std_logic;
-	signal mem_addr : std_logic;
+	signal sprite_ptr_fetch: std_logic;
+	signal sprite_data_fetch: std_logic;
 	
-	signal next_row : std_logic;
+	-- temporary
+	signal is_double_int: std_logic;
+	signal interlace_int: std_logic;
+
+	-- sprite
+	signal sprite_sel: std_logic_vector(7 downto 0);
+	signal sprite_dout: AOA8(0 to 7);
+	signal sprite_d: std_logic_vector(7 downto 0);
+	signal sprite_fetch_offset: AOA6(0 to 7);
+	signal sprite_enabled: std_logic_vector(7 downto 0);
+	signal sprite_active: std_logic_vector(7 downto 0);
+	signal sprite_ison: std_logic_vector(7 downto 0);
+	signal sprite_overraster: std_logic_vector(7 downto 0);
+	signal sprite_overborder: std_logic_vector(7 downto 0);
+	signal sprite_outbits: AOA4(0 to 7);
+	signal sprite_fgcol: AOA4(0 to 7);
+	signal sprite_mcol1: std_logic_vector(3 downto 0);
+	signal sprite_mcol2: std_logic_vector(3 downto 0);
+	signal sprite_base: std_logic_vector(7 downto 0);
+	-- output to mixer
+	signal sprite_on: std_logic;
+	signal sprite_outcol: std_logic_vector(3 downto 0);
+	signal sprite_onborder: std_logic;
+	signal sprite_onraster: std_logic;
+	signal sprite_no: integer range 0 to 7;
+	
+	signal sprite_fetch_idx: integer range 0 to 7;
+	signal sprite_fetch_idx_v: std_logic_vector(2 downto 0);
+	signal sprite_fetch_win: std_logic;	-- sprites can fetch
+	signal sprite_fetch_done: std_logic;	-- sprites can fetch
+	signal sprite_fetch_active: std_logic;		-- sprite is active for fetch
+	signal sprite_data_ptr: std_logic_vector(7 downto 0);
+	signal sprite_fetch_ce: std_logic_vector(7 downto 0);
+	signal sprite_fetch_ptr: std_logic_vector(15 downto 0);
+	
+	-- collision
+	signal collision_sprite_sprite_none: std_logic;
+	signal collision_sprite_raster_none: std_logic;
+	signal collision_sprite_border_none: std_logic;
+	
+	signal collision_trigger_sprite_border: std_logic_vector(7 downto 0);
+	signal collision_accum_sprite_border: std_logic_vector(7 downto 0);
+	signal collision_trigger_sprite_raster: std_logic_vector(7 downto 0);
+	signal collision_accum_sprite_raster: std_logic_vector(7 downto 0);
+	signal collision_trigger_sprite_sprite: std_logic_vector(7 downto 0);
+	signal collision_accum_sprite_sprite: std_logic_vector(7 downto 0);
+	
+	-- helpers
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
@@ -166,379 +363,1889 @@ architecture Behavioral of Video is
 		end if;
 	end function To_Std_Logic;
 
+	-- VGA canvas (fixed timing, ?_addr start with 0/0 on upper left edge, outside visible area)
+	component Canvas is
+    	Port (
+           qclk: in std_logic;          -- Q clock (50MHz)
+           dotclk: in std_logic_vector(3 downto 0);     -- 25Mhz, 1/2, 1/4, 1/8, 1/16
+
+           h_sync : out  STD_LOGIC;
+           v_sync : out  STD_LOGIC;
+
+			  h_zero : out std_logic;
+			  v_zero : out std_logic;
+			  
+           h_enable : out std_logic;
+           v_enable : out std_logic;
+
+           x_addr: out std_logic_vector(9 downto 0);    -- x coordinate in pixels
+           y_addr: out std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
+
+           reset : in std_logic
+        );
+	end component;
+
+	component HBorder is
+		Port (
+			qclk: in std_logic;
+			dotclk: in std_logic_vector(3 downto 0);			
+			
+			h_zero: in std_logic;
+			hsync_pos: in std_logic_vector(6 downto 0);
+			slots_per_line: in std_logic_vector(6 downto 0);
+			h_extborder: in std_logic;
+			is_80: in std_logic;
+			
+			is_preload: out std_logic;		-- one slot before end of border
+			is_border: out std_logic;			
+			is_last_vis: out std_logic;
+			in_slot: out std_logic;
+			
+			reset : in std_logic
+		);
+	end component;
+
+	component VBorder is
+		Port (
+			h_zero: in std_logic;
+			
+			v_zero: in std_logic;
+			vsync_pos: in std_logic_vector(7 downto 0);
+			rows_per_char: in std_logic_vector(3 downto 0);
+			vis_rows_per_char: in std_logic_vector(3 downto 0);
+			clines_per_screen: in std_logic_vector(7 downto 0);
+			v_extborder: in std_logic;			
+			is_double: in std_logic;
+			v_shift: in std_logic_vector(3 downto 0);
+			alt_rc_cnt: in std_logic_vector(3 downto 0);
+			alt_set_rc: in std_logic;
+			
+			is_border: out std_logic;			
+			is_last_row_of_char: out std_logic;
+			is_last_row_of_screen: out std_logic;
+			is_visible: out std_logic;
+			rcline_cnt: out std_logic_vector(3 downto 0);
+			rline_cnt0: out std_logic;
+			
+			reset : in std_logic
+		);
+	end component;
+	
+	component Sprite is
+	Port (
+		phi2: in std_logic;
+		sel: in std_logic;
+		rwb: in std_logic;
+		regsel: in std_logic_vector(1 downto 0);
+		din: in std_logic_vector(7 downto 0);
+		dout: out std_logic_vector(7 downto 0);
+
+		fgcol: in std_logic_vector(3 downto 0);
+		bgcol: in std_logic_vector(3 downto 0);
+		mcol1: in std_logic_vector(3 downto 0);
+		mcol2: in std_logic_vector(3 downto 0);
+		
+		fetch_offset: out std_logic_vector(5 downto 0);	-- 21x3 bytes = 63
+		fetch_ce: in std_logic;
+
+		qclk: in std_logic;
+		dotclk: in std_logic_vector(3 downto 0);
+		vdin: in std_logic_vector(7 downto 0);
+		h_zero: in std_logic;
+		v_zero: in std_logic;
+		x_addr: in std_logic_vector(9 downto 0);
+		y_addr: in std_logic_vector(9 downto 0);
+		is_double: in std_logic;
+		is_interlace: in std_logic;
+		is80: in std_logic;
+
+		enabled: out std_logic;		-- if sprite data should be read in rasterline
+		active: out std_logic;		-- if sprite pixel out is active (in x/y area)
+		ison: out std_logic;			-- if sprite pixel is not background (for collision / prio)
+		overraster: out std_logic;		-- if sprite should appear over the raster
+		overborder: out std_logic;		-- if sprite should appear over the border
+		outbits: out std_logic_vector(3 downto 0); 	-- double bit output
+		
+		reset: in std_logic
+	);
+	end component;
+	
 begin
-
-	in_slot_cnt_p: process(in_slot, slotclk, reset)
+	
+	windows_p: process(dotclk)
 	begin
-		if (reset = '1') then
-			in_slot <= '0';
-		elsif (falling_edge(slotclk)) then
-			in_slot <= slot_cnt(0);
-		end if;
+			chr_window <= '0';
+			pxl_window <= '0';
+			attr_window <= '0';
+			sr_window <= '0';
+			sprite_ptr_window <= '0';
+			sprite_data_window <= '0';
+			
+			-- access windows for pixel data, character data, or chr ROM
+			-- TODO: make case()
+			if (dotclk(3 downto 2) = "00") then
+				chr_window <= '1';
+				sprite_ptr_window <= '1';
+			end if;
+			
+			-- note: attributes must be loaded before character set, as attributes contain alternate character bit
+			if (dotclk(3 downto 2) = "01") then
+				attr_window <= '1';
+				sprite_data_window <= '1';
+			end if;
+
+			if (dotclk(3 downto 2) = "10") then
+				pxl_window <= '1';
+				sprite_data_window <= '1';
+			end if;			
+			
+			if (dotclk(3 downto 2) = "11") then
+				sr_window <= '1';
+				sprite_data_window <= '1';
+			end if;
+			
 	end process;
---	in_slot <= slot2clk;
-	
-	is_hires_int <= is_hires;
-	
-	-- access indicators
-	--
-	-- pxl40/chr40 are used in both 40 and 80 col mode
-	-- col40/80 must be active at last cycle before loading the pixel shift register
-	-- 	as the pixel SR is directly loaded from the data bus
-	chr40 <= chr_window and in_slot 	and not(is_hires_int)	and is_80;
-	pxl40 <= pxl_window and in_slot					and is_80;
-	col40 <= col_window and in_slot					and is_80;
-	chr80 <= chr_window and not(in_slot) 	and not(is_hires_int);
-	pxl80 <= pxl_window and not(in_slot);
-	col80 <= col_window and not(in_slot);
 
+	ce_p: process(dotclk)
+	begin
+--			pxl0_ce <= '0';
+--			pxl1_ce <= '0';
+--			pxl2_ce <= '0';
+--			pxl3_ce <= '0';
+--			pxl4_ce <= '0';
+--			pxl5_ce <= '0';
+--			pxl6_ce <= '0';
+--			pxl7_ce <= '0';
+--			pxl8_ce <= '0';
+--			pxl9_ce <= '0';
+--			pxla_ce <= '0';
+			pxlb_ce <= '0';
+--			pxlc_ce <= '0';
+			pxld_ce <= '0';
+			pxle_ce <= '0';
+--			pxlf_ce <= '0';
+			fetch_ce <= '0';
 
+--			if (dotclk(3 downto 0) = "0000") then
+--				pxl0_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0001") then
+--				pxl1_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0010") then
+--				pxl2_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0011") then
+--				pxl3_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0100") then
+--				pxl4_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0101") then
+--				pxl5_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0110") then
+--				pxl6_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "0111") then
+--				pxl7_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "1000") then
+--				pxl8_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "1001") then
+--				pxl9_ce <= '1';
+--			end if;
+--			if (dotclk(3 downto 0) = "1010") then
+--				pxla_ce <= '1';
+--			end if;
+			if (dotclk(3 downto 0) = "1011") then
+				pxlb_ce <= '1';
+			end if;
+--			if (dotclk(3 downto 0) = "1100") then
+--				pxlc_ce <= '1';
+--			end if;
+			if (dotclk(3 downto 0) = "1101") then
+				pxld_ce <= '1';
+			end if;
+			if (dotclk(3 downto 0) = "1110") then
+				pxle_ce <= '1';
+			end if;
+--			if (dotclk(3 downto 0) = "1111") then
+--				pxlf_ce <= '1';
+--			end if;
+			if (dotclk(1 downto 0) = "11") then
+				fetch_ce <= '1';
+			end if;
+	end process;
+	
+
+	--fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
+	fetch_int <= is_enable and (not(in_slot) or is_80) and (interlace_int or not(rline_cnt0));
+	
+	
 	-- do we fetch character index?
 	-- not hires, and first cycle in streak
-	chr_fetch_int <= is_enable and (chr40 or chr80) and (interlace or not(rline_cnt(0))) ;
+	chr_fetch_int <= chr_window and fetch_int and not(mode_bitmap);
 
-	-- dot fetch
-	col_fetch_int <= is_enable and (col40 or col80) and (interlace or not(rline_cnt(0)));
+	-- col fetch
+	attr_fetch_int <= attr_window and fetch_int and (mode_attrib or mode_extended);
 	
-	-- dot fetch
-	pxl_fetch_int <= is_enable and (pxl40 or pxl80) and (interlace or not(rline_cnt(0)));
-	crom_fetch_int <= pxl_fetch_int and not(is_hires);
-
-		
-	chr_fetch <= chr_fetch_int;
-	pxl_fetch <= pxl_fetch_int;
-	col_fetch <= col_fetch_int;
-
-	-- pull that in front, so address output enable on IC7 is early enough
-	crom_fetch<= crom_fetch_int;
+	-- hires fetch
+	pxl_fetch_int <= pxl_window and fetch_int;	-- both, hires and crom and mode_bitmap;
 	
-	-- video access?
-	is_vid <= chr_fetch_int or pxl_fetch_int or col_fetch_int;
+	-- character rom fetch
+	crom_fetch_int <= pxl_window and fetch_int and not(mode_bitmap);
 
-	-- when do we use plain vid_addr to fetch?
-	mem_addr <= is_hires_int or chr_fetch_int or col_fetch_int;
+	-- sr load
+	sr_fetch_int <= sr_window and fetch_int;
+
+	fetch_p: process(chr_fetch_int, pxl_fetch_int, attr_fetch_int, crom_fetch_int, qclk,
+						sprite_ptr_fetch, sprite_data_fetch)
+	begin
+		-- video access?
+--		if (falling_edge(qclk) and dotclk(1 downto 0) = "11") then
+			vid_fetch <= chr_fetch_int 
+						or pxl_fetch_int 
+						or attr_fetch_int 
+						or sprite_ptr_fetch
+						or sprite_data_fetch
+						;
+--		end if;
+	end process;
 	
 	-----------------------------------------------------------------------------
-	-- horizontal geometry calculation
+	-- geometry calculation
 
-	-- note: needs to be synchronized, as otherwise bouncing would appear from 
-	-- different signal path lengths in different bits, resulting in line counter running
-	-- twice the speed it should.
-	CharCnt: process(slotclk, last_slot_of_line, slot_cnt, reset)
-	begin
-		if (reset = '1') then
-			slot_cnt <= (others => '0');
-		elsif (rising_edge(slotclk)) then
-			if (last_slot_of_line = '1') then
-				slot_cnt <= (others => '0');
-			else
-				slot_cnt <= slot_cnt + 1;
-			end if;
-		end if;
-	end process;
+	-------------------------------------------
+	-- VGA canvas, incl. fixed enable output
+	vgacanvas: Canvas
+	port map (
+		qclk,
+		dotclk,
+		h_sync_int,
+		v_sync_int,
+		h_zero,
+		v_zero,
+		h_enable,
+		v_enable,
+		x_addr,
+		y_addr,
+		reset
+	);
 
-	SlotProx: process(slot_cnt, slotclk) 
-	begin
-		if (falling_edge(slotclk)) then
-			-- end of line
-			if(slot_cnt = 99) then
-				last_slot_of_line <= '1';
-			else
-				last_slot_of_line <= '0';
-			end if;
-			
-			-- sync
-			if (slot_cnt >= 83 and slot_cnt < 95) then
-				h_sync_int <= '1';
-			else
-				h_sync_int <= '0';
-			end if;
-			
-			-- last visible slot (visible from 0 to 80,
-			-- but during slot 0 SR is empty, and only fetches take place)
-			if (slot_cnt = slots_per_line) then
-				h_enable <= '0';
-				last_vis_slot_of_line <= '1';
-			elsif (slot_cnt = 0) then
-				h_enable <= '1';
-			else 
-				last_vis_slot_of_line <= '0';
-			end if;
-			
-		end if;
-	end process;
+	-------------------------------------------
+	-- border calculations and display state
 
+	h_border: HBorder
+	port map (
+			qclk,
+			dotclk,
+			h_zero,
+			hsync_pos,
+			slots_per_line,
+			h_extborder,			
+			is_80,
+			x_start,
+			x_border,
+			last_vis_slot_of_line,
+			in_slot,
+			reset
+	);
+
+	v_border: VBorder
+	port map (
+			h_zero,	--h_sync_int,	
+			v_zero,
+			vsync_pos,
+			rows_per_char,
+			vis_rows_per_char,
+			clines_per_screen,
+			v_extborder,
+			is_double_int,
+			v_shift,
+			alt_rc_cnt,
+			alt_do_set_rc,
+			y_border,
+			last_line_of_char,
+			last_line_of_screen,
+			vis_line_of_char,
+			rcline_cnt,
+			rline_cnt0,
+			reset
+	);
+	
+	alt_do_set_rc <= is_raster_match and alt_set_rc;
+	
 	h_sync <= not(h_sync_int); -- and not(v_sync_int));
 	
-	-----------------------------------------------------------------------------
-	-- vertical geometry calculation
-
-	next_row <= rline_cnt(0) or is_double;
-
-	LineCnt: process(h_sync_int, last_line_of_screen, rline_cnt, rcline_cnt, reset)
-	begin
-		if (reset = '1') then
-			rline_cnt <= (others => '0');
-			rcline_cnt <= (others => '0');
-			cline_cnt <= (others => '0');
-		elsif (rising_edge(h_sync_int)) then
-			if (last_line_of_screen = '1') then
-				rline_cnt <= (others => '0');
-				rcline_cnt <= (others => '0');
-				cline_cnt <= (others => '0');
-			else
-				rline_cnt <= rline_cnt + 1;
-				
-				if (last_line_of_char = '1') then
-					rcline_cnt <= (others => '0');
-					cline_cnt <= cline_cnt + 1;
-				elsif (next_row = '1') then
-					-- display each char line twice
-					rcline_cnt <= rcline_cnt + 1;
-				end if;
-			end if;
-			
-			if (rows_per_char(3) = '1' or movesync = '1') then
-				-- 9 pixel rows per char, i.e. 450 pixel rows used
-				-- moves first displayed PET row into VGA pixel row 24
-				-- last displayed PET row is VGA pixel row 473
-				if (rline_cnt >= 475 and rline_cnt < 477) then
-					v_sync_int <= '1';
-				else
-					v_sync_int <= '0';
-				end if;
-			else
-				if (rline_cnt >= 450 and rline_cnt < 452) then
-					v_sync_int <= '1';
-				else
-					v_sync_int <= '0';
-				end if;
-			end if;
-		end if;
-	end process;
-
-	LineProx: process(h_sync_int)
-	begin
-		if (falling_edge(h_sync_int)) then
-			
-		    if (rows_per_char(3) = '1') then
-			-- timing for 9 or more pixel rows per character
-			-- end of character line
-			if ((is_hires_int = '1' or rcline_cnt = 8) and next_row = '1') then
-				-- if hires, everyone
-				last_line_of_char <= '1';
-			else
-				last_line_of_char <= '0';
-			end if;
-
-			-- venable
-			v_enable <= '0';
-			if (rline_cnt < 450) then	--468) then
-				v_enable <= '1';
-			end if;
---			if (rline_cnt >= 450) then
---				v_enable <= '1';
---			end if;
-		    else
-			-- timing for 8 pixel rows per character
-			-- end of character line
-			if ((is_hires_int = '1' or rcline_cnt = rows_per_char) and next_row = '1') then
-				-- if hires, everyone
-				last_line_of_char <= '1';
-			else
-				last_line_of_char <= '0';
-			end if;
-
-			-- venable
-			v_enable <= '0';
-			if (rline_cnt < 400) then	--416) then
-				v_enable <= '1';
-			end if;
-		end if; -- crtc_is_9rows
-
-		    -- common for 8/9 pixel rows per char
-		    
-			-- end of screen
-			if (rline_cnt = 524) then
-				last_line_of_screen <= '1';
-			else
-				last_line_of_screen <= '0';
-			end if;
+	is_80 <= mode_80 or is_80_in;
 	
-		
-		end if; -- rising edge...
-	end process;
-
 	v_sync <= not(v_sync_int);
 	pet_vsync <= v_sync_int;
 	
 	-----------------------------------------------------------------------------
-	-- address calculations
+	-- raster address calculations
 	
-	AddrHold: process(slotclk, last_slot_of_line, last_line_of_screen, vid_addr, reset) 
+	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset) 
 	begin
 		if (reset ='1') then
 			vid_addr_hold <= (others => '0');
-		elsif (rising_edge(slotclk)) then
+		elsif (falling_edge(qclk) and dotclk = "0111") then
 			if (last_vis_slot_of_line = '1') then
 				if (last_line_of_screen = '1') then
-                                        vid_addr_hold(13) <= vpage(5);
-                                        vid_addr_hold(12) <= vpage(4);
-                                        vid_addr_hold(11 downto 8) <= vpage(3 downto 0);
-                                        vid_addr_hold(7 downto 0) <= vpagelo;
+					vid_addr_hold <= vid_base;
+					attr_addr_hold <= attr_base;
 				else
 					if (last_line_of_char = '1') then
-						vid_addr_hold <= vid_addr;
+						attr_addr_hold <= attr_addr + va_offset;
+					end if;
+					if (mode_bitmap = '0') then
+						if (last_line_of_char = '1') then
+							vid_addr_hold <= vid_addr + va_offset;
+						end if;
+					else
+						-- bitmap
+						if (rline_cnt0 = '1' or is_double_int = '1') then
+							vid_addr_hold <= vid_addr + va_offset;
+						end if;
+					end if;
+					-- alternate values on raster match
+					if (is_raster_match = '1' and alt_match_vaddr = '1') then
+						vid_addr_hold <= vid_base_alt;
+					end if;
+					if (is_raster_match = '1' and alt_match_attr = '1') then
+						attr_addr_hold <= attr_base_alt;
 					end if;
 				end if;
 			end if;
 		end if;
 	end process;
 	
-	AddrCnt: process(last_slot_of_line, last_line_of_screen, vid_addr, vid_addr_hold, is_80, in_slot, slotclk, reset)
+	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, qclk, reset)
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
-		elsif (falling_edge(slotclk)) then
-			if (last_line_of_screen = '1' and last_slot_of_line = '1') then
-				vid_addr <= (others => '0');
-				is_80 <= is_80_in;
-			else
-				if (last_slot_of_line = '0') then
+			attr_addr <= (others => '0');
+		elsif (falling_edge(qclk) and dotclk = "1111") then
+				if (x_start = '0') then
 					if (is_80 = '1' or in_slot = '1') then
 						vid_addr <= vid_addr + 1;
+						attr_addr <= attr_addr + 1;
 					end if;
 				else
 					vid_addr <= vid_addr_hold;
+					attr_addr <= attr_addr_hold;
 				end if;
+		end if;
+	end process;
+
+	cam_p: process(crsr_address,vid_addr)
+	begin
+			if (vid_addr = crsr_address) then
+				crsr_addr_match <= '1'; 
+			else
+				crsr_addr_match <= '0';
+			end if;
+	end process;
+
+	-----------------------------------------------------------------------------
+	-- sprite handling
+
+	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
+	fetch_sprite_en <= '1' when is_enable = '1' 
+								-- and first_row = '1'
+								and (interlace_int = '1' or rline_cnt0 = '0')
+								and sprite_fetch_active = '1'
+								and sprite_fetch_win = '1'
+							else '0';
+
+	sprite_ptr_fetch <= sprite_ptr_window and fetch_sprite_en;
+	sprite_data_fetch <= sprite_data_window and fetch_sprite_en;	
+	
+	sprite_outcol_p: process(qclk, dotclk)
+	begin
+		
+		if (falling_edge(qclk)) then -- and dotclk(0) = '0') then
+			if (sprite_ison(0) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(0);
+				sprite_onborder <= sprite_overborder(0);
+				sprite_onraster <= sprite_overraster(0);
+				sprite_no <= 0;
+			elsif (sprite_ison(1) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(1);
+				sprite_onborder <= sprite_overborder(1);
+				sprite_onraster <= sprite_overraster(1);
+				sprite_no <= 1;
+			elsif (sprite_ison(2) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(2);
+				sprite_onborder <= sprite_overborder(2);
+				sprite_onraster <= sprite_overraster(2);
+				sprite_no <= 2;
+			elsif (sprite_ison(3) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(3);
+				sprite_onborder <= sprite_overborder(3);
+				sprite_onraster <= sprite_overraster(3);
+				sprite_no <= 3;
+			elsif (sprite_ison(4) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(4);
+				sprite_onborder <= sprite_overborder(4);
+				sprite_onraster <= sprite_overraster(4);
+				sprite_no <= 4;
+			elsif (sprite_ison(5) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(5);
+				sprite_onborder <= sprite_overborder(5);
+				sprite_onraster <= sprite_overraster(5);
+				sprite_no <= 5;
+			elsif (sprite_ison(6) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(6);
+				sprite_onborder <= sprite_overborder(6);
+				sprite_onraster <= sprite_overraster(6);
+				sprite_no <= 6;
+			elsif (sprite_ison(7) = '1') then
+				sprite_on <= '1';
+				sprite_outcol <= sprite_outbits(7);
+				sprite_onborder <= sprite_overborder(7);
+				sprite_onraster <= sprite_overraster(7);
+				sprite_no <= 7;
+			else
+				sprite_on <= '0';
+				sprite_outcol <= "0000";
+				sprite_onborder <= '0';
+				sprite_onraster <= '0';
+				sprite_no <= 0;
 			end if;
 		end if;
 	end process;
 
-	-----------------------------------------------------------------------------
-	-- address output
+
+	spritesprite_p: process(qclk, dena_int, collision_trigger_sprite_sprite, collision_accum_sprite_sprite)
+	begin
+
+		collision_sprite_sprite_none <= '0';
+		if (collision_accum_sprite_sprite = "00000000") then
+			collision_sprite_sprite_none <= '1';
+		end if;
+		
+		if (falling_edge(qclk)) then -- and dotclk(0) = '0') then
+
+			irq_sprite_sprite_trigger <= '0';
+			
+			outer_l: for i in 0 to 7 loop
+			
+				collision_trigger_sprite_sprite(i) <= '0';
+				
+				inner_l: for j in 0 to 7 loop
+				
+					if (i /= j) then
+					
+						if (sprite_ison(i) = '1' and sprite_ison(j) = '1') then
+						
+							collision_trigger_sprite_sprite(i) <= '1';
+							
+							if (collision_sprite_sprite_none = '1') then 
+								irq_sprite_sprite_trigger <= '1';
+							end if;
+						end if;
+					end if;
+				end loop;
+			end loop;
+		end if;
+	end process;
 	
+	sdo_p: process(regsel, crtc_sel, crtc_is_data, sprite_dout)
+	begin
+	
+		sprite_sel <= (others => '0');
+		sprite_d <= (others => '0');
+		
+		if (crtc_sel = '1' and crtc_is_data = '1') then
+			case regsel(6 downto 2) is
+			when "01100" =>	-- sprite 0
+				sprite_sel(0) <= '1';
+				sprite_d <= sprite_dout(0);
+			when "01101" =>	-- sprite 1
+				sprite_sel(1) <= '1';
+				sprite_d <= sprite_dout(1);
+			when "01110" =>	-- sprite 2
+				sprite_sel(2) <= '1';
+				sprite_d <= sprite_dout(2);
+			when "01111" =>	-- sprite 3
+				sprite_sel(3) <= '1';
+				sprite_d <= sprite_dout(3);
+			when "10000" =>	-- sprite 4
+				sprite_sel(4) <= '1';
+				sprite_d <= sprite_dout(4);
+			when "10001" =>	-- sprite 5
+				sprite_sel(5) <= '1';
+				sprite_d <= sprite_dout(5);
+			when "10010" =>	-- sprite 6
+				sprite_sel(6) <= '1';
+				sprite_d <= sprite_dout(6);
+			when "10011" =>	-- sprite 7
+				sprite_sel(7) <= '1';
+				sprite_d <= sprite_dout(7);
+			when others =>
+			end case;
+		end if;
+	end process;
+
+	fetch_idx_p: process(qclk, dotclk, h_zero, sprite_fetch_idx)
+	begin
+		if (h_zero = '1') then
+			sprite_fetch_idx <= 0;
+			sprite_fetch_win <= '0';
+			sprite_fetch_done <= '0';
+		elsif (falling_edge(qclk) and dotclk = "1111") then
+			if (sprite_fetch_done = '0') then
+				if (sprite_fetch_win = '0') then
+					sprite_fetch_win <= '1';
+				elsif(sprite_fetch_idx = 7) then
+					sprite_fetch_win <= '0';
+					sprite_fetch_done <= '1';
+				else
+					sprite_fetch_idx <= sprite_fetch_idx + 1;
+				end if;
+			end if;
+		end if;
+		
+		sprite_fetch_idx_v <= std_logic_vector(to_unsigned(sprite_fetch_idx, sprite_fetch_idx_v'length));
+	end process;
+	
+	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce, sprite_data_ptr, sprite_base)
+	begin
+		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
+		sprite_fetch_ptr(5 downto 0) <= sprite_fetch_offset(sprite_fetch_idx);
+		sprite_fetch_ptr(13 downto 6) <= sprite_data_ptr;
+		sprite_fetch_ptr(15 downto 14) <= sprite_base(7 downto 6);
+		
+		if (falling_edge(qclk)) then
+			if (fetch_ce = '1' and sprite_ptr_fetch = '1') then
+				sprite_data_ptr <= VRAM_D;
+			end if;
+		end if;
+		
+		sprite_fetch_ce <= "00000000";
+		case (sprite_fetch_idx) is
+		when 0 =>	sprite_fetch_ce(0) <= sprite_data_fetch and fetch_ce;
+		when 1 =>	sprite_fetch_ce(1) <= sprite_data_fetch and fetch_ce;
+		when 2 =>	sprite_fetch_ce(2) <= sprite_data_fetch and fetch_ce;
+		when 3 =>	sprite_fetch_ce(3) <= sprite_data_fetch and fetch_ce;
+		when 4 =>	sprite_fetch_ce(4) <= sprite_data_fetch and fetch_ce;
+		when 5 =>	sprite_fetch_ce(5) <= sprite_data_fetch and fetch_ce;
+		when 6 =>	sprite_fetch_ce(6) <= sprite_data_fetch and fetch_ce;
+		when 7 =>	sprite_fetch_ce(7) <= sprite_data_fetch and fetch_ce;
+		when others =>
+		end case;
+		
+	end process;
+
+	sprite0: Sprite
+	port map (
+		phi2,
+		sprite_sel(0),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(0),
+		sprite_fgcol(0),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(0),
+		sprite_fetch_ce(0),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(0),
+		sprite_active(0),
+		sprite_ison(0),
+		sprite_overraster(0),
+		sprite_overborder(0),
+		sprite_outbits(0),
+		reset
+	);
+
+	sprite1: Sprite
+	port map (
+		phi2,
+		sprite_sel(1),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(1),
+		sprite_fgcol(1),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(1),
+		sprite_fetch_ce(1),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(1),
+		sprite_active(1),
+		sprite_ison(1),
+		sprite_overraster(1),
+		sprite_overborder(1),
+		sprite_outbits(1),
+		reset
+	);
+
+	sprite2: Sprite
+	port map (
+		phi2,
+		sprite_sel(2),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(2),
+		sprite_fgcol(2),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(2),
+		sprite_fetch_ce(2),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(2),
+		sprite_active(2),
+		sprite_ison(2),
+		sprite_overraster(2),
+		sprite_overborder(2),
+		sprite_outbits(2),
+		reset
+	);
+
+	sprite3: Sprite
+	port map (
+		phi2,
+		sprite_sel(3),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(3),
+		sprite_fgcol(3),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(3),
+		sprite_fetch_ce(3),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(3),
+		sprite_active(3),
+		sprite_ison(3),
+		sprite_overraster(3),
+		sprite_overborder(3),
+		sprite_outbits(3),
+		reset
+	);
+
+	sprite4: Sprite
+	port map (
+		phi2,
+		sprite_sel(4),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(4),
+		sprite_fgcol(4),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(4),
+		sprite_fetch_ce(4),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(4),
+		sprite_active(4),
+		sprite_ison(4),
+		sprite_overraster(4),
+		sprite_overborder(4),
+		sprite_outbits(4),
+		reset
+	);
+
+	sprite5: Sprite
+	port map (
+		phi2,
+		sprite_sel(5),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(5),
+		sprite_fgcol(5),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(5),
+		sprite_fetch_ce(5),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(5),
+		sprite_active(5),
+		sprite_ison(5),
+		sprite_overraster(5),
+		sprite_overborder(5),
+		sprite_outbits(5),
+		reset
+	);
+
+	sprite6: Sprite
+	port map (
+		phi2,
+		sprite_sel(6),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(6),
+		sprite_fgcol(6),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(6),
+		sprite_fetch_ce(6),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(6),
+		sprite_active(6),
+		sprite_ison(6),
+		sprite_overraster(6),
+		sprite_overborder(6),
+		sprite_outbits(6),
+		reset
+	);
+
+	sprite7: Sprite
+	port map (
+		phi2,
+		sprite_sel(7),
+		crtc_rwb,
+		regsel(1 downto 0),
+		CPU_D,
+		sprite_dout(7),
+		sprite_fgcol(7),
+		col_bg0,
+		sprite_mcol1,
+		sprite_mcol2,
+		sprite_fetch_offset(7),
+		sprite_fetch_ce(7),
+		qclk,
+		dotclk,
+		VRAM_D,
+		h_zero,
+		v_zero,
+		x_addr,
+		y_addr,
+		is_double_int,
+		interlace_int,
+		is_80,
+		sprite_enabled(7),
+		sprite_active(7),
+		sprite_ison(7),
+		sprite_overraster(7),
+		sprite_overborder(7),
+		sprite_outbits(7),
+		reset
+	);
+	
+	-----------------------------------------------------------------------------
+	-- replace discrete color circuitry of ultracpu 1.2b
+
+	
+	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int,
+		mode_rev, sr_crsr, sr_blink, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
+	begin
+
+		if (falling_edge(qclk)) then
+			if (fetch_ce = '1' and chr_fetch_int = '1') then
+				char_index_buf <= VRAM_D;
+				sr_crsr <= crsr_addr_match and crsr_active;
+			end if;			
+		end if;
+		
+		if (falling_edge(qclk)) then
+			if (fetch_ce = '1' and attr_fetch_int = '1') then
+				attr_buf <= VRAM_D;
+			end if;
+		end if;
+
+		if (falling_edge(qclk)) then
+			if (fetch_ce = '1' and pxl_fetch_int = '1') then
+				if (mode_bitmap = '1' or vis_line_of_char = '1') then
+					pxl_buf <= VRAM_D;
+				else
+					pxl_buf <= (others => '0');
+				end if;
+			end if;
+		end if;
+
+		-- when do I really need to load the pixel SR?
+		if (falling_edge(qclk)) then
+			nsrload	<= not (memclk and sr_fetch_int );
+		end if;
+
+		if (falling_edge(qclk)) then
+			if (pxlb_ce = '1' and fetch_int = '1') then
+			
+				sr_underline_p <= '0';
+				sr_blink <= '0';
+				if (mode_attrib = '0') then
+				elsif (mode_extended = '0') then
+					if (attr_buf(6) = '1' 			-- reverse attribute
+						xor (attr_buf(4) = '1' and			-- blink
+							cblink_active = '1')) then
+						sr_blink <= '1';
+					end if;
+					if (attr_buf(5) = '1' and uline_active = '1') then
+						sr_underline_p <= '1';
+					end if;
+				else -- extended == 1			
+					if (attr_buf(5) = '0' and ((attr_buf(6) = '1') 			-- reverse attribute
+						xor (attr_buf(4) = '1' and			-- blink
+							cblink_active = '1'))) then
+						sr_blink <= '1';
+					end if;
+				end if;
+				
+				sr_reverse_p <= mode_rev 
+								xor sr_crsr
+								xor sr_blink;
+			end if;
+		end if;
+
+		if (falling_edge(qclk)) then
+			if (pxld_ce = '1' and fetch_int = '1') then
+				--attr_buf2 <= attr_buf;
+				if (sr_underline_p = '1') then
+					sr_buf <= "11111111";
+				elsif (sr_reverse_p = '1') then
+					sr_buf <= not(pxl_buf);
+				else
+					sr_buf <= pxl_buf;
+				end if;
+			end if;
+		end if;
+		
+		if (falling_edge(qclk)) then
+			if (pxle_ce = '1' and (is_80 = '1' or in_slot = '0')) then
+				sr_attr <= attr_buf;
+				sr(6 downto 0) <= sr_buf (6 downto 0);
+				sr_odd <= '0';
+				
+				if (mode_attrib = '1' and mode_extended = '1') then
+					-- multicolour (2-bit colour mode)
+					is_outbit(1) <= sr_buf(7);
+					is_outbit(0) <= sr_buf(6);
+				else
+					-- normal 1-bit colour modes
+					is_outbit(1) <= '0';
+					is_outbit(0) <= sr_buf(7);
+				end if;
+				
+				case (bits_per_char) is
+				when "0000" =>
+					sr <= (others => '0');
+					is_outbit(0) <= '0';
+					is_outbit(1) <= '0';
+				when "0001" =>
+					sr <= (others => '0');
+				when "0010" =>
+					sr(5 downto 0) <= (others => '0');
+				when "0011" =>
+					sr(4 downto 0) <= (others => '0');
+				when "0100" =>
+					sr(3 downto 0) <= (others => '0');
+				when "0101" =>
+					sr(2 downto 0) <= (others => '0');
+				when "0110" =>
+					sr(1 downto 0) <= (others => '0');
+				when "0111" =>
+					sr(0 downto 0) <= (others => '0');
+				when others =>
+				end case;
+				
+			elsif (dotclk(0) = '0' and (is_80 = '1' or dotclk(1) = '1')) then
+				sr(6 downto 1) <= sr(5 downto 0);
+				sr(0) <= '1';
+				sr_odd <= not(sr_odd);
+				
+				if (mode_attrib = '1' and mode_extended = '1') then
+					if (sr_odd = '1') then
+						-- multicolour (2-bit colour mode)
+						is_outbit(1) <= sr(6);
+						is_outbit(0) <= sr(5);
+					end if;
+				else
+					is_outbit(1) <= '0';
+					is_outbit(0) <= sr(6);
+				end if;
+			end if;
+						
+		end if;
+	end process;
+					
+	rasterout_p: process(qclk, sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
+		col_bg0, col_fg, col_bg1, col_bg2)
+	begin
+		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
+			raster_isbg <= '0';
+			if (mode_extended = '0' and mode_attrib = '0') then
+				-- 2 COL MODE
+				if is_outbit(0) = '0' then
+					raster_outbit <= col_bg0;
+					raster_isbg <= '1';
+				else
+					raster_outbit <= col_fg;
+				end if;
+			elsif (mode_extended = '0' and mode_attrib = '1') then
+				-- ATTRIBUTE MODE (VDC)
+				if (is_outbit(0) = '0') then
+					raster_outbit <= col_bg0;
+					raster_isbg <= '1';
+				else
+					raster_outbit <= sr_attr(3 downto 0);
+				end if;
+			elsif (mode_extended = '1' and mode_attrib = '0') then
+				-- EXTENDED MODE (COLOUR PET)
+				if is_outbit(0) = '0' then
+					raster_outbit <= sr_attr(7 downto 4);
+					raster_isbg <= '1';
+				else
+					raster_outbit <= sr_attr(3 downto 0);
+				end if;
+			else
+				-- MULTICOLOUR MODE
+				case (is_outbit) is
+				when "00" =>
+					raster_outbit <= sr_attr(7 downto 4);
+					raster_isbg <= '1';
+				when "01" =>
+					raster_outbit <= col_bg1;
+				when "10" =>
+					raster_outbit <= col_bg2;
+				when "11" =>
+					raster_outbit <= sr_attr(3 downto 0);
+				when others =>
+					raster_outbit <= col_border;
+				end case;
+			end if;
+			if (is_80 = '1' or dotclk(1) = '1') then
+				raster_out(6) <= raster_out(7);
+				raster_out(5) <= raster_out(6);
+				raster_out(4) <= raster_out(5);
+				raster_out(3) <= raster_out(4);
+				raster_out(2) <= raster_out(3);
+				raster_out(1) <= raster_out(2);
+				raster_out(0) <= raster_out(1);
+				raster_bg(6 downto 0) <= raster_bg(7 downto 1);
+			end if;
+			raster_out(to_integer(unsigned(h_shift))) <= raster_outbit;
+			raster_bg(to_integer(unsigned(h_shift))) <= raster_isbg;
+		end if;
+	end process;
+	
+	collision_p: process(qclk, phi2, dena_int, collision_trigger_sprite_border, collision_trigger_sprite_raster, 
+			collision_accum_sprite_raster, collision_accum_sprite_border, collision_trigger_sprite_sprite,
+			collision_sprite_border_none, collision_sprite_raster_none)
+	begin
+	
+		if (falling_edge(qclk)) then
+			collision_sprite_raster_none <= '0';
+			if (collision_accum_sprite_raster = "00000000") then
+				collision_sprite_raster_none <= '1';
+			end if;
+			collision_sprite_border_none <= '0';
+			if (collision_accum_sprite_border = "00000000") then
+				collision_sprite_border_none <= '1';
+			end if;
+		end if;
+		
+		irq_sprite_raster_trigger <= '0';
+		irq_sprite_border_trigger <= '0';
+
+		coll_l: for i in 0 to 7 loop
+			if (collision_sprite_border_none = '1' and collision_trigger_sprite_border(i) = '1') then
+				irq_sprite_border_trigger <= '1';
+			end if;
+		
+			if (collision_trigger_sprite_border(i) = '1') then
+				collision_accum_sprite_border(i) <= '1';				
+			elsif (falling_edge(phi2)) then
+			
+				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+					if (regsel = x"2b") then
+						-- reading the sprite-border collision register
+						collision_accum_sprite_border(i) <= '0';
+					end if;
+				end if;
+			end if;
+			
+			if (collision_sprite_raster_none = '1' and collision_trigger_sprite_raster(i) = '1') then
+				irq_sprite_raster_trigger <= '1';
+			end if;
+			
+			if (collision_trigger_sprite_sprite(i) = '1') then
+				collision_accum_sprite_sprite(i) <= '1';
+			elsif (falling_edge(phi2)) then
+				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+					if (regsel = x"2c") then
+						-- reading the sprite-border collision register
+						collision_accum_sprite_sprite(i) <= '0';
+					end if;
+				end if;
+			end if;
+			
+			if (collision_trigger_sprite_raster(i) = '1') then
+				collision_accum_sprite_raster(i) <= '1';
+			elsif (falling_edge(phi2)) then
+				if (crtc_sel = '1' and crtc_rwb = '1' and crtc_is_data = '1') then
+					if (regsel = x"2d") then
+						-- reading the sprite-border collision register
+						collision_accum_sprite_raster(i) <= '0';
+					end if;
+				end if;
+			end if;
+			
+		end loop;
+	end process;
+	
+	vid_mixer_p: process (qclk, dena_int, reset)
+	begin
+		if (dena_int = '0' or reset = '1') then
+			vid_out <= (others => '0');
+			
+		elsif (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
+
+			collision_trigger_sprite_border <= (others => '0');
+			collision_trigger_sprite_raster <= (others => '0');
+			
+			if (x_border = '1' or y_border = '1' or dispen = '0') then
+				if (sprite_on = '1' and sprite_onborder = '1') then
+					-- sprite on top of border
+					vid_out <= sprite_outcol;
+					collision_trigger_sprite_border(sprite_no) <= '1';
+				else
+					-- BORDER
+					vid_out <= col_border;
+				end if;
+			elsif (sprite_on = '1' and (raster_bg(0) = '1' or sprite_onraster = '1')) then
+				-- sprite on top of raster
+				vid_out <= sprite_outcol;
+				if (raster_bg(0) = '0') then
+					collision_trigger_sprite_raster(sprite_no) <= '1';
+				end if;
+				
+			elsif (is_80 = '1' or dotclk(1) = '1') then
+				-- raster
+				vid_out <= raster_out(0);
+			end if;			
+		end if;
+	end process;
+	
+	-----------------------------------------------------------------------------
+	-- address mixer
 	-- mem_addr = hires fetch or chr fetch (i.e. NOT charrom pxl fetch)
 	
-	a_out(3 downto 0) <= vid_addr(3 downto 0) when mem_addr ='1' else 
-				rcline_cnt;
-	a_out(11 downto 4) <= vid_addr(11 downto 4) when mem_addr = '1' else 
-				"ZZZZZZZZ";
-	a_out(12) 	<= vid_addr(12) 	when mem_addr ='1' else
-				is_graph;
-	a_out(13) 	<= vid_addr(13) 	when mem_addr ='1' else
-				vpage(6);	-- charrom
-        a_out(14)       <= vpage(6) when is_hires_int = '1' else        -- hires
-                                vpage(7) when crom_fetch_int = '1' else -- charrom
-                                '0'	 when chr_fetch_int = '1' else  -- character data
-				'1';					-- color data
-        a_out(15)       <= vpage(7) when is_hires_int = '1' else        -- hires
-                                '0' when crom_fetch_int = '1' else           -- charrom
-                                '1';            -- $8000 for PET character data
+	--when sprite_ptr_fetch = '1' else
+	--when sprite_data_fetch = '1' else
+	
+	a_out(2 downto 0) <= 
+							sprite_fetch_idx_v(2 downto 0)	when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(2 downto 0)		when sprite_data_fetch = '1' else
+							attr_addr(2 downto 0) 				when attr_fetch_int = '1' else
+							rcline_cnt(2 downto 0) 				when crom_fetch_int = '1' else
+							vid_addr(2 downto 0);
 
+	a_out(3) <= 
+							'1'										when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(3)					when sprite_data_fetch = '1' else
+							attr_addr(3)			 				when attr_fetch_int = '1' else
+							rcline_cnt(3) 			 				when crom_fetch_int = '1' else
+							vid_addr(3);
+
+	a_out(7 downto 4) <= 
+							"1111"									when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(7 downto 4)		when sprite_data_fetch = '1' else
+							attr_addr(7 downto 4)				when attr_fetch_int = '1' else
+							char_index_buf(3 downto 0) 		when crom_fetch_int = '1' else
+							vid_addr(7 downto 4);
+
+	a_out(11 downto 8) <= 
+							sprite_base(3 downto 0)				when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(11 downto 8)		when sprite_data_fetch = '1' else
+							attr_addr(11 downto 8)				when attr_fetch_int = '1' else
+							char_index_buf(7 downto 4) 		when crom_fetch_int = '1' else
+							vid_addr(11 downto 8);
+
+	a_out(12) 		<= 
+							sprite_base(4)							when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(12)					when sprite_data_fetch = '1' else
+							attr_addr(12)							when attr_fetch_int = '1' else
+							is_graph									when crom_fetch_int = '1' else
+							vid_addr(12);
+
+	a_out(15 downto 13) <= 
+							sprite_base(7 downto 5)				when sprite_ptr_fetch = '1' else
+							sprite_fetch_ptr(15 downto 13)	when sprite_data_fetch = '1' else
+							attr_addr(15 downto 13)				when attr_fetch_int = '1' else
+							crom_base(7 downto 5) 				when crom_fetch_int = '1' else
+							vid_addr(15 downto 13);
+							
 	A <= a_out;
 	
 	-----------------------------------------------------------------------------
 	-- output sr control
 
-	en_p: process(sr_load_d)
+	en_p: process(nsrload, qclk)
 	begin
 		-- sr_load changes on falling edge of qclk
 		-- sr_load_d changes on rising edge of qclk
 		-- in_slot changes at falling edge of slotclk, which itself changes on falling edge of qclk
-		if (rising_edge(sr_load_d)
-			and (in_slot = '1')) then
+		if (rising_edge(nsrload)
+			--and (in_slot = '1')
+			) then
 			enable <= h_enable and v_enable
-				and (interlace or not(rline_cnt(0)));
+				and (interlace_int or not(rline_cnt0));
 		end if;
+--		if (falling_edge(qclk) and sr_fetch_int = '1') then
+--			enable <= h_enable and v_enable
+--				and (interlace_int or not(rline_cnt0));
+--		end if;
 	end process;
 
-	-- without this delay the char behind a line may slightly bleed through
-	-- for just a couple of ns, but this still irritated my monitor's auto-sync
-	-- so it would not correctly detect 640x480
-	en_p2: process(qclk, reset)
+	dena_int <= enable;
+
+	--------------------------------------------
+	-- raster interrupt handling
+	
+	RasterMatch: process(h_zero, raster_match, y_addr)
 	begin
-		if (reset = '1') then
-			dena <= '0';
-		elsif (rising_edge(qclk)) then
-			dena <= enable;
+		
+		if (rising_edge(h_zero)) then
+			if (raster_match = y_addr) then
+				is_raster_match <= '1';
+			else
+				is_raster_match <= '0';
+			end if;
 		end if;
+		
 	end process;
-
-	en_p3: process(qclk, reset)
+	
+	RasterIrq: process(phi2, crtc_reg, crtc_sel, crtc_rs, reset)
 	begin
+		if (falling_edge(phi2)) then
+			
+			if (is_raster_match = '0') then
+				irq_raster_ack <= '0';
+			end if;
+
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24"
+					and crtc_rwb = '0'
+					) then
+				if (CPU_D(0) = '1') then
+					irq_raster_ack <= '1';
+				end if;
+			end if;
+			
+		end if;
+
 		if (reset = '1') then
-			sr_load_d <= '0';
-		elsif (rising_edge(qclk)) then
-			sr_load_d <= sr_load;
+			irq_raster <= '0';
+		elsif (falling_edge(phi2)) then
+			if (irq_raster_ack = '1') then
+				irq_raster <= '0';
+			elsif (is_raster_match = '1') then
+				irq_raster <= '1';
+			end if;
+		end if;
+		
+	end process;
+	
+	sprite_irq_p: process(phi2, irq_sprite_sprite_trigger, irq_sprite_border_trigger, irq_sprite_raster_trigger)
+	begin
+	
+		if (irq_sprite_raster_trigger = '1') then
+			irq_sprite_raster <= '1';
+		elsif (falling_edge(phi2)) then
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24" and crtc_rwb = '0') then
+				if (CPU_D(1) = '1') then
+					irq_sprite_raster <= '0';
+				end if;
+			end if;
+		end if;
+
+		if (irq_sprite_sprite_trigger = '1') then
+			irq_sprite_sprite <= '1';
+		elsif (falling_edge(phi2)) then
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24" and crtc_rwb = '0') then
+				if (CPU_D(2) = '1') then
+					irq_sprite_sprite <= '0';
+				end if;
+			end if;
+		end if;
+		
+		if (irq_sprite_border_trigger = '1') then
+			irq_sprite_border <= '1';
+		elsif (falling_edge(phi2)) then
+			if (crtc_sel = '1' and crtc_is_data = '1' and regsel = x"24" and crtc_rwb = '0') then
+				if (CPU_D(3) = '1') then
+					irq_sprite_border <= '0';
+				end if;
+			end if;
+		end if;
+
+	end process;
+	
+	irq_out_int <= (irq_raster and irq_raster_en)
+				 or (irq_sprite_sprite and irq_sprite_sprite_en) 
+				 or (irq_sprite_raster and irq_sprite_raster_en) 
+				 or (irq_sprite_border and irq_sprite_border_en);
+	
+	irq_out <= irq_out_int;
+	
+	--------------------------------------------
+	-- alt modes
+	altmodes_p: process(qclk)
+	begin
+	
+		if (falling_edge(qclk)) then
+			
+			if (v_zero = '1' or mode_set_flag = '1') then
+				mode_attrib <= mode_attrib_reg;
+				mode_extended <= mode_extended_reg;
+				mode_bitmap <= mode_bitmap_reg;
+			elsif (is_raster_match = '1' and alt_match_modes = '1') then
+				mode_attrib <= mode_attrib_alt;
+				mode_extended <= mode_extended_alt;
+				mode_bitmap <= mode_bitmap_alt;
+			end if;
 		end if;
 	end process;
 
+	Writemode_p: process(phi2, h_zero, regsel, crtc_sel, crtc_is_data, reset)
+	begin
+		if (h_zero = '1') then
+			mode_set_flag <= '0';
+		elsif (falling_edge(phi2)) then
+			if (crtc_sel = '1' and crtc_is_data = '1' and (regsel = x"19" or regsel = x"27")
+					and crtc_rwb = '0'	-- note this seems to break display...???
+					) then
+				mode_set_flag <= '1';
+			end if;
+		end if;
+	end process;
+	
 	--------------------------------------------
 	-- crtc register emulation
 	-- only 8/9 rows per char are emulated right now
 
 	dbg_out <= '0';
+
+	is_double_int <= mode_double;
+	interlace_int <= mode_interlace;
+
+	crtc_rs_int(1 downto 0) <= crtc_rs(1 downto 0);
+	crtc_rs_int(6 downto 2) <= crtc_rs(6 downto 2) when mode_regmap_int = '1' 
+										else "00000";
+	crtc_rs_int(7) <= '0';
 	
-	regfile: process(memclk, CPU_D, crtc_sel, crtc_rs, reset) 
+	crtc_mapped <= '0' when mode_regmap_int = '0' or crtc_rs(6 downto 2) = "00000"		-- lowest 4 addresses not mapped
+					else '1';												-- anythings else is mapped
+
+	regsel <= crtc_reg when crtc_mapped = '0'
+				else crtc_rs_int;
+
+	crtc_is_data <= '1' when crtc_rs_int(1 downto 0) = "01" 
+								or crtc_rs_int(1 downto 0) = "11"
+								or crtc_mapped = '1'
+				else '0';
+	
+	mode_regmap <= mode_regmap_int;
+	
+	regfile: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, reset) 
 	begin
 		if (reset = '1') then
-			crtc_reg <= RNONE;
-		elsif (falling_edge(memclk) 
-				and crtc_sel = '1' 
-				and crtc_rs='0'
-				and crtc_rwb = '0'
-				) then
-			
-			case (CPU_D(3 downto 0)) is
---			when x"8" =>
---				crtc_reg <= R8;
-			when x"9" =>
-				crtc_reg <= R9;
-			when x"c" =>
-				crtc_reg <= R12;
---			when x"d" =>
---				crtc_reg <= R13;
-			when others =>
-				crtc_reg <= RNONE;
-			end case;
+			crtc_reg <= (others => '0');
+		elsif (falling_edge(phi2) and crtc_sel = '1') then
+		
+			if (crtc_rs_int = x"03") then
+				-- if accessing address 3, auto-increment the register number
+				crtc_reg(6 downto 0) <= crtc_reg(6 downto 0) + 1;
+				
+			elsif ((crtc_rs_int = x"00" or crtc_rs_int = x"02") and crtc_rwb = '0' ) then
+				-- writing to either address 0 or 2 sets the register number
+				crtc_reg(6 downto 0) <= CPU_D(6 downto 0);
+			end if;
 		end if;
 	end process;
 	
-	reg9: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, crtc_reg, reset) 
+	
+	reg9: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, regsel, reset) 
 	begin
 		if (reset = '1') then
-			rows_per_char <= X"7";
+			mode_rev <= '0';
+			cblink_mode <= '0';
+			mode_attrib_reg <= '0';
+			mode_extended_reg <= '0';
+			mode_bitmap_reg <= '0';
+			mode_attrib_alt <= '0';
+			mode_extended_alt <= '0';
+			mode_bitmap_alt <= '0';
+			mode_upet <= '1';
+			mode_double <= '0';
+			mode_interlace <= '0';
+			mode_80 <= '0';
+			mode_altreg <= '0';
+			mode_regmap_int <= '0';
+			alt_match_modes <= '0';
+			alt_match_vaddr <= '0';
+			alt_match_attr <= '0';
+			alt_rc_cnt <= "0000";
+			alt_set_rc <= '0';
+			dispen <= '1';
+			crsr_mode <= (others => '0');
+			crsr_address <= (others => '0');
+			rows_per_char <= "0111"; -- 7
+			bits_per_char <= "1000"; -- 8
+			vis_rows_per_char <= "1111"; -- 15
 			slots_per_line <= "1010000";	-- 80
-			clines_per_screen <= "0011001";	-- 25
-			vpage <= x"10"; -- inverted for PET
-			vpagelo <= (others => '0');
+			hsync_pos <= "0001101";	-- 13
+			vsync_pos <= std_logic_vector(to_unsigned(84,10));
+			clines_per_screen <= "00011001";	-- 25
+			attr_base <= x"d000";
+			attr_base_alt <= x"d000";
+			vid_base <= x"9000";
+			vid_base_alt <= x"9000";
+			crom_base <= x"00";
+			col_fg <= "1111";
+			col_bg0 <= "0000";
+			col_bg1 <= "0000";
+			col_bg2 <= "0000";
+			col_border <= "0000";
+			uline_scan <= (others => '0');
+			h_extborder <= '0';
+			v_extborder <= '0';
+			h_shift <= (others => '0');
+			v_shift <= (others => '0');
+			va_offset <= (others => '0');
+			raster_match <= (others => '0');
+			irq_raster_en <= '0';
+			irq_sprite_sprite_en <= '0';
+			irq_sprite_border_en <= '0';
+			irq_sprite_raster_en <= '0';
+			sprite_mcol1 <= "0000";
+			sprite_mcol1 <= "0000";
+			sprite_base <= "10010111";
 		elsif (falling_edge(phi2) 
-				and crtc_sel = '1' 
-				and crtc_rs='1' 
+				and crtc_sel = '1'
+				and crtc_is_data = '1' 
 				and crtc_rwb = '0'
 				) then
-			case (crtc_reg) is
---			when R1 =>
---				-- we only allow to write up to 63, to save one CPLD register
---				-- (bit 7 is constant)
---				slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
---			when R6 => 
---				clines_per_screen <= CPU_D(6 downto 0);
-			when R9 =>
-				rows_per_char(3) <= CPU_D(3);
-				--rows_per_char <= CPU_D(3 downto 0);
-			when R12 =>
-				vpage(1 downto 0) <= (others => '0');
-				vpage(7 downto 2) <= CPU_D(7 downto 2);
---			when R13 =>
---				vpagelo <= CPU_D;
+			case (regsel) is
+			when x"01" =>
+				-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+				if (mode_upet = '1' or is_80 = '0') then
+					slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+					slots_per_line(0) <= '0';
+				else
+					slots_per_line(6 downto 0) <= CPU_D(6 downto 0);
+				end if;
+			when x"05" => 
+				-- mirror of R1 when regmap is set
+				if (mode_regmap_int = '1') then
+					-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+					if (mode_upet = '1' or is_80 = '0') then
+						slots_per_line(6 downto 1) <= CPU_D(5 downto 0);
+						slots_per_line(0) <= '0';
+					else
+						slots_per_line(6 downto 0) <= CPU_D(6 downto 0);
+					end if;
+				end if;
+			when x"06" => 
+				clines_per_screen <= CPU_D;
+			when x"08" =>
+				-- b1: interlace, b0: double (if b1=1)
+				mode_interlace <= CPU_D(1);
+				mode_double <= CPU_D(0) and CPU_D(1);
+				mode_80 <= CPU_D(7);
+			when x"09" =>
+				rows_per_char <= CPU_D(3 downto 0);
+				if (mode_upet = '1') then
+					if (CPU_D(3) = '1') then
+						vsync_pos <= std_logic_vector(to_unsigned(59,10));
+						rows_per_char <= "1000";	-- limit to 8
+					else
+						vsync_pos <= std_logic_vector(to_unsigned(84,10));
+					end if;
+				end if;
+			when x"0a" =>
+				crsr_start_scan <= CPU_D(4 downto 0);
+				crsr_mode <= CPU_D(6 downto 5);
+			when x"0b" => 
+				crsr_end_scan <= CPU_D(4 downto 0);
+			when x"0c" =>
+				if (mode_altreg = '1') then
+					vid_base_alt(14 downto 8) <= CPU_D(6 downto 0);
+					if (mode_upet = '1') then
+						vid_base_alt(15) <= not(CPU_D(7));
+					else
+						vid_base_alt(15) <= CPU_D(7);
+					end if;
+				else
+					vid_base(14 downto 8) <= CPU_D(6 downto 0);
+					if (mode_upet = '1') then
+						vid_base(15) <= not(CPU_D(7));
+					else
+						vid_base(15) <= CPU_D(7);
+					end if;
+				end if;
+			when x"0d" =>
+				if (mode_altreg = '1') then
+					vid_base_alt(7 downto 0) <= CPU_D;
+				else
+					vid_base(7 downto 0) <= CPU_D;
+				end if;
+			when x"0e" =>
+				crsr_address(14 downto 8) <= CPU_D(6 downto 0);
+				if (mode_upet = '1') then
+					crsr_address(15) <= not(CPU_D(7));
+				else
+					crsr_address(15) <= CPU_D(7);
+				end if;
+			when x"0f" =>	-- R15
+				crsr_address(7 downto 0) <= CPU_D;
+			when x"14" =>	-- R20
+				if (mode_altreg = '1') then
+					attr_base_alt(15 downto 8) <= CPU_D;
+				else
+					attr_base(15 downto 8) <= CPU_D;
+				end if;
+			when x"15" =>	-- R21
+				if (mode_altreg = '1') then
+					attr_base_alt(7 downto 0) <= CPU_D;
+				else
+					attr_base(7 downto 0) <= CPU_D;
+				end if;
+			when x"16" => 	-- R22
+				bits_per_char <= CPU_D(3 downto 0);
+			when x"17" => 	-- R23
+				vis_rows_per_char <= CPU_D(3 downto 0);
+			when x"18" =>	-- R24
+				v_shift <= CPU_D(3 downto 0);
+				v_extborder <= CPU_D(4);
+				cblink_mode <= CPU_D(5);
+				mode_rev <= CPU_D(6);
+			when x"19" =>	-- R25
+				h_shift <= CPU_D(2 downto 0);
+				h_extborder <= CPU_D(4);
+				mode_attrib_reg <= CPU_D(6);
+				mode_bitmap_reg <= CPU_D(7);
+			when x"1a" => 	-- R26
+				col_fg <= CPU_D(7 downto 4);
+				col_bg0 <= CPU_D(3 downto 0);
+			when x"1b" => -- R27
+				va_offset <= CPU_D;
+			when x"1c" => 	-- R28
+				crom_base <= CPU_D;
+			when x"1d" => 	-- R29
+				uline_scan <= CPU_D(4 downto 0);
+			when x"1e" =>	-- R30
+				raster_match(7 downto 0) <= CPU_D;
+			when x"1f" =>	-- R31
+				raster_match(9 downto 8) <= CPU_D(1 downto 0);
+			when x"20" =>	-- R32 (was: R39)
+				mode_extended_reg <= CPU_D(2);
+				dispen <= CPU_D(4);
+				mode_regmap_int <= CPU_D(6);
+				mode_upet <= CPU_D(7);
+			when x"21" => 	-- R33 (was: R40)
+				col_bg1 <= CPU_D(3 downto 0);
+				col_bg2 <= CPU_D(7 downto 4);
+			when x"22" =>	-- R34 (was: R41)
+				col_border <= CPU_D(3 downto 0);
+			when x"23" =>	-- R35 (was: R42)
+				irq_raster_en <= CPU_D(0);
+				irq_sprite_raster_en <= CPU_D(1);
+				irq_sprite_sprite_en <= CPU_D(2);
+				irq_sprite_border_en <= CPU_D(3);
+			when x"24" =>	-- R36 (was: R43 / 2b)
+				-- IRQ status
+			when x"25" => 	-- R37
+				-- read sync status
+			when x"26" =>	-- R38 (was R44)
+				-- horizontal sync
+				hsync_pos <= CPU_D(6 downto 0);
+			when x"27" =>	-- R39 (was R45)
+				vsync_pos <= CPU_D;
+			when x"28" =>	-- R40 (was R46) (alternate control I)
+				mode_altreg <= CPU_D(0);
+				mode_bitmap_alt <= CPU_D(1);
+				mode_attrib_alt <= CPU_D(2);
+				mode_extended_alt <= CPU_D(3);
+				alt_match_modes <= CPU_D(5);
+				alt_match_attr <= CPU_D(6);
+				alt_match_vaddr <= CPU_D(7);				
+			when x"29" =>	-- R41 (was R47) (alternate control II)
+				alt_rc_cnt <= CPU_D(3 downto 0);
+				alt_set_rc <= CPU_D(7);
+			when x"2a" =>	-- R42 (was R88)
+				sprite_base <= CPU_D;
+			when x"2b" =>	-- R43 (was R89 / 59)
+				-- sprite border collisions
+			when x"2c" =>	-- R44 (was R90 / 5a)
+				-- sprite sprite collisions
+			when x"2d" =>	-- R45 (was R91 / 5b)
+				-- sprite raster collisions
+			when x"2e" =>	-- R46 (was R92 / 5c)
+				sprite_mcol1 <= CPU_D(3 downto 0);
+			when x"2f" =>	-- R47 (was R93)
+				sprite_mcol2 <= CPU_D(3 downto 0);
+			--
+			-- R48-R79 (x"30" - x"4f") are decoded separately in the sprites section
+			--
+			when x"50" =>	-- R80
+				sprite_fgcol(0) <= CPU_D(3 downto 0);
+			when x"51" =>	-- R81
+				sprite_fgcol(1) <= CPU_D(3 downto 0);
+			when x"52" =>	-- R82
+				sprite_fgcol(2) <= CPU_D(3 downto 0);
+			when x"53" =>	-- R83
+				sprite_fgcol(3) <= CPU_D(3 downto 0);
+			when x"54" =>	-- R84
+				sprite_fgcol(4) <= CPU_D(3 downto 0);
+			when x"55" =>	-- R85
+				sprite_fgcol(5) <= CPU_D(3 downto 0);
+			when x"56" =>	-- R86
+				sprite_fgcol(6) <= CPU_D(3 downto 0);
+			when x"57" =>	-- R87
+				sprite_fgcol(7) <= CPU_D(3 downto 0);
+			--
+			-- R88 - R95 are reserved for future palette extensions
+			--
 			when others =>
 				null;
 			end case;
 		end if;
 	end process;
-	
 
+	readreg: process(crtc_rwb, crtc_sel, crtc_rs, regsel, reset) 
+	begin
+		if (reset = '1') then
+			vd_out <= (others => '0');
+			y_addr_latch <= (others => '0');
+		else 
+			vd_out <= (others => '0');
+			
+			if	(crtc_sel = '1'
+				and crtc_rwb = '1'
+				) then
+				
+				if (crtc_rs_int = x"02") then
+					vd_out <= crtc_reg;
+				elsif (crtc_rs_int = x"00") then
+					-- TODO: status register at address 0
+				elsif (crtc_is_data = '1') then
+					
+					case (regsel) is
+					when x"01" =>
+						-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+						if (mode_upet = '1' or is_80 = '0') then
+							vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+						else
+							vd_out(6 downto 0) <= slots_per_line(6 downto 0);
+						end if;
+					when x"05" =>
+						-- mirrors R1 for memory-mapped mode
+						if (mode_regmap_int = '1') then
+							-- note: if upet compat, value written is doubled (as in the PET for 80 columns)
+							if (mode_upet = '1' or is_80 = '0') then
+								vd_out(5 downto 0) <= slots_per_line(6 downto 1);
+							else
+								vd_out(6 downto 0) <= slots_per_line(6 downto 0);
+							end if;
+						end if;
+					when x"06" => 
+						vd_out <= clines_per_screen;
+					when x"08" =>
+						vd_out(0) <= mode_double;
+						vd_out(1) <= mode_interlace;
+						vd_out(7) <= mode_80;
+					when x"09" =>
+						vd_out(3 downto 0) <= rows_per_char;
+					when x"0a" =>
+						vd_out(4 downto 0) <= crsr_start_scan;
+						vd_out(6 downto 5) <= crsr_mode;
+					when x"0b" =>
+						vd_out(4 downto 0) <= crsr_end_scan;
+					when x"0c" =>
+						if (mode_altreg = '1') then
+							vd_out(6 downto 0) <= vid_base_alt(14 downto 8);
+							if (mode_upet = '1') then
+								vd_out(7) <= not(vid_base_alt(15));
+							else
+								vd_out(7) <= vid_base_alt(15);
+							end if;
+						else
+							vd_out(6 downto 0) <= vid_base(14 downto 8);
+							if (mode_upet = '1') then
+								vd_out(7) <= not(vid_base(15));
+							else
+								vd_out(7) <= vid_base(15);
+							end if;
+						end if;
+					when x"0d" =>
+						if (mode_altreg = '1') then
+							vd_out <= vid_base_alt(7 downto 0);
+						else
+							vd_out <= vid_base(7 downto 0);
+						end if;
+					when x"0e" =>
+						vd_out(6 downto 0) <= crsr_address(14 downto 8);
+						if (mode_upet = '1') then
+							vd_out(7) <= not(crsr_address(15));
+						else
+							vd_out(7) <= crsr_address(15);
+						end if;
+					when x"0f" =>	-- R15
+						vd_out <= crsr_address(7 downto 0);
+					when x"14" =>	-- R20
+						if (mode_altreg = '1') then
+							vd_out <= attr_base_alt(15 downto 8);
+						else 
+							vd_out <= attr_base(15 downto 8);
+						end if;
+					when x"15" =>	-- R21
+						if (mode_altreg = '1') then
+							vd_out <= attr_base_alt(7 downto 0);
+						else
+							vd_out <= attr_base(7 downto 0);
+						end if;
+					when x"16" => 	-- R22
+						vd_out(3 downto 0) <= bits_per_char;
+					when x"17" => 	-- R23
+						vd_out(3 downto 0) <= vis_rows_per_char;
+					when x"18" =>	-- R24
+						vd_out(3 downto 0) <= v_shift;
+						vd_out(4) <= v_extborder;
+						vd_out(5) <= cblink_mode;
+						vd_out(6) <= mode_rev;
+					when x"19" =>	-- R25
+						vd_out(2 downto 0) <= h_shift;
+						vd_out(4) <= h_extborder;
+						vd_out(6) <= mode_attrib;
+						vd_out(7) <= mode_bitmap;
+					when x"1a" => 	-- R26
+						vd_out(7 downto 4) <= col_fg;
+						vd_out(3 downto 0) <= col_bg0;
+					when x"1b" => 	-- R27
+						vd_out <= va_offset;
+					when x"1c" => 	-- R28
+						vd_out <= crom_base;
+					when x"1d" => 	-- R29
+						vd_out(4 downto 0) <= uline_scan;
+					when x"1e" => 	-- R30
+						vd_out <= y_addr(7 downto 0);
+						y_addr_latch(9 downto 8) <= y_addr(9 downto 8);
+					when x"1f" =>	-- R31
+						vd_out(1 downto 0) <= y_addr_latch(9 downto 8);
+					when x"20" =>	-- R32 (was R39)
+						vd_out(2) <= mode_extended;
+						vd_out(4) <= dispen;
+						vd_out(6) <= mode_regmap_int;
+						vd_out(7) <= mode_upet;
+					when x"21" => 	-- R33 (was R40)
+						vd_out(3 downto 0) <= col_bg1;
+						vd_out(7 downto 4) <= col_bg2;
+					when x"22" =>	-- R34 (was R41)
+						vd_out(3 downto 0) <= col_border;
+					when x"23" =>	-- R35 (was R42)
+						vd_out(0) <= irq_raster_en;
+						vd_out(1) <= irq_sprite_raster_en;
+						vd_out(2) <= irq_sprite_sprite_en;
+						vd_out(3) <= irq_sprite_border_en;
+					when x"24" =>	-- R36 (was R43)
+						vd_out(0) <= irq_raster;
+						vd_out(1) <= irq_sprite_raster;
+						vd_out(2) <= irq_sprite_sprite;
+						vd_out(3) <= irq_sprite_border;
+						vd_out(7) <= irq_out_int;
+					when x"25" => 	-- R37
+						vd_out(6) <= h_sync_int;
+						vd_out(5) <= v_sync_int;
+					when x"26" =>	-- R38 (was R44)
+						vd_out(6 downto 0) <= hsync_pos;
+					when x"27" =>	-- R39 (was R45)
+						vd_out(7 downto 0) <= vsync_pos;
+					when x"28" =>	-- R40 (was R46) (alternate control I)
+						vd_out(0) <= mode_altreg;
+						vd_out(1) <= mode_bitmap_alt;
+						vd_out(2) <= mode_attrib_alt;
+						vd_out(3) <= mode_extended_alt;
+						vd_out(5) <= alt_match_modes;
+						vd_out(6) <= alt_match_attr;
+						vd_out(7) <= alt_match_vaddr;
+					when x"29" =>	-- R41 (was R47) (alternate control II)
+						vd_out(3 downto 0) <= alt_rc_cnt;
+						vd_out(7) <= alt_set_rc;
+					when x"2a" =>	-- R42 (was R88)
+						vd_out <= sprite_base;
+					when x"2b" =>	-- R43 (was R89)
+						vd_out <= collision_accum_sprite_border;
+					when x"2c" =>	-- R44 (was R90)
+						vd_out <= collision_accum_sprite_sprite;
+					when x"2d" =>	-- R45 (was R91)
+						vd_out <= collision_accum_sprite_raster;
+					when x"2e" =>	-- R46 (was R92)
+						vd_out(3 downto 0) <= sprite_mcol1;
+					when x"2f" =>	-- R47 (was R93)
+						vd_out(3 downto 0) <= sprite_mcol2;
+						
+					when x"50" =>	-- R80
+						vd_out(3 downto 0) <= sprite_fgcol(0);
+					when x"51" =>	-- R81
+						vd_out(3 downto 0) <= sprite_fgcol(1);
+					when x"52" =>	-- R82
+						vd_out(3 downto 0) <= sprite_fgcol(2);
+					when x"53" =>	-- R83
+						vd_out(3 downto 0) <= sprite_fgcol(3);
+					when x"54" =>	-- R84
+						vd_out(3 downto 0) <= sprite_fgcol(4);
+					when x"55" =>	-- R85
+						vd_out(3 downto 0) <= sprite_fgcol(5);
+					when x"56" =>	-- R86
+						vd_out(3 downto 0) <= sprite_fgcol(6);
+					when x"57" =>	-- R87
+						vd_out(3 downto 0) <= sprite_fgcol(7);
+					when others =>
+						vd_out <= sprite_d;
+					end case;
+				end if;
+			end if;
+		end if;
+	end process;
+
+	--- blinker
+
+	blink_p: process(v_sync_int, reset, blink_cnt)
+	begin
+		if (reset = '1') then
+			blink_cnt <= (others => '0');
+		elsif (falling_edge(v_sync_int)) then
+			blink_cnt <= blink_cnt + 1;
+		end if;
+		
+		blink_16 <= blink_cnt(4);
+		blink_32 <= blink_cnt(5);
+	end process;
+	
+	--- cursor
+	crsr_p: process(h_sync_int)
+	begin
+		if (falling_edge(h_sync_int)) then
+			if rcline_cnt = crsr_start_scan then
+				case crsr_mode is
+				when "00" =>
+					crsr_active <= '1';
+				when "01" =>
+					crsr_active <= '0';
+				when "10" =>
+					crsr_active <= blink_16;
+				when "11" => 
+					crsr_active <= blink_32;
+				when others =>
+					null;
+				end case;
+			elsif rcline_cnt = crsr_end_scan then
+				crsr_active <= '0';
+			end if;
+		end if;
+	end process;
+
+	--- underline
+	uline_p: process(h_sync_int)
+	begin
+		if (falling_edge(h_sync_int)) then
+			if rcline_cnt = uline_scan then
+				uline_active <= '1';
+			else
+				uline_active <= '0';
+			end if;
+		end if;
+	end process;
+	
+	cblink_p: process(h_sync_int) 
+	begin
+		if (falling_edge(h_sync_int)) then
+			if ((cblink_mode = '0' and blink_16='1') or (cblink_mode = '1' and blink_32 = '1')) then
+				cblink_active <= '1';
+			else 
+				cblink_active <= '0';
+			end if;
+		end if;
+	end process;
+	
 end Behavioral;
 

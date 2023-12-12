@@ -1,0 +1,160 @@
+
+
+	.word $0401
+	*=$0401
+
+	.word link
+	.word 10
+	.byt $9e, "1040",0
+link	.word 0
+
+	.dsb 1040-*
+
+DAC_BASE	=$e830
+
+DAC_START	=0	; 3 registers, 2x8+3 bits
+DAC_LEN		=3	; 2 registers, 2x8 bits (+1 reserved)
+DAC_RATE	=6	; 2 registers, 8/4 bits
+DAC_CH0		=12
+DAC_CH1		=13
+DAC_ST		=14
+DAC_CTRL	=15
+
+DAC_CTRL_IRQEN	=%00010000	; if set, enables IRQ on last DMA fetch
+DAC_CTRL_CHAN	=%00001000	; if not stereo, determines channel for DMA
+DAC_CTRL_STEREO	=%00000100	; if set, dma data is interleaved channel 0 and 1
+DAC_CTRL_LOOP	=%00000010	; if set, loop DMA data indefinitely
+DAC_CTRL_ACTIVE	=%00000001	; start/stop DMA fetch
+
+DAC_ST_BUSY	=%10000000	; dma is active or SPI is still active
+DAC_ST_IRQ	=%01000000	; IRQ is active (= last + irqen); clear by writing to CTRL
+DAC_ST_LAST	=%00100000	; if set, last fetch has happened, and is waiting for SPIout
+DAC_ST_FILL	=%00001111	; mask of number of bytes in fetch buffer
+
+DATA		=$9400	; screen mem in video bank for testing
+LEN		=$0100
+RATE		=1000
+
+CDATA		=$8400; screen mem in CPU space
+
+IRQV		=$90
+
+start	.(
+	; prep irq pointer
+	sei
+	lda IRQV
+	sta irqv
+	lda IRQV+1
+	sta irqv+1
+	lda #<newirq
+	sta IRQV
+	lda #>newirq
+	sta IRQV+1
+	cli
+
+	; init DMA start pointer
+	lda #<DATA
+	sta DAC_BASE + DAC_START
+	lda #>DATA
+	sta DAC_BASE + DAC_START + 1
+	lda #0
+	sta DAC_BASE + DAC_START + 2
+
+	; init DMA data length
+	lda #<LEN
+	sta DAC_BASE + DAC_LEN
+	lda #>LEN
+	sta DAC_BASE + DAC_LEN + 1
+
+	; init DMA rate; 
+	;
+	; base freq is 12MHz/16 = 750kHz
+	; multiplied by rate value is rate data
+	; is sent out to DAC.
+	; rate 17 = 44100 Hz
+	; rate 37 = 20270 Hz
+	; ..
+	lda #<RATE
+	sta DAC_BASE + DAC_RATE
+	lda #>RATE
+	sta DAC_BASE + DAC_RATE + 1
+
+	; set up ram data
+	ldx #0
+l1	txa
+	sta CDATA,x
+	eor #$ff
+	inx
+	sta CDATA,x
+	inx
+	bne l1
+
+	lda #0
+	sta DAC_BASE + DAC_CH0
+
+	.assert DAC_ST_BUSY == $80, "BUSY bit needs to be bit 7"
+l2	bit DAC_BASE + DAC_ST
+	bmi l2
+
+	lda #0
+	sta DAC_BASE + DAC_CH1
+
+	.assert DAC_ST_BUSY == $80, "BUSY bit needs to be bit 7"
+l3	bit DAC_BASE + DAC_ST
+	bmi l3
+
+	lda #DAC_CTRL_ACTIVE + DAC_CTRL_STEREO + DAC_CTRL_IRQEN
+	sta DAC_BASE + DAC_CTRL
+	rts
+
+wait	.(
+	ldy #0
+	ldy #0
+l0	dey
+	bne l0
+	dex
+	bne l0
+	rts
+	.)
+
+newirq	.(
+	.assert DAC_ST_IRQ =$40, "BVx test for IRQ flag"
+	bit DAC_BASE + DAC_ST
+	bvs dacirq
+endirq	jmp (irqv)
+
+dacirq	
+	ldy #0
+l	lda DAC_BASE + DAC_CTRL
+	sta $8000,y
+	iny
+	lda DAC_BASE + DAC_ST
+	sta $8000,y
+	iny
+	bpl l
+
+clrirq	;lda #0
+	lda #DAC_CTRL_ACTIVE + DAC_CTRL_STEREO + DAC_CTRL_IRQEN
+	sta DAC_BASE + DAC_CTRL
+
+ll	lda DAC_BASE + DAC_CTRL
+	sta $8000,y
+	iny
+	lda DAC_BASE + DAC_ST
+	sta $8000,y
+	iny
+	bne ll
+
+	lda #41
+	sta 59520
+	inc 59521
+
+	jmp endirq
+
+	.)
+
+
+irqv	.word 0
+
+	.)
+
