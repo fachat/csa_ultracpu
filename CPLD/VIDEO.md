@@ -56,12 +56,16 @@ The following are the internal Viccy registers:
 - r11: CRSR_END: cursor end scan line + 1 (CRTC)
 - r12: MEM_STRT_H: start of video memory high (CRTC)
   - note: if upet compat mode, high bit (A15) is inverted
+  - note: if r40.0 is set, accesses the alternate video base address
 - r13: MEM_STRT_L: start of video memory low (CRTC)
+  - note: if r40.0 is set, accesses the alternate video base address
 - r14: CRSR_POS_H: cursor position high (CRTC)
   - note: if upet compat mode, high bit (A15) is inverted
 - r15: CRSR_POS_L: cursor position low (CRTC)
 - r20: ATT_STRT_H: attribute start address high (VDC)
+  - note: if r40.0 is set, accesses the alternate attribute base address
 - r21: ATT_STRT_L: attribute start address low (VDC)
+  - note: if r40.0 is set, accesses the alternate attribute base address
 - r22: CHR_HDISP: Horizontal displayed pixel per char
   - bits 3-0: displayed: number of bits displayed from the character definition (not VDC!)
   - bits 7-4: n/a (note, in VDC this is total number of horizontal bits timed for a char, -1. But here fixed to 7)
