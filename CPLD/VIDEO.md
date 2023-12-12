@@ -91,7 +91,7 @@ The following are the internal Viccy registers:
 - r30: RLINE_L: read: rasterline counter low (bits 0-7); write: rasterline match value
 - r31: RLINE_H: read: rasterline counter high (bits 0-1); write: rasterline match value
 
-- r32 (was r39): CTRL: control register
+- r32: CTRL: control register
   - bit 1-0: -
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
@@ -99,18 +99,18 @@ The following are the internal Viccy registers:
   - bit 6: if set, map registers into memory (see below)
   - bit 7: Micro-PET compatible (see r1)
 
-- r33 (was r40): EXT_BGCOLS: extended background colour 
+- r33: EXT_BGCOLS: extended background colour 
   - bits 3-0 background colour 1
   - bits 7-4 background colour 2
-- r34 (was r41): BRDR_COL: border colour
+- r34: BRDR_COL: border colour
   - bits 3-0: border colour
-- r35 (was r42): IRQ_CTRL: IRQ control (VIC-II)
+- r35: IRQ_CTRL: IRQ control (VIC-II)
   - bit 0: raster match enable
-  - bit 1: sprite/bitmap collision enable (TODO)
-  - bit 2: sprite/sprite collision enable (TODO)
-  - bit 3: sprite/border collision enable (TODO)
+  - bit 1: sprite/bitmap collision enable
+  - bit 2: sprite/sprite collision enable
+  - bit 3: sprite/border collision enable
   - bit 7-4: unused
-- r36 (was r43): IRQ_STAT: IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
+- r36: IRQ_STAT: IRQ status; read the interrupt status. Clear by writing 1s into relevant bits (VIC-II)
   - bit 0: raster match occured
   - bit 1: sprite/bitmap collision occured
   - bit 2: sprite/sprite collision occured
@@ -121,11 +121,11 @@ The following are the internal Viccy registers:
   - bit 5: vsync
   - bit 6: hsync
 
-- r38 (was r44): HPOS: horizontal position (in chars); replaces r2
+- r38: HPOS: horizontal position (in chars); replaces r2
   - bit 0-6, defaults to 8
-- r39 (was r45): VPOS: vertical position (in rasterlines) of start of raster screen; replaces r7
+- r39: VPOS: vertical position (in rasterlines) of start of raster screen; replaces r7
   - bit 0-7, defaults to 84 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
-- r40 (was r46): ALT1: alternate register control I
+- r40: ALT1: alternate register control I
   - bit 0: if set, enable access to alternate r12/r13 video memory and r20/r21 attribute memory addresses
   - bit 1: alternate bitmap mode bit
   - bit 2: alternate attribute mode bit
@@ -134,23 +134,23 @@ The following are the internal Viccy registers:
   - bit 5: if set, set bitmap, attribute and extended mode bits to alternate values on raster match - reset to orig values at start of screen
   - bit 6: if set, set attribute address memory counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
   - bit 7: if set, set video memory address counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
-- r41 (was r47): ALT2: alternate register control II
+- r41: ALT2: alternate register control II
   - bit 0-3: alternate raster row counter for a character cell
   - bit 7: if set, set the raster row counter to alternate value on raster match
 
 Sprite registers (subject to change):
 
-- r42 (was r88): SPRT_BASE: sprite block base (high)
+- r42: SPRT_BASE: sprite block base (high)
   - top 8 bytes in page given here are sprite pointers
   - in addition, bits 7/6 are bits 15/14 of sprite data base address
   - initializes to $97, so mapped pointers are at $87f8-$87ff
 
-- r43 (was r89): SPRT_BRDR: sprite-border collision (TODO)
-- r44 (was r90): SPRT_SPRT: sprite-sprite collision (VIC-II) (TODO)
-- r45 (was r91): SPRT_RSTR: sprite-data collision (VIC-II) (TODO)
+- r43: SPRT_BRDR: sprite-border collision 
+- r44: SPRT_SPRT: sprite-sprite collision (VIC-II) 
+- r45: SPRT_RSTR: sprite-data collision (VIC-II) 
 
-- r46 (was r92): SPRT_MCOL1: sprite multicolor 0 (VIC-II)
-- r47 (was r93): SPRT_MCOL2: sprite multicolor 1 (VIC-II)
+- r46: SPRT_MCOL1: sprite multicolor 0 (VIC-II)
+- r47: SPRT_MCOL2: sprite multicolor 1 (VIC-II)
 
 - r48-51: VCCY_SPRT_BASE_0: Sprite 0
 - r48: X coordinate sprite 0 (VIC-II)
@@ -159,9 +159,9 @@ Sprite registers (subject to change):
   - note: Y coordinates are 2x2 pixels in non-double modes (r8.0/1 != "11"), except fine mode is set (r51.6)
 - r50: sprite 0 extra
   - bit 1-0: bits 8-7 of sprite 0 X coordinate (80 cols/fine) / bit 0 only in 40 col modes
-  - bit 5-4: bits 8-7 of sprite 0 Y coordinate (80 cols)
-  - note: X coordinates are 2x2 pixels in 40 column modes, except fine mode is set (r51.6) - then bit 0 only
-  - note: Y coordinates are 2x2 pixels in non-double modes (r8.0/1 != "11"), except fine mode is set (r51.6) - then bit 4 only
+  - bit 5-4: bits 8-7 of sprite 0 Y coordinate (double resolution/fine) / bit 4 only if non-double modes
+  - note: X coordinates are 2 pixels wide in 40 column modes, except fine mode is set (r51.6)
+  - note: Y coordinates are 2 pixel rows high in non-double-resolution modes (r8.0/1 != "11"), except fine mode is set (r51.6)
 - r51: sprite 0 control
   - bit 0: enable
   - bit 1: X-expand
@@ -169,7 +169,7 @@ Sprite registers (subject to change):
   - bit 3: Multicolour flag
   - bit 4: sprite data priority: if set high, background overlays the sprite
   - bit 5: sprite border flag (if set, show sprite over border)
-  - bit 6: if set, use 80 col coordinates
+  - bit 6: if set, use 80 col (X) / double resolution (Y) coordinates
 - r52-: SPRT_BASE_1: sprite 1
 - r56-: SPRT_BASE_2: sprite 2
 - r60-: SPRT_BASE_3: sprite 3
@@ -189,7 +189,7 @@ Sprite registers (subject to change):
 
 Palette registers (future extension):
 
-- r88 - r95: reserved for future colour palette extensions (mapped twice for 16 cols)
+- r88 - r95: reserved for future colour palette extensions (to be mapped twice for 16 cols)
 
 ### Memory-mapped registers
 
@@ -200,20 +200,22 @@ Note that the first four registers would not be available as memory-mapped. Howe
 ## CRTC/VDC emulation
 
 The Video code (partially) emulates only a subset of the CRTC registers, as given 
-in the register short description above.
+in the register description above.
 
 As usual with the CRTC, you have to write the register number to $e880 (59520),
-the write the value to write to the register to $e881 (59521).
+the write the value to write to the register to $e881 (59521). 
+Alternatively, you can use register $e883 to read or write a CRTC register - but when you access it, the index register 
+increases by one. This allows setting multiple consecutive values without having to reload the index register.
 
 The video code emulates some kind of hybrid between the C128 VDC (which basically includes
-the CRTC registers), the PET CRTC, and the C64 VIC-II. PET CRTC emulation is made as good as possible,
-VDC is partially emulated, and features coming from the VIC-II are separate.
+the CRTC registers), the PET CRTC, and the C64 VIC-II. PET CRTC emulation is made as good as possible as makes sense
+with a VGA timing running in the background. VDC is partially emulated, and features coming from the VIC-II are separate.
 
-### Video modes
+## Video modes
 
 The following video modes are supported
 
-#### Text modes
+### Text modes
 
 For all the text modes, the hires bit in r25.7 must be zero.
 
@@ -229,7 +231,9 @@ This basically emulates a simple b/w screen, just with colours adjustable via R2
 
 2. attribute colour text mode (VDC)
 
-Together with the character value and attribute value is being read from video memory.
+This is the VDC's attribute colour mode. To achieve this, extended mode bit r33.2 must be 0, and attribute enable bit r25.6 must be 1.
+
+Together with the character value an attribute value is being read from video memory.
 This attribute byte contains the following bits:
 
 - bit 7: alternate character set
@@ -241,11 +245,11 @@ This attribute byte contains the following bits:
 Using the additional alternate character set bit from the attribute byte, the character bit value is loaded from memory
 and streamed out. 1-bits get the foreground colour from the attribute byte. 0-bits get the background colour from r26.
 
-Note that the alternate character set bit and the graphics output from the VIA CA2 are XOR'd.
-
-This is the VDC's attribute colour mode. To achieve this, extended mode bit r33.2 must be 0, and attribute enable bit r25.6 must be 1.
+Note, that the alternate character set bit and the graphics output from the VIA CA2 are XOR'd.
 
 3. full colour text mode (ColourPET)
+
+This is the Colour-PET video mode. To achieve it, the extended mode bit r33.2 must be set, and the attribute enable bit r25.6 must be 0.
 
 In this mode, again character value and attributes are loaded from memory. The attribute byte contains the following information:
 
@@ -255,8 +259,6 @@ In this mode, again character value and attributes are loaded from memory. The a
 There is no alternate character set bit in the attribute byte, only VIA CA2 is used as usual in the PET. 
 After reading the character bit data, it is streamed out using the foreground colour (for 1-bits) and 
 background colour (for the 0-bits) from the attribute byte.
-
-This is the Colour-PET video mode. To achieve it, the extended mode bit r33.2 must be set, and the attribute enable bit r25.6 must be 0.
 
 4. multicolour mode (partly VIC-II, partly VDC)
 
@@ -270,7 +272,7 @@ Character data and attribute data are being fetched. The attribute byte contains
 - bit 4: blink attribute bit (mc=0)
 - bit 3-0: foreground colour
 
-Note the different meaning of bit 5 - it is not used to disable multicolour for that character, or enable it.
+Note the different meaning of bit 5 - it is used to disable multicolour for that character, or enable it.
 With disabled multicolour the character is displayed as in attribute colour text mode, except there is no underline bit. 
 With enabled multicolour bit, the character bits are fetched (alternate character set as in attribute colour text mode).
 When streaming, two bits are lumped together and evaluated to give these colours:
@@ -280,7 +282,7 @@ When streaming, two bits are lumped together and evaluated to give these colours
 - 10: background colour 2 register r34
 - 11: foreground colour from attribute byte
 
-#### High Resolution Modes
+### High Resolution Modes
 
 For all the hires modes, the hires bit in r25.7 must be set.
 
@@ -329,31 +331,19 @@ To use this mode, extended mode bit r33.2 is set, and attribute enable bit r25.6
 
 ### Micro-PET
 
-There are four control ports at $e800 - $e803. They are currently only writable.
+There are two Micro-PET control ports that affect video operation as well, and relate to the integration of the
+Video output into the system architecture.
 
 #### $e800 (59392) Video Control
 
-TODO: need to check interference with VDC registers
-
 - Bit 0: unused - must be 0
-- Bit 1: 0= 40 column display, 1= 80 column display
+- Bit 1: 0= 40 column display, 1= 80 column display (OR'd with the Viccy register value from above)
 - Bit 2: 0= screen character memory in bank 0, 1= character memory only in video bank (see memory map)
-- Bit 3: 0= double pixel rows, 1= single pixel rows (also 400 px vertical hires)
-- Bit 4: 0= interlace mode (only every second rasterline), 1= duplicate rasterlines
-- Bit 5: unused - must be 0
-- Bit 6: 0= when switching char height, move vsync to keep screen centered. 1= prevent that
+- Bit 3-6: unused - must be 0
 - Bit 7: 0= video enabled; 1= video disabled
 
-TODO: should bit 1 be replaced with R25.5 "Pixel double width"? It would be incompatible with the Micro-PET
-TODO: should bits 3 and 4 be replaced with R8.1/0 interlace control?
-
-Note that if you use 80 columns, AND double pixel rows (+interlace), you get the 80x50 character resolution.
-This mode is, however, not easily manageable by normal code in bank 0. In the $8xxx area the video
-and colour memory can be accessed. The first half accesses the character video memory, the second half
-is reserved for the colour memory. Now, 80x50 character require almost 4k of character video memory,
-more than twice than is available in the reserved space from $8000 to $8800. So, the screen can,
-in this mode, only be managed using long addresses into bank 8 (the video bank), or code running
-in the video bank.
+Note, that bit 1 (40/80 column) is deprecated and will be removed once the firmware gets updated
+to actually use the Viccy registers.
 
 ##### Screen mirror in bank 0
 
@@ -369,48 +359,33 @@ can be changed (while it stays at $8xxx in the CPU memory bank 0). This allows
 for easy switching between multiple screens beyond the 4k limit of the PET video memory
 window at $8xxx.
 
-##### Interlace and 50 row mode
+#### $e802 (59394) Bank Control
 
-In normal mode (after reset), the VGA video circuit runs in interlace mode,
-i.e. only every second raster line is displayed with video data.
-Writing a "1" into Video Control register bit 4, interlace is switched off, and every
-single line is displayed with video data. 
+This register allows re-mapping memory maps in bank 0:
 
-As long as bit 3 is 0, every rasterline is 
-displayed twice, to get to the same height as in interlace mode.
-If bit 3 is 1, then every rasterline is a new rasterline.
-So, setting bit 3=1 and bit 4=1 gives double the number of character rows
-(or raster rows in bitmap mode). I.e. with this you can enable 50 character row
-screens.
+- Bit 0-3: map the low 32k in bank 0 to any of the 16 32k pages in the 512k Fast RAM area
+- Bit 4-6: map the 2k video window at $8000 and the 2k colour RAM window at $8800 as described below
+- Bit 7: unused, must be 0
 
-##### Moving Sync
+The three bits in the video map allow for eight configurations. These determine where in 
+the video bank ($08xxxx) the video window at $008xxx is mapped:
 
-The character height can be switched between 8 pixel rows and 9 pixel rows (using 
-R9 of the emulated CRTC, see below). 
-This gives a displayed height of the screen of either 400 or 450 (each rasterline is
-displayed twice, see previous section). 
+  - $80xx
+  - $88xx
+  - $90xx
+  - $98xx
+  - $a0xx
+  - $a8xx
+  - $b0xx
+  - $b8xx
 
-For the video code, the screen starts with the first displayed rasterline. The sync position
-is fixed to that position, i.e. it has a fixed rasterline where the vertical sync is triggered.
-The value is selected such, that the displayed data is about centered on the screen.
+Note that the colour RAM window at $8800-$8fff maps correspondingly to start at
+  - $c0xx
+  - $c8xx
+  - ...
+  - $f8xx
 
-Now, if the character height is changed, the height of the displayed data is changed, and to 
-keep the this area vertically centered, the position of the vertical sync in relation to the 
-first rasterline is moved. 
-
-However, as there just isn't enough space in the CPLD, when this happens, the distance between
-two vertical sync signals changes for one displayed frame. Some monitors may have difficulties
-with this, trying to find a new video mode and switching the display off during that search 
-attempt. 
-
-In normal operation that does not matter, as this mode should be set once and then left as it is.
-But for programs that may switch character height more often, this may be irritating. So,
-with bit 6 you can disable moving the vertical sync. The displayed data will stay relatively
-high on the screen, and just the lower border moves up and down when the character height is
-changed. Then the monitors don't recognize a potential mode change, and thus don't blank
-the screen. It just isn't properly centered anymore.
-
-
+Note, that this register may in a future release be separated from the memory bank register.
 
 ### Video memory mapping
 
@@ -425,16 +400,31 @@ In character mode (see control port below) two memory areas are used:
 3. Character attribute data (r20/r21)
 
 Character memory is mapped to bank 0 at boot, but can be unmapped and only be available in bank 8 (VRAM) using the control port
+The address of the character memory in the video bank can be set with registers r12/r13.
+
+The character attribute data address in the video bank can be set with registers r20/r21.
+
+Note that for "usual" operation, it makes most sense to map the character and attribute data to places
+in the video bank that can be mapped to the video windows at $8xxx in bank 0 with the control register described
+above.
+
+Typically the display is either 80 or 40 columns with 25 lines. 
+Using other values for character cell height, character cell count, or characters displayed per line, this
+area can be modified in certain ranges. 
+As long as the ranges fit into the given 640x480 pixels of the VGA canvas, they will be displayed.
+Anything outside the defined ranges will be displayed in border colour.
 
 The character set is 8k in size: two character sets of 4k each, switchable with the 
-VIA I/O pin given to the CRTC as in the PET. Register 12 can be used to select
-one of 4 such 8k sets. Note that each character occupies 16 bytes (not 8 as in the typical
-Commodore character set), so the 9th rasterline for a character may be used.
-Character set data is mapped to the lower half of bank 8 (VRAM bank 0, i.e. A15=0).
+VIA I/O pin given to the CRTC as in the PET. 
+Note that each character occupies 16 bytes (not 8 as in the typical
+Commodore character set), so the 9th (or more) rasterlines for a character may be used.
+Character set data can be mapped to the full video bank in steps of 8k via register R28.
 
 #### Hires mode
 
-Hires mode is available in 40 as well as 80 "column" mode, i.e. either 320x200 or 640x200 pixels.
+Hires mode is available in 40 as well as 80 "column" mode, i.e. mainly either in 320x200 or 640x200 pixels.
+Using other values for character cell height, character cell count, or characters displayed per line, this
+area can be modified. See comments on ranges above.
 
 1. Bitmap data memory (r12/r13) and
 2. Character attribute data (r20/r21)
@@ -489,7 +479,51 @@ VIA CA2 output pin as on the PET.
         
 ### Sprites
 
-Please see the extensive VIC-II documentation for a description of the corresponding sprite registers
+The Sprites feature has been inspired by the VIC-II sprites.
+Please see the extensive VIC-II documentation for a description and base understanding of the corresponding sprite registers
+
+The sprite registers have been re-arranged a bit to allow for a more modular VHDL implementation.
+Each sprite has a block of four registers (plus a separate colour register):
+
+- 0: X coordinate sprite 0 (VIC-II)
+  - note: X coordinates are 2x2 pixels in 40 column modes, except fine mode is set (r51.6)
+- 1: Y coordinate sprite 0 (VIC-II)
+  - note: Y coordinates are 2x2 pixels in non-double modes (r8.0/1 != "11"), except fine mode is set (r51.6)
+- 2: sprite 0 extra
+  - bit 1-0: bits 8-7 of sprite 0 X coordinate (80 cols/fine) / bit 0 only in 40 col modes
+  - bit 5-4: bits 8-7 of sprite 0 Y coordinate (double resolution/fine) / bit 4 only if non-double modes
+- 3: sprite 0 control
+  - bit 0: enable
+  - bit 1: X-expand
+  - bit 2: Y-expand
+  - bit 3: Multicolour flag
+  - bit 4: sprite data priority: if set high, background overlays the sprite
+  - bit 5: sprite border flag (if set, show sprite over border)
+  - bit 6: if set, use 80 col (X) / double resolution (Y) coordinates
+
+The registers 0, 1, and 2 determine the position of the sprite on the screen. As the VGA canvas size allows for finer positioning,
+both coordinates X and Y overflow bits from register 0 or 1 respectively to register 2.
+
+The control bits have been combined into register 3. A sprite can be enabled, expanded in X and/or Y direction as in the VIC-II.
+Also the multicolour mode can be set.
+
+The sprite data priority determines, as in the VIC-II, if the sprite displays above the raster data (character or hires data).
+The sprite border flag determines, if the sprite is being shown on top of the border - so, no need to "open borders" to get sprites in the border :-)
+
+In 40 column and single Y-resolution modes, the X and Y coordinates count two pixels in their respective direction in relation to the VGA zero coordinate.
+In 80 column mode the Y coordinate counts single VGA pixels. This can also be achieved in 40 columns by setting the "fine resolution" bit 6 in the control register 3.
+In 25 (character) row mode, the screen shows 200 raster lines on top of 400 VGA raster lines. The raster lines "in between" are either not shown (dark) or show the same line again depending on r8.0/1. Therefore the Y coordinate also only counts in increments of two VGA rasterlines. In 50 row mode (r8.0/1 = "11"), 400 real rasterlines are shown with separate data - so the sprite Y coordinate also counts single VGA raster lines. This can also be achieved in 25 row mode by setting the "fine resolution" bit 6 in the control register 3.
+
+#### Sprite Mapping
+
+Similar to the VIC-II, the Viccy reads pointers to sprite data before fetching the actual sprite data.
+The VIC-II has a fixed screen size, so the address where the sprite pointers are read from can be easily defined as the last bytes in the screen memory.
+The Viccy's geometry is much more flexible, so the pointer address needs to be defined separately. This is done with register r42.
+R42 defines the page in the video bank that contains the 8 sprite data pointers in its top 8 bytes.
+
+Each sprite data pointer defines address bits 6-13, so it points to a 64 byte block (of which 63 are used for sprite data). 
+The uppermost two address bits 14 and 15 for the sprite data are also taken from r42, from bits 6 and 7.
+
 
 ## Colour Palette
 
