@@ -12,7 +12,7 @@ The reason this board is called Ultra-CPU is because it has colour over the [Mic
 The downside compared to the Micro-PET is, that it needs a separate I/O board to re-create a Commodore PET.
 This can be found [here on my CS/A page](http://www.6502.org/users/andre/csa/petio/index.html).
 
-![Picture of an Ultra-CPU board](images/ultra.jpg)
+![The board](images/newboard.jpg)
 
 ## Features
 
@@ -128,9 +128,14 @@ These are future expansions I want to look into. Not all may be possible to impl
 
 ## Gallery
 
+### The system
+
 ![A full system](images/ultra2.jpg)
 
-![The board only](images/newboard.jpg)
+![A full system](images/ultra.jpg)
+
+
+### Graphics feature overview
 
 ![Graphics feature overview](images/graphics.jpg)
 
@@ -138,17 +143,9 @@ Note that this version is without the (optional) "Brown Fix" that is included in
 
 ![Colour palette](images/showcols.jpg)
 
-### Full system views (V1.2)
-
-![A full system with nano488 disk and keyboard](images/system2.jpg)
-
-![Another view of a full system with nano488 disk and keyboard](images/system.jpg)
-
 ### Board
 
-![Picture of an (V1.2) Ultra-CPU board](images/board.jpg)
-
-![Picture of an (V1.2) Ultra-CPU board with PETIO board](images/cover.jpg)
+![The board](images/newboard.jpg)
 
 ### Boot menu and OS boot screen
 
@@ -156,7 +153,15 @@ Note that this version is without the (optional) "Brown Fix" that is included in
 
 ![OS Boot screen](images/newrom.jpg)
 
-### Graphics features
+### V1.2 system views
+
+![A full system with nano488 disk and keyboard](images/system2.jpg)
+
+![Another view of a full system with nano488 disk and keyboard](images/system.jpg)
+
+![Picture of an (V1.2) Ultra-CPU board](images/board.jpg)
+
+![Picture of an (V1.2) Ultra-CPU board with PETIO board](images/cover.jpg)
 
 ### Debugging during development
 
