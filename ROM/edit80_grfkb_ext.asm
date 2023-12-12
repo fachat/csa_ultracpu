@@ -80,3 +80,5 @@ MOT6845   = 0   ; Is CRTC a Motorola6845?       0=No, 1=Yes			Probably 0=No for 
 INFO      = 0   ; Add project info to code area 0=NO, 1=Yes,2=Yes+FONT		INFO=2 shows character set at top of screen
 BUGFIX    = 1   ; Correct Known bugs		0=No, 1=Yes			Fix known bugs
 DEBUG 	  = 0	; Add debugging			0=No, 1=Yes			Add code to display debug info on screen
+NOFILL    = 0   ; Disable FILL?                 0=No, 1=Yes                     Lets you test assemble but will NOT generate usable code!!!!!
+

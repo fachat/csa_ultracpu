@@ -349,7 +349,6 @@ col40
 	; check 8296 bit
 	pla
 #if 0	
-	; 8296 not working
 	and #%00010000
 	beq not_96
 	; 8296
@@ -491,8 +490,8 @@ gotone	; x has number of key
 	; key number is (9-row)*8+(7-col)+1 where row/col are from www.6502.org/users/andre/petindex/keymap/petgraph.png
 	cpx #16		; left shift (8/0)
 	beq gotshift
-;	cpx #11		; right shift (8/5)
-;	beq gotshift
+	cpx #11		; right shift (8/5) (works, but not on a C64 keybd, so not advertised)
+	beq gotshift
 ;	cpx #41		; 4/7 = "6"	; 8296 not working
 ;	beq is8296
 	cpx #18		; 7/6 = "2"
@@ -509,7 +508,7 @@ gotone	; x has number of key
 	; derived from https://www.keymmodore.com/the-matrix/
 	cpx #55		; 3/1 = "R" = Left shift on C64 kbd
 	beq gotshift
-;	cpx #42		; 4/6 = "4" = Right shift on C64 - clash with N-type
+;	cpx #42		; 4/6 = "4" = Right shift on C64 - clash with N-type "4"
 ;	beq gotshift
 ;	cpx #22		; 7/2 = "N" = "6" on C64 kbd - 8296 not working
 ;	beq is8296c64
