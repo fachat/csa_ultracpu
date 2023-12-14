@@ -4,9 +4,10 @@ all: spiimg loadrom.bin loadrom
 EDITROMS=edit40_c64kb.bin edit80_c64kb.bin edit40_grfkb_ext.bin edit80_grfkb_ext.bin edit40_c64kb_ext.bin edit80_c64kb_ext.bin 
 TOOLS=romcheck
 
-spiimg: zero basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 chargen_pet1_16 basic4 kernal4 edit40g edit80g iplldr $(EDITROMS) apmonax edit80_grfkb_ext_chk.bin edit80_chk.bin
+spiimg: zero boot basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 chargen_pet1_16 basic4 kernal4 edit40g edit80g iplldr $(EDITROMS) apmonax edit80_grfkb_ext_chk.bin edit80_chk.bin
 	# ROM images
 	cat iplldr					> spiimg	# 0-4k   : IPL loader
+	cat boot					>> spiimg	# 0-4k   : IPL loader
 	cat apmonax					>> spiimg	# 4-8k   : @MON monitor (sys40960)
 	# standard character ROM (converted to 16 byte/char)
 	cat chargen_pet16 				>> spiimg	# 8-16k  : 8k 16bytes/char PET character ROM
@@ -45,7 +46,10 @@ char8to16: char8to16.c
 	gcc -o char8to16 char8to16.c
 
 iplldr: iplldr.a65
-	xa -w -o iplldr iplldr.a65
+	xa -w -o $@ $<
+
+boot: boot.a65 boot_menu.a65
+	xa -w -XMASM -o $@ $<
 
 romtest02: romtest02.a65
 	xa -w -o romtest02 romtest02.a65
