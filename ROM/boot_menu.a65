@@ -87,8 +87,8 @@ gotone	; x has number of key
 	beq gotshift
 	cpx #11		; right shift (8/5) (works, but not on a C64 keybd, so not advertised)
 	beq gotshift
-;	cpx #41		; 4/7 = "6"	; 8296 not working
-;	beq is8296
+	cpx #41		; 4/7 = "6"	; 8296 not working
+	beq is8296
 	cpx #18		; 7/6 = "2"
 	beq is2
 	cpx #42		; 4/6 = "4"
@@ -130,8 +130,8 @@ gotshift		; after cpx/beq, so C=1
 	; bit 2/1 - model (01=basic1, 10=basic2, 11=basic4) 
 	; will be shifted right (/2) with ext/base bit in C
 	; must not be all zero (this will be ignored)
-;is8296	lda #128+32+6
-;	.byt $2c
+is8296	lda #128+32+6
+	.byt $2c
 is8	lda #128+6
 	.byt $2c
 is4	lda #6

@@ -11,15 +11,18 @@
 ; $00800  Boot code (2k) - this code
 ; $01000  @MON (4k copied to $a000)
 ; $02000  charrom (8k)
-; $04000  BASIC2 + EDIT2 + KERNEL2 (16k)
-; $08000  EDIT8 (extended)
-; $09000  BASIC4 + EDIT4(extended) + KERNAL4 (20k)
-; $0e000  EDIT4 (extended, C64 kbd)
-; $0f000  EDIT8 (extended, C64 kbd)
-; $10000  EDIT4 (orig)
-; $11000  EDIT8 (orig)
-; $12000  EDIT4 (bare, C64 kbd)
-; $13000  EDIT8 (bare, C64 kbd)
+; $04000  BASIC1 + EDIT1 + KERNEL1 (16k)
+; $08000  BASIC2 + EDIT2 + KERNEL2 (16k)
+; $0c000  BASIC4 (12k)
+; $0f000  KERNEL4 (12k)
+; $10000  EDIT4 (extended, PET kbd)
+; $11000  EDIT4 (extended, C64 kbd)
+; $12000  EDIT8 (extended, PET kbd)
+; $13000  EDIT8 (extended, C64 kbd)
+; $14000  EDIT4 (orig, PET kbd)
+; $15000  EDIT4 (sjg base, C64 kbd, experimental)
+; $16000  EDIT8 (orig)
+; $17000  EDIT8 (sjg base, C64 kbd, experimental)
 
 VBANK	=$080000
 
@@ -124,127 +127,27 @@ copy
 
 	;----------------------------------------------------
 	; 1= Basic1, 2=Basic2, 3=Basic4
+	
+	; save config byte
 	pha
 	and #%00000011	; ROM version
 
 	cmp #1
 	bne not_b1	
 
-basic1	.(
-	; -----------------------
-	; copy over BASIC 1 charrom to RAM
-	; $14000-$15fff in flash img
+	jmp setup_basic1_xl
 
-	lda #$80
-	ldx #$c000
-	ldy #$2000
-	jsr flash2direct2_xl
-
-	; now copy from bank 0 to target location
-	ldx #0
-copy
-	lda $c000,x	; location in test ROM bank
-	sta VBANK,x	; location in RAM - uppermost RAM bank
-	inx
-	cpx #$2000
-	bne copy
-
-	;------------------------
-	; BASIC 1
-	lda #$40	; source page in Flash
-	ldx #$c000	; target addr
-	ldy #$4000	; len
-	jsr flash2direct_xl
-	
-	pla
-	bmi b1_orig	; check BASIC1 patch
-
-	; apply BASIC1 patch like in VICE
-	jsr patch_rom1_xl
-b1_orig
-	lda #%10000000	; write protect $c000-$ffff
-	jmp end
-	.)
-	
 	;------------------------
 not_b1	cmp #2
 	bne not_b2
+
+	jmp setup_basic2_xl
 	
-	;------------------------
-	; upgrade ROMs with BASIC2
-basic2	.(
-	; copy over PET ROM into low RAM
-	; $4000-$7fff in bootimg to $c000-$ffff in RAM
-
-	lda #$80
-	ldx #$c000
-	ldy #$4000
-	jsr flash2direct_xl
-
-	pla		; ignore other flags
-	lda #%10000000	; write protect $c000-$ffff
-	jmp end
-	.)
-
 	;----------------------------------------------------
 not_b2	; only basic 4 left
 	;----------------------------------------------------
-basic4	.(
-	; -----------------------
-	; copy over @MON 
-	lda #$10
-	ldx #$a000
-	ldy #$1000
-	jsr flash2direct_xl
-	
-	; -----------------------
-	; copy over PET BASIC4 $b000-$dfff
-	lda #$c0
-	ldx #$b000
-	ldy #$3000
-	jsr flash2direct_xl
 
-	; copy over PET KERNEL4 $f000-$ffff
-	lda #$f0
-	ldx #$f000
-	ldy #$1000
-	jsr flash2direct_xl
-
-	pla		; bits 7/6/5 have number of editor ROM
-	pha
-	and #%11100000
-	lsr
-	ldx #$e000
-	ldy #$1000
-	jsr flash2direct2_xl
-
-	; check BASIC4 patch
-	pla
-	pha
-	bmi b4_orig
-	jsr patch_rom4_xl
-b4_orig
-	; check 80 column bit
-	pla
-	pha
-	and #%01000000
-	beq col40
-	lda #%00000010
-	sta VCTRL
-col40
-	; check 8296 bit
-	pla
-#if 0	
-	and #%00010000
-	beq not_96
-	; 8296
-	lda #%11101000
-	.byt $2c
-#endif
-not_96	lda #%11100000
-
-	; fallthrough
-	.)
+	jmp setup_basic4_xl
 
 	; -----------------------
 	; switch back to emulation mode
@@ -270,16 +173,18 @@ end
 	; copy an area from flash to bank 0 RAM
 
 	.xl
-	; AC = page in Flash (8bit)
+	; AC = page in Flash (8bit -> A8-15)
 	; XR = start in bank 0 (16bit)
 	; YR = number of bytes (16 bit)
 	; flash bank 0
 flash2direct_xl 
-	clc
+	clc		; first 64k in Flash
 	.byt $24
 	; flash bank 1
 flash2direct2_xl
-	sec
+	sec		; second 64k in Flash
+
+	; C is A16 for address in Flash
 	.(
 	pha
 	lda #1
@@ -382,184 +287,10 @@ sl	sta CRTC
 	; ---------------------------------------------------------
 
 
-	.xl
-
-PATCH	=$ef00
-
-patch_rom1_xl .(
-
-
-	; transferred over from VICE
-	lda #$ea	; NOP
-	sta $f471
-	sta $f472
-	sta $f180
-	sta $f181
-	lda #$f8
-	sta $f3ef
-	lda #$f7
-	sta $f3f3
-
-	; patch area start
-	ldx #PATCH
-
-	; jmp to first patch
-	txa
-	sta $f370
-	lda #>PATCH
-	sta $f371
-
-	ldy #0
-pl0	lda PATCH_0,y
-	sta 0,x
-	inx
-	iny
-	cpy #5
-	bne pl0
-
-	; jump to second patch
-	txa
-	sta $f379
-	lda #>PATCH
-	sta $f37a
-
-	ldy #0
-pl1	lda PATCH_1,y
-	sta 0,x
-	inx
-	iny
-	cpy #19
-	bne pl1
-
-	; JSR to third patch
-	lda #$20
-	sta $f3cc
-	txa
-	sta $f3cd
-	lda #>PATCH
-	sta $f3ce
-
-	ldy #0
-pl2	lda PATCH_2,y
-	sta 0,x
-	inx
-	iny
-	cpy #10
-	bne pl2
-
-	; jmp to fourth patch
-	txa
-	sta $f6c1
-	lda #>PATCH
-	sta $f6c2
-	
-	ldy #0
-pl3	lda PATCH_3,y
-	sta 0,x
-	inx
-	iny
-	cpy #5
-	bne pl3
-
-	; jump to fifth patch
-	txa
-	sta $f6c7
-	lda #>PATCH
-	sta $f6c8
-	
-	ldy #0
-pl4	lda PATCH_4,y
-	sta 0,x
-	inx
-	iny
-	cpy #18
-	bne pl4
-
-	; insert sixth patch
-	ldy #0
-pl5	lda PATCH_5,y
-	sta $f381,y
-	iny
-	cpy #8
-	bne pl5
-
-	; jump to seventh patch
-	txa
-	sta $f6f4
-	lda #>PATCH
-	sta $f6f5
-
-	ldy #0
-pl6	lda PATCH_6,y
-	sta 0,x
-	inx
-	iny
-	cpy #6
-	bne pl6
-
-	; insert marker
-	ldy #0
-	tya		; fill B with zero, so cmp work?
-plm	lda MARK,y
-	sta 0,x
-	inx
-	iny
-	cmp #0
-	bne plm
-
-	rts
-
-PATCH_0	.byt $a9, $60, $85, $f0, $60 
-PATCH_1 .byt $20, $b6, $f0, $a5, $f0, $20, $5b, $f1, $20, $87, $f1, $85, $f7, $20, $87, $f1, $85, $f8, $60 
-PATCH_2 .byt $20, $7a, $f1, $20, $e6, $f6, $ad, $0b, $02, $60
-PATCH_3	.byt $a9, $61, $85, $f0, $60 
-PATCH_4	.byt $20, $ba, $f0, $a5, $f0, $20, $2c, $f1, $a5, $f7, $20, $67, $f1, $a5, $f8, $4c, $67, $f1 
-PATCH_5	.byt $ae, $0c, $02, $70, $46, $20, $87, $f1
-PATCH_6	.byt $20, $2c, $f1, $4c, $7e, $f1 
-
-MARK	.asc "BASIC1 PATCH FOR IEEE488",0
-	.)
-
-
-PATCH4	=$fe20
-
-patch_rom4_xl .(
-
-	; patch target area start (max 1 page due to #>PATCH4 below)
-	ldx #PATCH4
-
-	; from http://www.6502.org/users/andre/cbmhw/ryofat40/index.html
-	lda #$20
-	sta $f0d8
-	; jsr to first patch
-	txa
-	sta $f0d9
-	lda #>PATCH4
-	sta $f0da
-
-	ldy #0
-pl0	lda PATCH4_0,y
-	sta 0,x
-	inx
-	iny
-	cpy #12
-	bne pl0
-
-	rts
-
-PATCH4_0 .(
-	lda #4
-l1	sec
-	sbc #1
-	bne l1
-	lda $e840
-	rts
-	.byt $c2	; checksum fix
-	.)
-
-	.)
-
 #include "boot_menu.a65"
+#include "boot_rom1.a65"
+#include "boot_rom2.a65"
+#include "boot_rom4.a65"
 
 	.dsb RUNADDR+2048-*,$ff
 	.)
