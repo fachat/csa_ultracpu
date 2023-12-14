@@ -46,7 +46,7 @@ FONTSET   = 0	; Initial Screen Font		0=Text/Lower, 1=Upper/Graphics	Generally: 4
 ESCCODES  = 1	; Add ESC codes? 		0=No, 1=Yes			Enable when using COLOURPET or SS40.
 VIDSWITCH = 0   ; Video Switching               0=No, 1=Yes			Requires ESC Codes! ESC+0 to ESC+9 to Switch CRTC parameters.
 
-AUTORUN   = 1   ; Set for BANNER and/or WEDGE	0=No, 1=Yes			Enable if you use EITHER banner,wedge, or disk boot
+AUTORUN   = 0   ; Set for BANNER and/or WEDGE	0=No, 1=Yes			Enable if you use EITHER banner,wedge, or disk boot
 BYPASS    = 0   ; Check for key to bypass 	0=No, 1=Yes			Valid when AUTORUN=1. Hold key on ROW9 to bypass.
 BANNER    = 5  ; Custom Banner (power on msg)	0=No, N=Banner# (1-19,98,99)    Valid when AUTORUN=1. Refer to docs or source. 99=custom message
 WEDGE     = 1	; DOS Wedge			0=No, 1=Yes			Valid when AUTORUN=1.

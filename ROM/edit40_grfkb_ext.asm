@@ -46,7 +46,7 @@ HERTZ     = 60	; Line Frequency (Clock):	50=Euro,60=N.America
 IRQFIX    = 0   ; Fix Jiffy Clock		0=No, 1=Yes			Still needs investigating.
 FONTSET   = 0  ; Initial Screen Font            0=Text/Lower, 1=Upper/Graphics  Generally: 40xx machines=1, 8xxx machines=0
 
-ESCCODES  = 1	; Add ESC codes? 		0=No, 1=Yes			Enable when using COLOURPET or SS40.
+ESCCODES  = 0	; Add ESC codes? 		0=No, 1=Yes			Enable when using COLOURPET or SS40.
 VIDSWITCH = 0   ; Video Switching               0=No, 1=Yes                    Requires ESC Codes! ESC+0 to ESC+9 to Switch CRTC parameters.
 
 AUTORUN   = 1   ; Set for BANNER and/or WEDGE	0=No, 1=Yes			Enable if you use EITHER banner and/or wedge.
