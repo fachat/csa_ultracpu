@@ -1,6 +1,6 @@
 
 &do_menu_xl .(
-	jsr clrscreen_xl
+	;jsr clrscreen_xl
 	lda #BOOTCOL
 	jsr setcol_xl
 	jsr selecttext_xl

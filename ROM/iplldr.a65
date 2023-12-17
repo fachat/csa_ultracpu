@@ -21,32 +21,32 @@
 ; $12000  EDIT4 (bare, C64 kbd)
 ; $13000  EDIT8 (bare, C64 kbd)
 
-VBANK	=$080000
+;VBANK	=$080000
 
 SPICTRL	=$e808
 SPIDATA	=$e809
 SPIPEEK	=$e80a
 
-VIA	=$e840
-VIA_PCR	=12
+;VIA	=$e840
+;VIA_PCR	=12
 
-CRTC	=$e880
+;CRTC	=$e880
 
 RUNADDR	=$9000
 
-shift	=$87ff
-char	=$87fe
+;shift	=$87ff
+;char	=$87fe
 
-VCTRL   =$e800
-MCTRL   =$e801
+;VCTRL   =$e800
+;MCTRL   =$e801
 BANK    =$e802
-SPEED   =$e803
-R8296   =$fff0
+;SPEED   =$e803
+;R8296   =$fff0
 
 ;BOOTCOL	=$15	; dark grey background, light green text
 ;BOOTCOL	=$1f	; dark grey background, white text
 ;BOOTCOL	=$50	; black text on light green background
-BOOTCOL	=$05	; black background with light green text
+;BOOTCOL	=$05	; black background with light green text
 
 	*=$ff00
 vreset	.(
