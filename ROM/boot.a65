@@ -54,6 +54,7 @@ RUNADDR	=$9000
 
 shift	=$87ff
 char	=$87fe
+opt	=$87fd
 
 VCTRL   =$e800
 MCTRL   =$e801
@@ -162,9 +163,21 @@ copy
 
 	jsr usb_uninst
 
+	pla
+       ; ----------------------------                                        
+       ; In: AC has key in ASCII                                             
+       ;                                                                     
+       ; out:  c=0:    no option                                             
+       ;       c=1:    result is in AC:                                      
+       ; bit 7   - if set, unpatched                                         
+       ; bit 6   - 1=80 cols                                                 
+       ; bit 5   - 1=C64                                                     
+       ; bit 4   - 1=8296 ext.                                               
+       ; bit 3   - USB kbd support (only BASIC4, only w/ option from USB)    
+       ; bit 1/0 - model (01=basic1, 10=basic2, 11=basic4)                   
+
 	;----------------------------------------------------
 	; 1= Basic1, 2=Basic2, 3=Basic4
-	pla
 	pha	
 	and #%00000011	; ROM version
 

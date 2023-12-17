@@ -178,7 +178,11 @@ newirq	.(
         sta MAPREG
 
         jsr driver_poll
-                                                                                        
+
+	jsr checkkbd_xs
+	bcc nokey
+	jsr key_pet
+nokey
         lda tmp
         sta MAPREG
                                                                                         
@@ -203,6 +207,7 @@ nopoll
 ; pause a given number of vertical scree
 ; in AC has number of frames (retraces) 
 	.xs
+	.as
 pause   .(                              
 	php
 	cli
@@ -220,9 +225,22 @@ p1      cmp VCOUNT
         .)                              
 
 printc2	.(
+	tax
+	php
+	sei
 
-	sta $8001
-inc $8025
+	;inc $8027
+
+	lda #MAP_BAS
+	sta MAPREG
+
+	txa
+	jsr key_usb
+
+	lda #MAP_USB
+	sta MAPREG
+
+	plp
 	rts
 	.)
 

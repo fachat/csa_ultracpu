@@ -39,6 +39,24 @@ setup_basic4_xl	.(
 	ldy #$1000
 	jsr flash2direct2_xl
 
+	; check USB patch
+	pla
+	pha
+	and #%00001000
+	beq nousb
+
+	; copy over petromcomp to destination at $dfxx
+	lda #$01
+	ldx #$df00
+	ldy #$0100
+	jsr flash2direct_xl
+
+	; install it into the ROM
+	jsr $df03
+	; reverse write protect done there
+	lda #0
+	sta $e801
+nousb	
 	; check BASIC4 patch
 	pla
 	pha
