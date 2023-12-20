@@ -1,3 +1,4 @@
+
 setup_basic4_xl	.(
 
 	; -----------------------
@@ -51,8 +52,16 @@ setup_basic4_xl	.(
 	ldy #$0100
 	jsr flash2direct_xl
 
+        ; set X/Y registers to 8 bit ...
+        sep #%00010000
+        .xs
+	
 	; install it into the ROM
 	jsr $df03
+
+	rep #%00010000
+	.xl
+
 	; reverse write protect done there
 	lda #0
 	sta $e801

@@ -225,9 +225,11 @@ p1      cmp VCOUNT
         .)                              
 
 printc2	.(
-	tax
+	tax		; actually overwrites modifiers in X
 	php
 	sei
+
+	bcs stop
 
 	;inc $8027
 
@@ -236,7 +238,7 @@ printc2	.(
 
 	txa
 	jsr key_usb
-
+stop
 	lda #MAP_USB
 	sta MAPREG
 
