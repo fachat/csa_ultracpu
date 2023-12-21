@@ -36,10 +36,14 @@ SPICTRL	=$e808
 SPIDATA	=$e809
 SPIPEEK	=$e80a
 
+VICCY_IRQ=0		; set to 1 to use rasterline instead of VDRIVE ints during boot
+
 PIA1	=$e810
 PIA2	=$e820
-PIA_CR1	=1
-PIA_CR2	=3
+PIA_PA	=0
+PIA_CRA	=1
+PIA_PB	=2
+PIA_CRB	=3
 
 VIA	=$e840
 VIA_PCR	=12
@@ -108,10 +112,10 @@ jmpboot
 
 	; disable PIA/VIA/DAC interrupt sources
 	lda #0
-	sta PIA1+PIA_CR1
-	sta PIA1+PIA_CR2
-	sta PIA2+PIA_CR1
-	sta PIA2+PIA_CR2
+	sta PIA1+PIA_CRA
+	sta PIA1+PIA_CRB
+	sta PIA2+PIA_CRA
+	sta PIA2+PIA_CRB
 	lda #127
 	sta VIA+VIA_IER
 

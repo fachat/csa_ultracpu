@@ -91,6 +91,11 @@ install	.(
 	lda #0
 	sta lock
 
+	; once per screen interrupt (60Hz)
+	; 
+	; UltiPet could use VICCY, but uPET does not have this
+	; So, we fall back to using PET VDRIVE input on PIA1 CB1
+#if VICCY_IRQ
 	lda #VCCY_RLINE_L		; rasterline counter
 	sta VICCY+1
 	lda #0
@@ -100,6 +105,10 @@ install	.(
 	sta VICCY
 	lda #1		; rasterline interrupt
 	sta VICCY+1
+#else
+	lda #$3d	; enable VDRIVE interrupt
+	sta PIA1+PIA_CRB
+#endif
 
 	rts
 	.)
@@ -107,13 +116,17 @@ install	.(
 uninstall .(
 	sei
 
+#if VICCY_IRQ
 	lda #VCCY_IRQ_CTRL
 	sta VICCY
 	lda #0
 	sta VICCY+3	; disable rasterline interrupt
 	lda #1
 	sta VICCY+3	; reset rline int status
-
+#else
+	lda #$3c
+	sta PIA1+PIA_CRB
+#endif
 	rts
 	.)
 
@@ -153,6 +166,7 @@ newirq	.(
 	.xs
 	.as
 
+#if VICCY_IRQ
 	lda VICCY+2	; save VICCY index register so we can restore it
 	pha
 
@@ -160,6 +174,9 @@ newirq	.(
 	sta VICCY
 	lda #127
 	sta VICCY+1	; clear rasterline interrupt
+#else
+	lda PIA1+PIA_PB	; clear VDRIVE interrupt
+#endif
 
 	lda VCOUNT	; vertical screen interrupt
 	clc
@@ -172,9 +189,6 @@ newirq	.(
         dec
         sta lock	; lock
         
-;	lda MAPREG
-;	sta tmp		; can't put on stack, as stack is re-mapped ;-)
-
         lda #MAP_USB
         sta MAPREG
 
@@ -184,29 +198,18 @@ newirq	.(
 	bcc nokey
 	jsr key_pet
 nokey
-        ;lda tmp
 	lda #MAP_BAS
         sta MAPREG
         
-;beq unlock
-;	inc $8000
-;	ldx #0		; clear wide xr
-;	tsx
-;	stx $8001
-;	ldy #0
-;l	lda $0100,x
-;	sta $8004,y
-;	inx
-;	iny
-;	cpy #30
-;	bne l
 unlock  
         lda lock
         inc
         sta lock
 nopoll
+#if VICCY_IRQ
 	pla
 	sta VICCY+2
+#endif
 
 	rep #%00110000
 	.xl

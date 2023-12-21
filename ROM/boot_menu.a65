@@ -60,17 +60,21 @@ checkkbd_xs .(
 	sta shift
 	; init
 	lda #$38	; DDR, CA2 output hi
-	sta $e811
+	sta PIA1+PIA_CRA; $e811
 	lda #$0f	; set keybd row select to output
-	sta $e810
+	sta PIA1+PIA_PA	; $e810
 	lda #$3c	; Port A, CA2 output hi
-	sta $e811
+	sta PIA1+PIA_CRA; $e811
 	lda #$38	; DDR, CB2 output hi
-	sta $e813
+	sta PIA1+PIA_CRB; $e813
 	lda #0		; all bits input PB
-	sta $e812
+	sta PIA1+PIA_PB	; $e812
+#if VICCY_IRQ
 	lda #$3c	; Port B, CB2 output hi
-	sta $e813
+#else
+	lda #$3d	; Port B, CB2 output hi
+#endif
+	sta PIA1+PIA_CRB; $e813
 
 	; init scan
 	lda $e810
