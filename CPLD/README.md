@@ -28,9 +28,11 @@ The assumed default boards used are
 - PETIO: provides all the PET I/O with the two PIAs and the VIA
 - DUALSID: provides up to two SID sound devices
 
-## Control Ports
+In addition, if enabled, the PET 8296 control port is available:
 
-### Micro-PET
+- $fff0 (65520)  [8296 memory control (8296 memory map only)](#8296-control-port)
+
+## Control Ports
 
 This is an overview on the register set:
 
@@ -46,7 +48,7 @@ This is an overview on the register set:
   - register 12: start of video memory high
 
 
-#### $e800 (59392) Video Control
+### $e800 (59392) Video Control
 
 - Bit 0: unused - must be 0
 - Bit 1: 0= 40 column display, 1= 80 column display
@@ -65,7 +67,7 @@ more than twice then is available in the reserved space from $8000 to $8800. So,
 in this mode, only be managed using long addresses into bank 8 (the video bank), or code running
 in the video bank.
 
-##### Screen mirror in bank 0
+#### Screen mirror in bank 0
 
 The CRTC reads its video data from the video bank in VRAM.
 This is not mapped to bank 0 in the CPU address space, as it is "slow" memory, because
@@ -79,7 +81,7 @@ can be changed (while it stays at $8xxx in the CPU memory bank 0). This allows
 for easy switching between multiple screens beyond the 4k limit of the PET video memory
 window at $8xxx.
 
-##### Interlace and 50 row mode
+#### Interlace and 50 row mode
 
 In normal mode (after reset), the VGA video circuit runs in normal mode,
 i.e. only every second raster line is displayed with video data.
@@ -93,7 +95,7 @@ So, setting bit 0=1 and bit 1=1 gives double the number of character rows
 (or raster rows in bitmap mode). I.e. with this you can enable 50 character row
 screens.
 
-##### Moving Sync
+#### Moving Sync
 
 The character height can be switched between 8 pixel rows and 9 pixel rows (using 
 R9 of the emulated CRTC, see below). 
@@ -111,7 +113,7 @@ first rasterline is moved.
 While, due to limited resources in the previously used CPLD, this was a problem and disturbed 
 the video timing, this is fixed in the FPGA implementation.
 
-#### $e801 (59393) Memory Map Control
+### $e801 (59393) Memory Map Control
 
 - Bit 0: 0= allow cross-bank access in emulation mode, 1= lock CPU into bank 0 in emulation mode
 - Bit 1: 0= normal mode, 1= initial boot mode, swap FRAM and VRAM (see above)
@@ -122,7 +124,7 @@ the video timing, this is fixed in the FPGA implementation.
 - Bit 6: 0= $00Bxxx is writable, 1= write protected
 - Bit 7: 0= $00C000-$00FFFF is writable, 1=write protected (except I/O window at $e8xx)
 
-#### $e802 (59394) Bank Control
+### $e802 (59394) Bank Control
 
 - Bit 0-3: number of 32k bank in 512k Fast RAM (banks 0-7), for the lowest 32k of system
 - Bit 4-7: unused, must be 0
@@ -130,7 +132,7 @@ the video timing, this is fixed in the FPGA implementation.
 This allows re-mapping the lower 32k of bank 0, i.e. including stack and zeropage/direct page
 areas between multiple locations in fast RAM.
 
-#### $e803 (59395) Speed Control
+### $e803 (59395) Speed Control
 
 - Bit 0/1: speed mode
   - 00 = 1 MHz
@@ -140,7 +142,7 @@ areas between multiple locations in fast RAM.
 - Bit 2-7: unused, must be 0
 
 
-#### $e804 (59396) Bus window
+### $e804 (59396) Bus window
 
 The board uses all CPU banks between and including 0 and F, i.e. 1 MByte of RAM.
 The 1 MB CS/A bus is actually mapped into the CPU address space as banks $10-$1F, so
@@ -155,7 +157,7 @@ in bank 0 of the CPU, two windows of the CS/A bus can be mapped into bank 0 of t
 - Bit 3: n/a (if bit 1=1, when set, maps $cxxx to CS/A I/O instead of memory)
 - Bit 4-7: unused, must be 0
 
-#### $e805 (59397) Video window
+### $e805 (59397) Video window
 
 - Bit 0-2: number of 2k character video memory block the $80xx-$87ff window points to; possible addresses in VRAM bank 0 (CPU bank 8) are:
   - $80xx 
@@ -173,6 +175,21 @@ Note that the colour RAM window at $8800-$8fff maps correspondingly to start at
   - $c8xx
   - ...
   - $f8xx
+
+### 8296 control port
+
+This write only control port at $fff0 (65520) enables the RAM mapping in the upper 32k of bank 0, as implemented
+in the 8296 machine. The address of this port is $FFF0.
+To enable it, bit 3 in the Memory Map Control register must be set.
+
+- Bit 0: 0= write enable in $8000-$bfff, 1= write protected
+- Bit 1: 0= write enable in $c000-$ffff, 1= write protected
+- Bit 2: select one of two block to map for $8000-$bfff (starts either $010000 or $018000)
+- Bit 3: select one of two block to map for $c000-$ffff (starts either $014000 or $01c000)
+- Bit 4: - unused, must be 0 -
+- Bit 5: 0= RAM in $8xxx, 1= screen peek-through the mapped RAM
+- Bit 6: 0= RAM in $e8xx, 1= I/O peek-through the mapped RAM
+- Bit 7: 0= RAM mapping disabled, 1=enabled
 
 ## CRTC emulation
 
