@@ -758,7 +758,7 @@ begin
 			wp_romPET <= '0';
 			is8296 <= '0';
 			lowbank <= (others => '0');
-			vidblock <= (others => '0');
+			vidblock <= "010";
 			boot <= '1';
 			lockb0 <= '0';
 			bus_window_c <= '0';
@@ -785,7 +785,6 @@ begin
 			when "010" =>
 				-- bank controls
 				lowbank <= D(3 downto 0);
-				vidblock <= D(6 downto 4);
 			when "011" =>
 				-- speed controls
 				mode(1 downto 0) <= D(1 downto 0); -- speed bits
@@ -795,6 +794,9 @@ begin
 				bus_window_c <= D(1);
 				bus_win_9_is_io <= D(2);
 				bus_win_c_is_io <= D(3);
+			when "101" =>
+				-- video bank controls
+				vidblock <= D(2 downto 0);
 			when others =>
 				null;
 			end case;
@@ -826,7 +828,6 @@ begin
 			when "010" =>
 				-- bank controls
 				s0_d(3 downto 0) <= lowbank;
-				s0_d(6 downto 4) <= vidblock;
 			when "011" =>
 				-- speed controls
 				s0_d(1 downto 0) <= mode(1 downto 0); -- speed bits
@@ -836,6 +837,9 @@ begin
 				s0_d(1) <= bus_window_c;
 				s0_d(2) <= bus_win_9_is_io;
 				s0_d(3) <= bus_win_c_is_io;
+			when "101" =>
+				-- video bank controls
+				s0_d(2 downto 0) <= vidblock;
 			when others =>
 				s0_d <= (others => '0');
 			end case;

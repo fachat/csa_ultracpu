@@ -60,9 +60,12 @@ VCTRL   =$e800
 MCTRL   =$e801
 BANK    =$e802
 SPEED   =$e803
+BUSWIN	=$e804
+VMAP    =$e805
+
 R8296   =$fff0
 
-VBLOCK	=2 << 4		; video block address for BANK
+VIDBLK	=2		; video block address for BANK
 
 ;BOOTCOL	=$15	; dark grey background, light green text
 ;BOOTCOL	=$1f	; dark grey background, white text
@@ -92,9 +95,12 @@ jmpboot
 	lda #0
 	sta VCTRL	; $e800 - default to 40 column
 	sta MCTRL	; $e801
-	sta SPEED	; $e803 - 1MHz
-	lda #$20	; for the PET default VICCY base address of $1000
 	sta BANK	; $e802
+	sta SPEED	; $e803 - 1MHz
+	sta BUSWIN	; $e804
+
+	lda #VIDBLK	; for the PET default VICCY base address of $1000
+	sta VMAP
 
 	; init the VICCY emulation (also disables Viccy interrupts)
 	jsr setviccy_xs

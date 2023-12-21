@@ -8,22 +8,43 @@ I programmed it in VHDL.
 
 This is an overview on the register set:
 
-- $e800 (59392)  [Video control](#e800-59392-video-control)
-- $e801 (59393)  [Memory map control](#e801-59393-memory-map-control)
-- $e802 (59394)  [Low32k bank / video window map](#e802-59394-low32k-bank)
-- $e803 (59395)  [Speed control](#e803-59395-speed-control)
-- $e804 (59396)  [bus window](#e804-59396-bus-window)
+The programmable logic implements a number of features that are addressable in the I/O area 
+at $e8xx:
 
-- $e880/e881 (59520/59521) [CRTC emulation](#crtc-emulation)
-  - register 9: pixel rows per char - 1
-  - register 12: start of video memory high
+- $e800-$e807: System control ports (see below)
+- $e808-$e80b: [SPI interface](SPI.md)
+- $e810-$e81f: BUS: PET PIA 1
+- $e820-$e82f: BUS: PET PIA 2
+- $e830-$e83f: [DAC interface](DAC.md)
+- $e840-$e84f: BUS: PET VIA
+- $e850-$e85f: BUS: n/a
+- $e860-$e87f: BUS: DUAL SID Board SID 1
+- $e880-$e8df: [Video interface](VIDEO.md) (note: may be reduced to 16 bytes, with rest on BUS)
+- $e8e0-$e8ff: BUS: DUAL SID Board SID 2
 
+The address ranges marked with "BUS" are routed to the CS/A bus connector.
+
+The assumed default boards used are 
+- PETIO: provides all the PET I/O with the two PIAs and the VIA
+- DUALSID: provides up to two SID sound devices
 
 ## Control Ports
 
 ### Micro-PET
 
-There are four control ports at $e800 - $e803. They are currently only writable.
+This is an overview on the register set:
+
+- $e800 (59392)  [Video control](#e800-59392-video-control)
+- $e801 (59393)  [Memory map control](#e801-59393-memory-map-control)
+- $e802 (59394)  [Low32k bank](#e802-59394-low32k-bank)
+- $e803 (59395)  [Speed control](#e803-59395-speed-control)
+- $e804 (59396)  [bus window](#e804-59396-bus-window)
+- $e805 (59397)  [video window map](#e805-59397-video-window)
+
+- $e880/e881 (59520/59521) [CRTC emulation](#crtc-emulation)
+  - register 9: pixel rows per char - 1
+  - register 12: start of video memory high
+
 
 #### $e800 (59392) Video Control
 
@@ -53,7 +74,7 @@ the available memory bandwidth is shared with the video access.
 To allow the PET code to directly write to $8xxx for character video memory, Bit 2 maps
 the $8xxx window in CPU bank 0 to the VRAM video bank.
 
-Note that with the register $e802, the position of the video window in the video bank
+Note that with the register $e805, the position of the video window in the video bank
 can be changed (while it stays at $8xxx in the CPU memory bank 0). This allows 
 for easy switching between multiple screens beyond the 4k limit of the PET video memory
 window at $8xxx.
@@ -103,23 +124,11 @@ the video timing, this is fixed in the FPGA implementation.
 
 #### $e802 (59394) Bank Control
 
-- Bit 0-3: number of 32k bank in 512k RAM, for the lowest 32k of system
-- Bit 4-6: number of 2k character video memory block the $80xx-$87ff window points to; possible addresses in VRAM bank 0 (CPU bank 8) are:
-  - $80xx 
-  - $88xx
-  - $90xx
-  - $98xx
-  - $a0xx
-  - $a8xx
-  - $b0xx
-  - $b8xx
-- Bit 7: unused, must be 0
+- Bit 0-3: number of 32k bank in 512k Fast RAM (banks 0-7), for the lowest 32k of system
+- Bit 4-7: unused, must be 0
 
-Note that the colour RAM window at $8800-$8fff maps correspondingly to start at 
-  - $c0xx
-  - $c8xx
-  - ...
-  - $f8xx
+This allows re-mapping the lower 32k of bank 0, i.e. including stack and zeropage/direct page
+areas between multiple locations in fast RAM.
 
 #### $e803 (59395) Speed Control
 
@@ -145,6 +154,25 @@ in bank 0 of the CPU, two windows of the CS/A bus can be mapped into bank 0 of t
 - Bit 2: if bit 0=1, when set, maps $9xxx to CS/A I/O instead of memory
 - Bit 3: n/a (if bit 1=1, when set, maps $cxxx to CS/A I/O instead of memory)
 - Bit 4-7: unused, must be 0
+
+#### $e805 (59397) Video window
+
+- Bit 0-2: number of 2k character video memory block the $80xx-$87ff window points to; possible addresses in VRAM bank 0 (CPU bank 8) are:
+  - $80xx 
+  - $88xx
+  - $90xx
+  - $98xx
+  - $a0xx
+  - $a8xx
+  - $b0xx
+  - $b8xx
+- Bit 3-7: unused, must be 0
+
+Note that the colour RAM window at $8800-$8fff maps correspondingly to start at 
+  - $c0xx
+  - $c8xx
+  - ...
+  - $f8xx
 
 ## CRTC emulation
 

@@ -5,8 +5,8 @@ lock	=$0700ff	; last byte in zeropage in bank 7/block 14
 VCOUNT	=$0700fe
 tmp	=$0700fd
 
-MAP_USB	=USBBLK + VBLOCK
-MAP_BAS	=0 + VBLOCK
+MAP_USB	=USBBLK
+MAP_BAS	=0
 MAPREG	=BANK
 
 USBBLK  =14             ; bank 7 value for BANK  
