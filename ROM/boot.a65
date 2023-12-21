@@ -90,6 +90,7 @@ jmpboot
 
 	; -----------------------
 	; warm reboot init
+	sei
 
 	; init control registers
 	lda #0

@@ -60,6 +60,8 @@ nohw
         lda #MAP_BAS
         sta BANK                                                         
 
+	cli
+
 	rep #%00010000
 	.xl
 	rts
@@ -98,8 +100,7 @@ install	.(
 	sta VICCY
 	lda #1		; rasterline interrupt
 	sta VICCY+1
-	
-	cli
+
 	rts
 	.)
 
@@ -171,8 +172,8 @@ newirq	.(
         dec
         sta lock	; lock
         
-	lda MAPREG
-	sta tmp		; can't put on stack, as stack is re-mapped ;-)
+;	lda MAPREG
+;	sta tmp		; can't put on stack, as stack is re-mapped ;-)
 
         lda #MAP_USB
         sta MAPREG
@@ -183,9 +184,23 @@ newirq	.(
 	bcc nokey
 	jsr key_pet
 nokey
-        lda tmp
+        ;lda tmp
+	lda #MAP_BAS
         sta MAPREG
-                                                                                        
+        
+;beq unlock
+;	inc $8000
+;	ldx #0		; clear wide xr
+;	tsx
+;	stx $8001
+;	ldy #0
+;l	lda $0100,x
+;	sta $8004,y
+;	inx
+;	iny
+;	cpy #30
+;	bne l
+unlock  
         lda lock
         inc
         sta lock
@@ -210,6 +225,8 @@ nopoll
 	.as
 pause   .(                              
 	php
+	lda #MAP_BAS
+	sta MAPREG
 	cli
 
         tax                             
@@ -220,6 +237,8 @@ p1      cmp VCOUNT
         dex                             
         bne p0                          
 
+	lda #MAP_USB
+	sta MAPREG
 	plp
         rts                             
         .)                              
