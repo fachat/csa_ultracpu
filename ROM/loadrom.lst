@@ -1,3 +1,5 @@
+
+
 10 poke 59393,0:rem allow writes to ROM area
 
 100 a=9*4096
@@ -22,4 +24,5 @@
 10260 close 1
 10270 print "end at " a
 10290 return
+
 
