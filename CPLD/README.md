@@ -13,16 +13,19 @@ at $e8xx:
 
 - $e800-$e807: System control ports (see below)
 - $e808-$e80b: [SPI interface](SPI.md)
-- $e810-$e81f: BUS: PET PIA 1
+- $e810-$e817: BUS: PET PIA 1
+- $e818-$e81f: BUS: UART for RS232 (note, this halfs the PIA mirrors at $e81x, planned)
 - $e820-$e82f: BUS: PET PIA 2
 - $e830-$e83f: [DAC interface](DAC.md)
-- $e840-$e84f: BUS: PET VIA
-- $e850-$e85f: BUS: n/a
+- $e840-$e84f: BUS: PET VIA 
+- $e850-$e85f: BUS: VIA for (Fast) IEC (planned)
 - $e860-$e87f: BUS: DUAL SID Board SID 1
 - $e880-$e8df: [Video interface](VIDEO.md) (note: may be reduced to 16 bytes, with rest on BUS)
 - $e8e0-$e8ff: BUS: DUAL SID Board SID 2
 
 The address ranges marked with "BUS" are routed to the CS/A bus connector.
+The "planned" entries are not tested or even built yet. The DUAl SID board
+exists and is tested, just not yet published.
 
 The assumed default boards used are 
 - PETIO: provides all the PET I/O with the two PIAs and the VIA
