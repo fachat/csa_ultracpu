@@ -1,6 +1,6 @@
 Partlist
 
-Exported from csa_ultracpu.sch at 4/17/22 9:51 PM
+Exported from csa_ultracpu.sch at 11.08.23 15:51
 
 EAGLE Version 6.4.0 Copyright (c) 1988-2013 CadSoft
 
@@ -8,34 +8,30 @@ Assembly variant:
 
 Part     Value              Device             Package          Library          Sheet
 
-C1       0.1u               C-EUC0603          C0603            rcl              3
+C1       1u                 C-EUC0603          C0603            rcl              3
 C2       0.1u               C-EUC0603          C0603            rcl              3
-C3       0.1u               C-EUC0603          C0603            rcl              3
-C4       0.1u               C-EUC0603          C0603            rcl              3
-C5       47u                CPOL-EUE5-6        E5-6             rcl              3
+C4       1u                 C-EUC0603          C0603            rcl              3
+C5       22u                C-EUC0805          C0805            rcl              3
 C6       47u                CPOL-EUE2.5-6      E2,5-6           rcl              3
 C7       100n               C-EUC0603          C0603            rcl              3
 C8       100n               C-EUC0603          C0603            rcl              3
 C9       1.0u Cer           C-EUC0603          C0603            rcl              5
-C10      1u                 C-EUC0603          C0603            rcl              3
-C11      1u                 C-EUC0603          C0603            rcl              3
+C11      0.1u               C-EUC0603          C0603            rcl              3
 C12      0.1u               C-EUC0603          C0603            rcl              3
 C13      0.1u               C-EUC0603          C0603            rcl              3
-C14      0.1u               C-EUC0603          C0603            rcl              3
+C14      1u                 C-EUC0603          C0603            rcl              3
 C15      0.1u               C-EUC0603          C0603            rcl              3
 C16      0.1u               C-EUC0603          C0603            rcl              5
 C17      0.1u               C-EUC0603          C0603            rcl              3
 C18      0.1u               C-EUC0603          C0603            rcl              3
 C19      0.1u               C-EUC0603          C0603            rcl              3
-C20      0.1u               C-EUC0603          C0603            rcl              3
 C21      0.1u               C-EUC0603          C0603            rcl              5
 C22      0.1u               C-EUC0603          C0603            rcl              3
 C23      0.1u               C-EUC0603          C0603            rcl              3
 C24      0.1u               C-EUC0603          C0603            rcl              3
 C25      0.1u               C-EUC0603          C0603            rcl              3
-C26      47u                CPOL-EUE2.5-6      E2,5-6           rcl              3
+C26      0.1u               C-EUC0603          C0603            rcl              3
 C27      0.1u               C-EUC0603          C0603            rcl              5
-C28      22u                CPOL-EUE2.5-6      E2,5-6           rcl              3
 C29      18p                C-EUC0603          C0603            rcl              5
 C30      18p                C-EUC0603          C0603            rcl              5
 C31      0.1u               C-EUC0603          C0603            rcl              3
@@ -43,8 +39,6 @@ C32      0.1u               C-EUC0603          C0603            rcl             
 C33      0.1u               C-EUC0603          C0603            rcl              3
 C34      0.1u               C-EUC0603          C0603            rcl              3
 C35      0.1u               C-EUC0603          C0603            rcl              3
-C36      22u                CPOL-EUE2.5-6      E2,5-6           rcl              3
-C37      22u                CPOL-EUE2.5-6      E2,5-6           rcl              3
 C38      22u                CPOL-EUE2.5-6      E2,5-6           rcl              3
 C39      18p                C-EUC0603          C0603            rcl              5
 C40      18p                C-EUC0603          C0603            rcl              5
@@ -57,15 +51,37 @@ C46      0.1u               C-EUC0603          C0603            rcl             
 C47      0.1u               C-EUC0603          C0603            rcl              3
 C48      0.1u               C-EUC0603          C0603            rcl              3
 C49      1u                 C-EUC0603          C0603            rcl              3
-C50      1u                 C-EUC0603          C0603            rcl              3
-C51      1u                 C-EUC0603          C0603            rcl              3
-C52      0.1u               C-EUC0603          C0603            rcl              3
-C53      1u                 C-EUC0603          C0603            rcl              3
 C54      1u                 C-EUC0603          C0603            rcl              3
 C55      1u                 C-EUC0603          C0603            rcl              3
 C56      1u                 C-EUC0603          C0603            rcl              3
-C57      22u                CPOL-EUE2.5-6      E2,5-6           rcl              3
+C57      1u                 C-EUC0603          C0603            rcl              3
 C58      0.1u               C-EUC0603          C0603            rcl              3
+C63      22u                C-EUC0805          C0805            rcl              3
+C64      22u                C-EUC0805          C0805            rcl              3
+C65      22u                C-EUC0805          C0805            rcl              3
+C66      22u                C-EUC0805          C0805            rcl              3
+C67      22u                C-EUC0805          C0805            rcl              3
+C68      22u                C-EUC0805          C0805            rcl              3
+C69      22u                C-EUC0805          C0805            rcl              3
+C70      22u                C-EUC0805          C0805            rcl              3
+C71      22u                C-EUC0805          C0805            rcl              3
+C100     0.1u               C-EUC0603          C0603            rcl              3
+C101     0.1u               C-EUC0603          C0603            rcl              3
+C102     0.1u               C-EUC0603          C0603            rcl              3
+C103     0.1u               C-EUC0603          C0603            rcl              3
+C104     0.1u               C-EUC0603          C0603            rcl              3
+C105     0.1u               C-EUC0603          C0603            rcl              3
+C106     0.1u               C-EUC0603          C0603            rcl              3
+C107     0.1u               C-EUC0603          C0603            rcl              3
+C108     0.1u               C-EUC0603          C0603            rcl              3
+C109     0.1u               C-EUC0603          C0603            rcl              3
+C110     0.1u               C-EUC0603          C0603            rcl              3
+C111     0.1u               C-EUC0603          C0603            rcl              3
+C112     0.1u               C-EUC0603          C0603            rcl              3
+C113     0.1u               C-EUC0603          C0603            rcl              3
+C120     1u                 C-EUC0603          C0603            rcl              3
+C121     1u                 C-EUC0603          C0603            rcl              3
+C123     1u                 C-EUC0603          C0603            rcl              3
 D1       1N4148DO35-7       1N4148DO35-7       DO35-7           diode            4
 D2       1N4148DO35-7       1N4148DO35-7       DO35-7           diode            4
 D3       1N4148DO35-7       1N4148DO35-7       DO35-7           diode            4
@@ -74,28 +90,30 @@ D5       1N4148             DIODE-D-5          D-5              diode           
 D6       1N4148             DIODE-D-5          D-5              diode            5
 D7       1N4148DO35-7       1N4148DO35-7       DO35-7           diode            4
 D8       1N4148             DIODE-D-5          D-5              diode            5
+D9       1N4148             DIODE-D-5          D-5              diode            2
+D10      1N4148DO35-7       1N4148DO35-7       DO35-7           diode            6
+DS1818   DS1818             DS1813             TO92             csa              3
 IC1      RAMSOCK32TO512KSOP RAMSOCK32TO512KSOP SOP32            csa              2
-IC2      74LS245DW          74LS245DW          SO20W            74xx-eu          4
-IC3      74LS245DW          74LS245DW          SO20W            74xx-eu          1
-IC4      74LS245DW          74LS245DW          SO20W            74xx-eu          1
-IC5      74LS245DW          74LS245DW          SO20W            74xx-eu          1
-IC6      74ACT138D          74ACT138D          SO16             74xx-eu          4
-IC7      74LS245DW          74LS245DW          SO20W            74xx-eu          6
+IC2      74HCT245DW         74LS245DW          SO20W            74xx-eu          4
+IC3      74LS125D           74LS125D           SO14             74xx-eu          2
+IC4      74HCT245DW         74LS245DW          SO20W            74xx-eu          1
+IC5      74HCT245DW         74LS245DW          SO20W            74xx-eu          1
+IC6      74HC138D           74ACT138D          SO16             74xx-eu          4
+IC7      74S138D            74S138D            SO16             74xx-eu          2
 IC8      MAX3421E           MAX3421E           TQFP32-5MM       csa              5
-IC9      74LS166D           74LS166D           SO16             74xx-eu          6
 IC10     RAMSOCK32TO512KSOP RAMSOCK32TO512KSOP SOP32            csa              6
-IC11     74HCT574D          74HCT574D          SO20W            74xx-eu          6
-IC12     74HCT574D          74HCT574D          SO20W            74xx-eu          6
 IC13     74HCT244DW         74HCT244DW         SO20W            74xx-eu          1
-IC14     74HCT14D           74HCT14D           SO14             74xx-eu          1
-IC15     74HCT157D          74HCT157D          SO16             74xx-eu          6
-IC18     74LS06D            74LS06D            SO14             74xx-eu          1
+IC14     74LVC14            74HCT14D           SO14             74xx-eu          1
+IC16     74LVC8T245SO24     74LVC8T245SO24     SO24L            csa              1
+IC18     74LVC06            74LS06D            SO14             74xx-eu          1
 IC19     74HCT244DW         74HCT244DW         SO20W            74xx-eu          1
-J1                          FLOPPY-4350211     350211           con-amp          3
 JP1                         JP1E               JP1              jumper           2
 JP2                         JP1E               JP1              jumper           5
 JP3                         JP1E               JP1              jumper           5
+JP4                         JP1E               JP1              jumper           2
+JP5                         JP2E               JP2              jumper           6
 JP7                         JP4E               JP4              jumper           2
+JS1      RENOSCXLH          RENOSCXLH          RENJS6           csa              2
 LED1                        LED3MM             LED3MM           led              3
 P1       CSABUS             CSABUS             CSABUS           csa              1
 Q2       32kHz              CRYSTALTC26H       TC26H            crystal          5
@@ -113,7 +131,7 @@ R8       68                 R-EU_0204/2V       0204V            rcl             
 R9       10k                R-EU_0207/2V       0207/2V          rcl              2
 R10      10k                R-EU_0207/2V       0207/2V          rcl              2
 R11      10k                R-EU_0207/2V       0207/2V          rcl              2
-R12      1k                 R-EU_0207/2V       0207/2V          rcl              2
+R12      1k5                R-EU_0207/2V       0207/2V          rcl              2
 R13      470                R-EU_0204/2V       0204V            rcl              4
 R14      470                R-EU_0204/2V       0204V            rcl              4
 R15      470                R-EU_0204/2V       0204V            rcl              4
@@ -124,16 +142,37 @@ R19      1k                 R-EU_0204/2V       0204V            rcl             
 R20      1k                 R-EU_0204/2V       0204V            rcl              4
 R21      2k                 R-EU_0204/2V       0204V            rcl              4
 R22      390                R-EU_0207/2V       0207/2V          rcl              3
+R23      10k                R-EU_0207/2V       0207/2V          rcl              3
+R24      10k                R-EU_0207/2V       0207/2V          rcl              3
+R25      4k7                R-EU_0207/2V       0207/2V          rcl              2
+R26      10k                R-EU_0207/2V       0207/2V          rcl              2
+R27      10k                R-EU_0204/5        0204/5           rcl              1
+R28      100                R-EU_0204/2V       0204V            rcl              6
+R29      330                R-EU_0207/2V       0207/2V          rcl              2
+R30      680                R-EU_0204/2V       0204V            rcl              6
+R31      100                R-EU_0204/2V       0204V            rcl              6
 RN2      10k                RN08               RN-9             resistor-net     1
 S1                          31-XX              B3F-31XX         switch-omron     3
-TO1      LM2937SOT-3.3V     LM2937SOT          SOT223           csa              3
+SJ1                         SJ2W               SJ_2             jumper           2
+SN1      MCP48X2            MCP48X2            SOIC8            csa              6
 U$1      W65C816SPLCC       W65C816SPLCC       PLCC44           csa              2
-U$2      XC95288XLTQ144     XC95288XLTQ144     TQFP144          csa              2
-U$3      DS1813             DS1813             TO92             csa              3
+U$2      XC3S250E           XC3S100E           TQFP144          csa              2
+U$3      LDI1117            LDI1117            SOT223           csa              3
 U$4      SPIFLASH           SPIFLASH           DIL08            csa              2
+U$5      PESD5V0L1BA        ESDBIDIR           SOD323           csa              4
+U$6      PESD5V0L1BA        ESDBIDIR           SOD323           csa              4
 U$7      XILINXPROG         XILINXPROG         FLAT10BOX        csa              2
+U$8      PESD5V0L1BA        ESDBIDIR           SOD323           csa              4
 U$9      ETHOLIENC          ETHOLIENC          ETHOLIENC        csa              5
+U$10     PESD5V0L1BA        ESDBIDIR           SOD323           csa              4
+U$11     PESD5V0L1BA        ESDBIDIR           SOD323           csa              4
 U$12     SD-CARD-GRAVI      SD-CARD-GRAVI      GRAVITECH-SDCARD csa              5
 U$13     MCP79510           MCP79510           MSOP10           csa              5
+U$14     PESD5V0L1BA        ESDBIDIR           SOD323           csa              5
+U$15     PESD5V0L1BA        ESDBIDIR           SOD323           csa              5
+U$16     AP2132B-1.2        AP2132BB           PSOP-8-FIXED     csa              3
+U$17     AP2132B-2.5        AP2132BB           PSOP-8-FIXED     csa              3
+U$18     SPIFLASH           SPIFLASH           DIL08            csa              2
+U$19     MONOAUDIOB         MONOAUDIOB         CUI_MJ-3502-B    csa              6
 USB1     USB-A-H            USB-A-H            USB-A-H          con-usb-2        5
 X2       D-SUB15-HDR15RA    D-SUB15-HDR15RA    HDR15RA          con-thomas-betts 4
