@@ -14,15 +14,15 @@ So, here you can find the
 But, you can still have a look at the schematics and layout using the
 PNG images created
 
-- [csa-ultracpu-v1.0b-sch-1.png](csa-ultracpu-v1.0b-sch-1.png) Part 1 - CS/A Bus interface
-- [csa-ultracpu-v1.0b-sch-2.png](csa-ultracpu-v1.0b-sch-2.png) Part 2 - CPLD, CPU, Fast RAM
-- [csa-ultracpu-v1.0b-sch-3.png](csa-ultracpu-v1.0b-sch-3.png) Part 3 - Power
-- [csa-ultracpu-v1.0b-sch-4.png](csa-ultracpu-v1.0b-sch-4.png) Part 4 - Video and Audio output
-- [csa-ultracpu-v1.0b-sch-5.png](csa-ultracpu-v1.0b-sch-5.png) Part 5 - SPI devices (Eth, USB, RTCC, ...)
-- [csa-ultracpu-v1.0b-sch-6.png](csa-ultracpu-v1.0b-sch-6.png) Part 6 - Video RAM, data fetch and shift register
+- [csa_ultracpu_v1.3c-sch-1.png](csa_ultracpu_v1.3c-sch-1.png) Part 1 - CS/A Bus interface
+- [csa_ultracpu_v1.3c-sch-2.png](csa_ultracpu_v1.3c-sch-2.png) Part 2 - CPLD, CPU, Fast RAM
+- [csa_ultracpu_v1.3c-sch-3.png](csa_ultracpu_v1.3c-sch-3.png) Part 3 - Power
+- [csa_ultracpu_v1.3c-sch-4.png](csa_ultracpu_v1.3c-sch-4.png) Part 4 - Video and Audio output
+- [csa_ultracpu_v1.3c-sch-5.png](csa_ultracpu_v1.3c-sch-5.png) Part 5 - SPI devices (Eth, USB, RTCC, ...)
+- [csa_ultracpu_v1.3c-sch-6.png](csa_ultracpu_v1.3c-sch-6.png) Part 6 - Video RAM, data fetch and shift register
 
-- [csa-ultracpu-v1.0b-layout.png](csa-ultracpu-v1.0b-layout.png) layout of the chips
-- [csa-ultracpu-v1.0b-brd.png](csa-ultracpu-v1.0b-brd.png) layout of the traces
+- [csa_ultracpu_v1.3c-layout.png](csa_ultracpu_v1.3c-layout.png) layout of the chips
+- [csa_ultracpu_v1.3c-brd.png](csa_ultracpu_v1.3c-brd.png) layout of the traces
 
 ## Bill of Material
 
@@ -30,13 +30,10 @@ The main chips are:
 
 - 1x W65816S CPU
 
-- 1x xc95288xl CPLD
+- 1x x Spartan 3E FPGA
 - 2x 8x512k parallel SRAM with 25ns access time
 - Several ICs for Video generation:
-  - 2x 74hct245d
-  - 2x 74hct574d
-  - 1x 74hct157d
-  - 1x 74hct166d
+  - 1x 74hct245d
   - 1x 74hct138d (optional brown fix)
 - several ICs for the bus interface
   - 2x 74hct244d
@@ -48,16 +45,23 @@ The main chips are:
 - 50 MHZ crystal oscillator
 - 16 MHZ crystal oscillator (bus clock - may be optional)
 
-- Voltage regulator
+- Voltage regulators
 
 - x 0.1uF bypass caps
 
 - 1x LM2937-3.3V SOT
 - div. resistors/caps to generate 3.3V output
 
-More details can be found in the [Eagle parts list](csa-ultracpu-parts.txt).
+More details can be found in the [Eagle parts list](csa_ultracpu.csv).
 
 ## Changelog
+
+### V1.3C
+
+This is a technology change of the programmable logic from the CPLD to an FPGA.
+The FPGA has the same footprint, but much more space for logic inside. 
+This allowed to integrate proper colour support, bitmaps, sprites, and many more
+graphics features. A DAC allows outputting digital sound. 
 
 ### V1.0B
 
