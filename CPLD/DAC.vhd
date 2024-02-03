@@ -100,6 +100,8 @@ architecture Behavioral of DAC is
 	signal spi_direct: std_logic;
 	signal spi_done: std_logic;
 	signal spi_busy: std_logic;
+	signal spi_dualmono: std_logic;
+	signal spi_stereo: std_logic;
 	
 	signal irq_int: std_logic;
 	
@@ -197,9 +199,15 @@ begin
 				-- start work
 				spi_phase <= "01";
 				spi_cnt <= (others => '0');
+				spi_stereo <= dma_stereo;
+				spi_dualmono <= dma_channel;
 				if (dma_stereo = '1') then
 					spi_chan <= '0';
 					spi_buf(0) <= dac_buf(to_integer(unsigned(dac_rp)));
+					if (dma_channel = '1') then
+						-- same data on both channels
+						spi_buf(1) <= dac_buf(to_integer(unsigned(dac_rp)));
+					end if;
 				else
 					spi_chan <= dma_channel;
 					if (dma_channel = '0') then
@@ -235,12 +243,14 @@ begin
 				spi_cnt <= (others => '0');
 			elsif (spi_phase = "11" and spi_cnt = "00001") then
 				spi_naudio <= '1';
-				if (dma_stereo = '1' and spi_chan = '0') then
+				if (spi_stereo = '1' and spi_chan = '0') then
 					spi_chan <= '1';
 					spi_phase <= "01";
 					spi_cnt <= (others => '0');
-					spi_buf(1) <= dac_buf(to_integer(unsigned(dac_rp)));
-					dac_rp <= dac_rp + 1;
+					if (spi_dualmono = '0') then
+						spi_buf(1) <= dac_buf(to_integer(unsigned(dac_rp)));
+						dac_rp <= dac_rp + 1;
+					end if;
 				else
 					nldac <= '0';
 					spi_cnt <= spi_cnt + 1;
