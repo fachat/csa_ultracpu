@@ -1,5 +1,5 @@
 
-ASM=low32k virtpet dacdma dacfile dacirq spriteirq sprite2irq
+ASM=virtpet dacdma dacfile dacirq spriteirq sprite2irq
 BASIC=readflash rtcc batmem sdcard showcols dacfload sprite sprite2
 
 all: ${ASM} ${BASIC} upeteth bench2

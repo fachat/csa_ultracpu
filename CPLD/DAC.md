@@ -32,10 +32,11 @@ This is an overview on the register set. These are the memory locations seen by 
   - b3-0: number of bytes in the DMA buffer
 - $e83f (59455): Control (r/w)
   - b4: enable IRQ when DMA is done (but SPI not yet finished)
-  - b3: DMA channel (if not stereo)
+  - b3: DMA channel (if not stereo) / Dual-Mono-Flag (if stereo)
   - b2: DMA stereo flag - data bytes are alternating between channel 0 and 1
   - b1: DMA loop flag: if set, and full DMA block has been read, continue from the beginning
   - b0: DMA active: set to start DMA. Will be reset to 0 when DMA ends
+
 
 ## Data format
 
@@ -56,6 +57,14 @@ Important are the options:
 ## Stereo DMA
 
 For stereo output using DMA, the data for both channels need to be interleaved. I.e. first byte channel 0, second byte channel 1. Two bytes are sent to the DAC chip, and then simulaneously loaded into the DAC using the chips "/LDAC" signal.
+
+Note that for stereo, CTRL.2 must be 1, and CTRL.3 must be zero
+
+## Dual-Mono DMA
+
+In this mode data is read from memory as mono data, i.e. one byte per time slot. However, the same data is sent to the DAC on both channels.
+
+Note that for stereo, CTRL.2 must be 1, and CTRL.3 must be 1
 
 ## Interrupt 
 
