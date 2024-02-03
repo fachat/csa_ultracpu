@@ -112,7 +112,7 @@ architecture Behavioral of Sprite is
 
 begin
 
-	xcnt_p: process(qclk, h_zero)
+	xcnt_p: process(qclk, h_zero, dotclk, is80)
 	begin
 		if (h_zero = '1') then
 			x_cnt <= (others => '0');
@@ -176,7 +176,7 @@ begin
 	fetch_offset <= fetch_offset_int;
 	
 	-- TODO
-	out_p: process(qclk, fetch_ce, x_expand, shiftreg, v_zero)
+	out_p: process(qclk, fetch_ce, x_expand, shiftreg, v_zero, x_cnt, pxl_idx)
 	begin
 	
 		if (x_expand = '0') then

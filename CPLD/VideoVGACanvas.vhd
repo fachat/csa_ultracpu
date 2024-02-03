@@ -42,6 +42,9 @@ entity Canvas is
 	   v_sync : out  STD_LOGIC;
       h_sync : out  STD_LOGIC;
 
+      v_sync_ext : out  STD_LOGIC;
+      h_sync_ext : out  STD_LOGIC;
+
 		h_zero : out std_logic;
 		v_zero : out std_logic;
 		
@@ -63,26 +66,26 @@ end Canvas;
 architecture Behavioral of Canvas is
 
 
-	-- 640x480@60 Hz
+	-- 768x576@60 Hz
 
 	-- all values in pixels
 	-- note: cummulative, starting with back porch
-	-- reason: can be used as sprite coordinate, with full pixel being inside left/upper border at 0/0
-	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned((48  						-8)/8	-1, 10));
-	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((48 + 640	 				-8)/8	-1, 10));
-	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 			)/8		-1, 10));
-	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 	)/8		-1, 10));
+	constant h_back_porch: std_logic_vector(9 downto 0) 	:= std_logic_vector(to_unsigned((104  						-8)/8	-1, 10));
+	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((104 + 768				-8)/8	-1, 10));
+	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((104 + 768 + 24			)/8		-1, 10));
+	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((104 + 768 + 24 + 80 	)/8		-1, 10));
 	-- zero for pixel coordinates is 120 pixels left of default borders
 	-- note: during hsync. may be relevant for raster match
-	constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((48 + 640 + 16 + 96 - (120-48))-2, 10));
+	--constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((104 + 768 + 24 + 80 - (120-104))-2, 10));
+	constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((104 + 768 + 24 + 80 - (120-104))-2, 10));
 
 	-- all values in rasterlines
-	constant v_back_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33							-1, 10));
-	constant v_width: std_logic_vector(9 downto 0)			:=std_logic_vector(to_unsigned(33 + 480					-1, 10));
-	constant v_front_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33 + 480 + 10				-1, 10));
-	constant v_sync_width: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(33 + 480 + 10 + 2		-1, 10));
+	constant v_back_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(17							-1, 10));
+	constant v_width: std_logic_vector(9 downto 0)			:=std_logic_vector(to_unsigned(17 + 576					-1, 10));
+	constant v_front_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(17 + 576 + 1				-1, 10));
+	constant v_sync_width: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(17 + 576 + 1 + 3			-1, 10));
 	-- zero for pixel coordinates is 42 pixels up of default borders
-	constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(33 + 480 + 10 + 2 - (42-33) - 1, 10));
+	constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(17 + 576 + 1 + 3 - (42 - 17), 10));
 	-- this starts first rasterline at start of screen
 	--constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(33 +6 -1, 10));
 
@@ -104,12 +107,20 @@ architecture Behavioral of Canvas is
 	signal h_zero_int: std_logic;
 
 	signal v_zero_int: std_logic;
+	signal v_sync_int: std_logic;
 	signal h_sync_int: std_logic;
 	
 	signal x_addr_int: std_logic_vector(9 downto 0);
 	signal y_addr_int: std_logic_vector(9 downto 0);
 	
 begin
+
+	-- passed through to the actual output; some modes inverted, others not
+	-- 640x480 has h negative v negative
+	-- 768x576 has h negative v positive
+	h_sync_ext <= not( h_sync_int );
+	v_sync_ext <= v_sync_int;
+
 
 	-----------------------------------------------------------------------------
 	-- horizontal geometry calculation
@@ -217,7 +228,7 @@ begin
 		if (reset = '1') then
 			v_cnt <= (others => '0');
 			v_state <= "00";
-			v_sync <= '0';
+			v_sync_int <= '0';
 			v_enable <= '0';
 		elsif (falling_edge(h_enable_int)) then
 
@@ -236,9 +247,9 @@ begin
 				v_enable <= '1';
 			end if;
 
-			v_sync <= '0';
+			v_sync_int <= '0';
 			if (v_state = "11") then
-				v_sync <= '1';
+				v_sync_int <= '1';
 			end if;
 
 			if (v_limit = '1') then
@@ -246,6 +257,8 @@ begin
 			end if;
 		end if;
 	end process;
+
+	v_sync <= v_sync_int;
 
 
 	v_limit_p: process(h_enable_int, v_cnt, reset)

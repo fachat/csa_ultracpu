@@ -242,6 +242,8 @@ architecture Behavioral of Video is
 	-- sync
 	signal h_sync_int : std_logic := '0';	
 	signal v_sync_int : std_logic := '0';
+	signal h_sync_ext : std_logic := '0';	
+	signal v_sync_ext : std_logic := '0';
 	
 	-- raster interrupt
 	signal raster_match: std_logic_vector(9 downto 0);
@@ -369,8 +371,11 @@ architecture Behavioral of Video is
            qclk: in std_logic;          -- Q clock (50MHz)
            dotclk: in std_logic_vector(3 downto 0);     -- 25Mhz, 1/2, 1/4, 1/8, 1/16
 
-           h_sync : out  STD_LOGIC;
            v_sync : out  STD_LOGIC;
+           h_sync : out  STD_LOGIC;
+			  
+           v_sync_ext : out  STD_LOGIC;
+           h_sync_ext : out  STD_LOGIC;
 
 			  h_zero : out std_logic;
 			  v_zero : out std_logic;
@@ -623,8 +628,10 @@ begin
 	port map (
 		qclk,
 		dotclk,
-		h_sync_int,
 		v_sync_int,
+		h_sync_int,
+		v_sync_ext,
+		h_sync_ext,
 		h_zero,
 		v_zero,
 		h_enable,
@@ -677,17 +684,19 @@ begin
 	
 	alt_do_set_rc <= is_raster_match and alt_set_rc;
 	
-	h_sync <= not(h_sync_int); -- and not(v_sync_int));
+	h_sync <= h_sync_ext;
 	
 	is_80 <= mode_80 or is_80_in;
 	
-	v_sync <= not(v_sync_int);
+	v_sync <= v_sync_ext;
+	
+	-- pet VSYNC is positive pulse
 	pet_vsync <= v_sync_int;
 	
 	-----------------------------------------------------------------------------
 	-- raster address calculations
 	
-	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset) 
+	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset, dotclk) 
 	begin
 		if (reset ='1') then
 			vid_addr_hold <= (others => '0');
@@ -722,7 +731,7 @@ begin
 		end if;
 	end process;
 	
-	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, qclk, reset)
+	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, qclk, reset, dotclk)
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
@@ -919,7 +928,8 @@ begin
 		sprite_fetch_idx_v <= std_logic_vector(to_unsigned(sprite_fetch_idx, sprite_fetch_idx_v'length));
 	end process;
 	
-	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce, sprite_data_ptr, sprite_base)
+	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce, sprite_data_ptr, sprite_base,
+		sprite_enabled, sprite_fetch_offset)
 	begin
 		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
 		sprite_fetch_ptr(5 downto 0) <= sprite_fetch_offset(sprite_fetch_idx);
@@ -1236,6 +1246,8 @@ begin
 			if (fetch_ce = '1' and pxl_fetch_int = '1') then
 				if (mode_bitmap = '1' or vis_line_of_char = '1') then
 					pxl_buf <= VRAM_D;
+					--pxl_buf(7 downto 1) <= VRAM_D(7 downto 1);
+					--pxl_buf(0) <= '1';
 				else
 					pxl_buf <= (others => '0');
 				end if;
@@ -1348,7 +1360,7 @@ begin
 	end process;
 					
 	rasterout_p: process(qclk, sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
-		col_bg0, col_fg, col_bg1, col_bg2)
+		col_bg0, col_fg, col_bg1, col_bg2, dotclk)
 	begin
 		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 			raster_isbg <= '0';
@@ -1472,7 +1484,7 @@ begin
 		end loop;
 	end process;
 	
-	vid_mixer_p: process (qclk, dena_int, reset)
+	vid_mixer_p: process (qclk, dena_int, reset, dotclk)
 	begin
 		if (dena_int = '0' or reset = '1') then
 			vid_out <= (others => '0');
@@ -1773,7 +1785,7 @@ begin
 			vis_rows_per_char <= "1111"; -- 15
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= "0001101";	-- 13
-			vsync_pos <= std_logic_vector(to_unsigned(84,10));
+			vsync_pos <= std_logic_vector(to_unsigned(84,8));
 			clines_per_screen <= "00011001";	-- 25
 			attr_base <= x"d000";
 			attr_base_alt <= x"d000";
@@ -1835,10 +1847,10 @@ begin
 				rows_per_char <= CPU_D(3 downto 0);
 				if (mode_upet = '1') then
 					if (CPU_D(3) = '1') then
-						vsync_pos <= std_logic_vector(to_unsigned(59,10));
+						vsync_pos <= std_logic_vector(to_unsigned(59,8));
 						rows_per_char <= "1000";	-- limit to 8
 					else
-						vsync_pos <= std_logic_vector(to_unsigned(84,10));
+						vsync_pos <= std_logic_vector(to_unsigned(84,8));
 					end if;
 				end if;
 			when x"0a" =>

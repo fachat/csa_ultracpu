@@ -479,7 +479,7 @@ begin
 		end if;
 	end process;
 	
-	release3_p: process(reset, q50m, is_bus, chold, csetup)
+	release3_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
 	begin
 		if (reset = '1'
 			or chold = '0'
@@ -803,7 +803,8 @@ begin
 		end if;
 	end process;
 
-	Ctrl_Rd: process(sel0, phi2_int, rwb, reset, ca_in, D)
+	Ctrl_Rd: process(sel0, phi2_int, rwb, reset, ca_in, D, vis_80_in, screenb0, vis_enable, lockb0, boot, is8296,
+		wp_rom9, wp_roma, wp_romb, wp_rompet, lowbank, mode, bus_window_9, bus_window_c, bus_win_9_is_io, bus_win_c_is_io, vidblock)
 	begin
 	
 		s0_d <= (others => '0');
@@ -855,7 +856,6 @@ begin
 			--ramrwb_int	<= '1';
 			nframsel <= '1';
 			nvramsel <= '1';
-			dac_dma_ack <= '0';
 		elsif (rising_edge(q50m)) then
 				
 			nframsel <= nframsel_int;
@@ -977,7 +977,7 @@ begin
 	------------------------------------------------------
 	-- IPL logic
 	
-	ipl_p: process(q50m, reset, ipl)
+	ipl_p: process(q50m, reset, ipl, dotclk, ipl_d)
 	begin
 		if (reset = '1') then 
 			ipl_state <= '0';
@@ -1009,7 +1009,7 @@ begin
 		end if;
 	end process;
 	
-	ipl_state_p: process(reset, q50m, ipl_state)
+	ipl_state_p: process(reset, q50m, ipl_state, dotclk)
 	begin
 		if (reset = '1') then
 			ipl_state_d <= '0';
