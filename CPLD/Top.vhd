@@ -54,11 +54,10 @@ entity Top is
 	   rwb : in std_logic;
 	   rdy : in std_logic;
            phi2 : out  STD_LOGIC;	-- with pull-up to go to 5V
-	   rdy_in : in std_logic;	-- is input only (bi-dir on '816, but hardware only allows in)
 	   vpb : in std_logic;
 	   e : in std_logic;
 	   mlb: in std_logic;
-	   mx : in std_logic;
+	   --mx : in std_logic;
 
 	-- bus
 	-- ROM, I/O (on CPU bus)	   
@@ -102,9 +101,7 @@ entity Top is
 		spi_aclk : out std_logic;
 		spi_amosi : out std_logic;
 		nldac : out std_logic;
-		
-		init_b : out std_logic;
-		
+				
 	-- debug
 		dbg: in std_logic
 	 );
@@ -395,8 +392,6 @@ architecture Behavioral of Top is
 
 begin
 
-	init_b <= memclk;
-	
 	clocky: Clock
 	port map (
 	   q50m,
@@ -479,7 +474,7 @@ begin
 		end if;
 	end process;
 	
-	release3_p: process(reset, q50m, is_bus, chold, csetup)
+	release3_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
 	begin
 		if (reset = '1'
 			or chold = '0'
@@ -855,7 +850,6 @@ begin
 			--ramrwb_int	<= '1';
 			nframsel <= '1';
 			nvramsel <= '1';
-			dac_dma_ack <= '0';
 		elsif (rising_edge(q50m)) then
 				
 			nframsel <= nframsel_int;
@@ -896,8 +890,6 @@ begin
 		-- keep VA, ramrwb etc stable one half qclk cycle after
 		-- de-select.
 		if (reset = '1') then
---			VA 		<= (others => 'Z');
---			ramrwb		<= '1';
 			dac_dma_ack <= '0';
 		elsif (falling_edge(q50m)) then
 		
@@ -977,7 +969,7 @@ begin
 	------------------------------------------------------
 	-- IPL logic
 	
-	ipl_p: process(q50m, reset, ipl)
+	ipl_p: process(q50m, dotclk, reset, ipl, ipl_d)
 	begin
 		if (reset = '1') then 
 			ipl_state <= '0';
@@ -1009,7 +1001,7 @@ begin
 		end if;
 	end process;
 	
-	ipl_state_p: process(reset, q50m, ipl_state)
+	ipl_state_p: process(reset, q50m, dotclk, ipl_state)
 	begin
 		if (reset = '1') then
 			ipl_state_d <= '0';

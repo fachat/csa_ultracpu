@@ -69,7 +69,6 @@ architecture Behavioral of SPI is
 	signal ack_rxtx: std_logic;
 	signal serin_d: std_logic;
 	
-	signal spiclk_int: std_logic;
 	signal spiclk_ce: std_logic;
 	signal spiclk_half: std_logic;
 	
@@ -93,8 +92,6 @@ begin
 		end if;
 	end process;
 	
-	spiclk_int <= spiclk when sel(2) = '0' else
-			spiclk_half;
 	spiclk_ce <= '1' when sel(2) = '0' else
 			spiclk_half;
 		
@@ -170,7 +167,7 @@ begin
 	
 	sersel <= sel;
 	
-	rxtx_p: process(sr, spiclk, spiclk_int, spiclk_ce, serin, ack_rxtx, reset)
+	rxtx_p: process(sr, spiclk, spiclk_ce, serin, ack_rxtx, reset)
 	begin
 		if (reset = '1') then
 			stat <= (others => '0');
@@ -222,7 +219,7 @@ begin
 		end if;
 	end process;
 	
-	ack_p: process(spiclk, spiclk_int, spiclk_ce, stat)
+	ack_p: process(spiclk, spiclk_ce, stat)
 	begin
 		if (falling_edge(spiclk) and spiclk_ce = '1') then
 --		if (falling_edge(spiclk_int)) then
