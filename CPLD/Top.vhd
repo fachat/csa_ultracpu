@@ -83,7 +83,7 @@ entity Top is
       hsync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;
 
-		pxl_out: out std_logic_vector(3 downto 0);
+		pxl_out: out std_logic_vector(5 downto 0);
 	   
 	-- SPI
 	   spi_out : out std_logic;
@@ -100,10 +100,10 @@ entity Top is
 		spi_naudio : out std_logic;
 		spi_aclk : out std_logic;
 		spi_amosi : out std_logic;
-		nldac : out std_logic;
+		nldac : out std_logic
 				
 	-- debug
-		dbg: in std_logic
+		--dbg: in std_logic
 	 );
 	 attribute system_jitter: string;
 	 attribute system_jitter of q50m: signal is "10 ps";
@@ -184,7 +184,7 @@ architecture Behavioral of Top is
 	signal vis_80_in: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
-	signal v_out: std_logic_vector(3 downto 0);
+	signal v_out: std_logic_vector(5 downto 0);
 	signal vis_regmap: std_logic;		-- when set, Viccy occupies not 4, but 96 addresses due to register-to-memory mapping
 	
 	-- cpu
@@ -326,7 +326,7 @@ architecture Behavioral of Top is
 	   vid_fetch : out std_logic; 	-- true during video memory fetch by Viccy
 	   
 	   --sr_load : in std_logic;
-	   vid_out : out std_logic_vector(3 downto 0);
+	   vid_out : out std_logic_vector(5 downto 0);
 	
 		irq_out : out std_logic;
 		
