@@ -92,7 +92,7 @@ begin
 		end if;
 	end process;
 
-	Preload: process (qclk, vh_cnt, h_state, hsync_pos)
+	Preload: process (qclk, vh_cnt, h_state, hsync_pos, dotclk)
 	begin		
 		if (falling_edge(qclk) and dotclk = "0000") then
 			if (h_state = '0' and vh_cnt = hsync_pos) then
@@ -110,7 +110,7 @@ begin
 
 	is_preload <= is_preload_int;
 	
-	Enable: process (qclk, vh_cnt, is_preload_int_d, is_preload_int_dd, h_extborder, h_zero)
+	Enable: process (qclk, dotclk, vh_cnt, is_preload_int_d, is_preload_int_dd, h_extborder, h_zero)
 	begin
 		
 		if (h_zero = '1') then

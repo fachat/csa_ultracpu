@@ -98,7 +98,7 @@ The following are the internal Viccy registers:
   - bit 1-0: -
   - bit 2: extended mode (enable full and multicolor text modes)
   - bit 4: DEN: display enable
-  - bit 5: - 
+  - bit 5: palette select (0 = lower half of palette in R88-R95, 1 = upper half) 
   - bit 6: if set, map registers into memory (see below)
   - bit 7: Micro-PET compatible (see r1)
 
@@ -190,9 +190,9 @@ Sprite registers (subject to change):
 - r86: SPRT_COL_6: color sprite 6 (VIC-II)
 - r87: SPRT_COL_7: color sprite 7 (VIC-II)
 
-Palette registers (future extension):
+Palette registers:
 
-- r88 - r95: reserved for future colour palette extensions (to be mapped twice for 16 cols)
+- r88 - r95: 8 out of 16 palette entries. Which half of the registers is determined by r32.5
 
 ### Memory-mapped registers
 

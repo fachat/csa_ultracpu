@@ -54,11 +54,10 @@ entity Top is
 	   rwb : in std_logic;
 	   rdy : in std_logic;
            phi2 : out  STD_LOGIC;	-- with pull-up to go to 5V
-	   rdy_in : in std_logic;	-- is input only (bi-dir on '816, but hardware only allows in)
 	   vpb : in std_logic;
 	   e : in std_logic;
 	   mlb: in std_logic;
-	   mx : in std_logic;
+	   --mx : in std_logic;
 
 	-- bus
 	-- ROM, I/O (on CPU bus)	   
@@ -101,12 +100,10 @@ entity Top is
 		spi_naudio : out std_logic;
 		spi_aclk : out std_logic;
 		spi_amosi : out std_logic;
-		nldac : out std_logic;
-		
-		init_b : out std_logic;
-		
+		nldac : out std_logic
+				
 	-- debug
-		dbg: in std_logic
+		--dbg: in std_logic
 	 );
 	 attribute system_jitter: string;
 	 attribute system_jitter of q50m: signal is "10 ps";
@@ -187,7 +184,7 @@ architecture Behavioral of Top is
 	signal vis_80_in: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
-	signal v_out: std_logic_vector(3 downto 0);
+	signal v_out: std_logic_vector(5 downto 0);
 	signal vis_regmap: std_logic;		-- when set, Viccy occupies not 4, but 96 addresses due to register-to-memory mapping
 	
 	-- cpu
@@ -329,7 +326,7 @@ architecture Behavioral of Top is
 	   vid_fetch : out std_logic; 	-- true during video memory fetch by Viccy
 	   
 	   --sr_load : in std_logic;
-	   vid_out : out std_logic_vector(3 downto 0);
+	   vid_out : out std_logic_vector(5 downto 0);
 	
 		irq_out : out std_logic;
 		
@@ -395,8 +392,6 @@ architecture Behavioral of Top is
 
 begin
 
-	init_b <= memclk;
-	
 	clocky: Clock
 	port map (
 	   q50m,
@@ -479,7 +474,7 @@ begin
 		end if;
 	end process;
 	
-	release3_p: process(reset, q50m, is_bus, chold, csetup)
+	release3_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
 	begin
 		if (reset = '1'
 			or chold = '0'
@@ -663,7 +658,10 @@ begin
 
 	vgraphic <= not(graphic);
 	
-	pxl_out <= v_out;
+	pxl_out(3) <= v_out(5);
+	pxl_out(2) <= v_out(3);
+	pxl_out(1) <= v_out(1);
+	pxl_out(0) <= v_out(0) or v_out(2) or v_out(4);
 
 	------------------------------------------------------
 	-- DAC interface
@@ -855,7 +853,6 @@ begin
 			--ramrwb_int	<= '1';
 			nframsel <= '1';
 			nvramsel <= '1';
-			dac_dma_ack <= '0';
 		elsif (rising_edge(q50m)) then
 				
 			nframsel <= nframsel_int;
@@ -896,8 +893,6 @@ begin
 		-- keep VA, ramrwb etc stable one half qclk cycle after
 		-- de-select.
 		if (reset = '1') then
---			VA 		<= (others => 'Z');
---			ramrwb		<= '1';
 			dac_dma_ack <= '0';
 		elsif (falling_edge(q50m)) then
 		
@@ -977,7 +972,7 @@ begin
 	------------------------------------------------------
 	-- IPL logic
 	
-	ipl_p: process(q50m, reset, ipl)
+	ipl_p: process(q50m, dotclk, reset, ipl, ipl_d)
 	begin
 		if (reset = '1') then 
 			ipl_state <= '0';
@@ -1009,7 +1004,7 @@ begin
 		end if;
 	end process;
 	
-	ipl_state_p: process(reset, q50m, ipl_state)
+	ipl_state_p: process(reset, q50m, dotclk, ipl_state)
 	begin
 		if (reset = '1') then
 			ipl_state_d <= '0';

@@ -58,7 +58,7 @@ entity Video is
 	   
 	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
-	   vid_out: out std_logic_vector(3 downto 0);
+	   vid_out: out std_logic_vector(5 downto 0);
 		
 		irq_out: out std_logic;
 		
@@ -324,6 +324,11 @@ architecture Behavioral of Video is
 	signal sprite_mcol1: std_logic_vector(3 downto 0);
 	signal sprite_mcol2: std_logic_vector(3 downto 0);
 	signal sprite_base: std_logic_vector(7 downto 0);
+	
+	-- palette
+	signal palette: AOA8(0 to 15);
+	signal pal_sel: std_logic;		-- which half is visible in the register file
+	
 	-- output to mixer
 	signal sprite_on: std_logic;
 	signal sprite_outcol: std_logic_vector(3 downto 0);
@@ -470,6 +475,20 @@ architecture Behavioral of Video is
 	);
 	end component;
 	
+	impure function col_2_pxl (
+		col : std_logic_vector(3 downto 0)
+		) return std_logic_vector is
+
+		variable palcol: std_logic_vector(7 downto 0);
+		variable rgb: std_logic_vector(5 downto 0);
+	begin
+		palcol := palette(to_integer(unsigned(col)));
+		rgb(1 downto 0) := palcol(1 downto 0);	-- BLUE
+		rgb(3 downto 2) := palcol(4 downto 3);  -- GREEN
+		rgb(5 downto 4) := palcol(7 downto 6); 	-- RED
+		
+		return rgb;
+	end function;
 begin
 	
 	windows_p: process(dotclk)
@@ -687,7 +706,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- raster address calculations
 	
-	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset) 
+	AddrHold: process(qclk, last_line_of_screen, vid_addr, reset, dotclk) 
 	begin
 		if (reset ='1') then
 			vid_addr_hold <= (others => '0');
@@ -722,7 +741,7 @@ begin
 		end if;
 	end process;
 	
-	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, qclk, reset)
+	AddrCnt: process(x_start, vid_addr, vid_addr_hold, is_80, in_slot, qclk, reset, dotclk)
 	begin
 		if (reset = '1') then
 			vid_addr <= (others => '0');
@@ -919,7 +938,8 @@ begin
 		sprite_fetch_idx_v <= std_logic_vector(to_unsigned(sprite_fetch_idx, sprite_fetch_idx_v'length));
 	end process;
 	
-	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce, sprite_data_ptr, sprite_base)
+	fetchactive_p: process(qclk, x_addr, sprite_fetch_idx, sprite_ptr_fetch, sprite_data_fetch, fetch_ce, sprite_data_ptr, sprite_base,
+			sprite_enabled, sprite_fetch_offset)
 	begin
 		sprite_fetch_active <= sprite_enabled(sprite_fetch_idx);
 		sprite_fetch_ptr(5 downto 0) <= sprite_fetch_offset(sprite_fetch_idx);
@@ -1347,7 +1367,7 @@ begin
 		end if;
 	end process;
 					
-	rasterout_p: process(qclk, sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
+	rasterout_p: process(qclk, dotclk, sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
 		col_bg0, col_fg, col_bg1, col_bg2)
 	begin
 		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
@@ -1472,7 +1492,7 @@ begin
 		end loop;
 	end process;
 	
-	vid_mixer_p: process (qclk, dena_int, reset)
+	vid_mixer_p: process (qclk, dotclk, dena_int, reset)
 	begin
 		if (dena_int = '0' or reset = '1') then
 			vid_out <= (others => '0');
@@ -1485,22 +1505,22 @@ begin
 			if (x_border = '1' or y_border = '1' or dispen = '0') then
 				if (sprite_on = '1' and sprite_onborder = '1') then
 					-- sprite on top of border
-					vid_out <= sprite_outcol;
+					vid_out <= col_2_pxl(sprite_outcol);
 					collision_trigger_sprite_border(sprite_no) <= '1';
 				else
 					-- BORDER
-					vid_out <= col_border;
+					vid_out <= col_2_pxl(col_border);
 				end if;
 			elsif (sprite_on = '1' and (raster_bg(0) = '1' or sprite_onraster = '1')) then
 				-- sprite on top of raster
-				vid_out <= sprite_outcol;
+				vid_out <= col_2_pxl(sprite_outcol);
 				if (raster_bg(0) = '0') then
 					collision_trigger_sprite_raster(sprite_no) <= '1';
 				end if;
 				
 			elsif (is_80 = '1' or dotclk(1) = '1') then
 				-- raster
-				vid_out <= raster_out(0);
+				vid_out <= col_2_pxl(raster_out(0));
 			end if;			
 		end if;
 	end process;
@@ -1773,7 +1793,7 @@ begin
 			vis_rows_per_char <= "1111"; -- 15
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= "0001101";	-- 13
-			vsync_pos <= std_logic_vector(to_unsigned(84,10));
+			vsync_pos <= std_logic_vector(to_unsigned(84,8));
 			clines_per_screen <= "00011001";	-- 25
 			attr_base <= x"d000";
 			attr_base_alt <= x"d000";
@@ -1799,6 +1819,23 @@ begin
 			sprite_mcol1 <= "0000";
 			sprite_mcol1 <= "0000";
 			sprite_base <= "10010111";
+			pal_sel <= '0';
+			palette(0) <= "00000000";	-- black
+			palette(1) <= "01101101";	-- dark grey
+			palette(2) <= "00000010";	-- dark blue
+			palette(3) <= "01110011";	-- light blue
+			palette(4) <= "00010000";	-- dark green
+			palette(5) <= "01111101";	-- light green
+			palette(6) <= "00010010";	-- dark cyan
+			palette(7) <= "01111111";	-- light cyan
+			palette(8) <= "10000000";	-- dark red
+			palette(9) <= "11101101";	-- light red
+			palette(10) <= "10000010";	-- dark purple
+			palette(11) <= "11101111";	-- light purple
+			palette(12) <= "10010000";	-- brown? dark yellow?
+			palette(13) <= "11111101";	-- light yellow
+			palette(14) <= "10010010";	-- light grey
+			palette(15) <= "11111111";	-- white		
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1'
 				and crtc_is_data = '1' 
@@ -1835,10 +1872,10 @@ begin
 				rows_per_char <= CPU_D(3 downto 0);
 				if (mode_upet = '1') then
 					if (CPU_D(3) = '1') then
-						vsync_pos <= std_logic_vector(to_unsigned(59,10));
+						vsync_pos <= std_logic_vector(to_unsigned(59,8));
 						rows_per_char <= "1000";	-- limit to 8
 					else
-						vsync_pos <= std_logic_vector(to_unsigned(84,10));
+						vsync_pos <= std_logic_vector(to_unsigned(84,8));
 					end if;
 				end if;
 			when x"0a" =>
@@ -1919,6 +1956,7 @@ begin
 			when x"20" =>	-- R32 (was: R39)
 				mode_extended_reg <= CPU_D(2);
 				dispen <= CPU_D(4);
+				pal_sel <= CPU_D(5);
 				mode_regmap_int <= CPU_D(6);
 				mode_upet <= CPU_D(7);
 			when x"21" => 	-- R33 (was: R40)
@@ -1985,6 +2023,23 @@ begin
 			--
 			-- R88 - R95 are reserved for future palette extensions
 			--
+			when x"58" =>   -- R88
+				if (pal_sel = '0') then palette(0) <= CPU_D; else palette(8) <= CPU_D; end if;
+			when x"59" =>   -- R89
+				if (pal_sel = '0') then palette(1) <= CPU_D; else palette(9) <= CPU_D; end if;
+			when x"5a" =>   -- R90
+				if (pal_sel = '0') then palette(2) <= CPU_D; else palette(10) <= CPU_D; end if;
+			when x"5b" =>   -- R91
+				if (pal_sel = '0') then palette(3) <= CPU_D; else palette(11) <= CPU_D; end if;
+			when x"5c" =>   -- R92
+				if (pal_sel = '0') then palette(4) <= CPU_D; else palette(12) <= CPU_D; end if;
+			when x"5d" =>   -- R93
+				if (pal_sel = '0') then palette(5) <= CPU_D; else palette(13) <= CPU_D; end if;
+			when x"5e" =>   -- R94
+				if (pal_sel = '0') then palette(6) <= CPU_D; else palette(14) <= CPU_D; end if;
+			when x"5f" =>   -- R95
+				if (pal_sel = '0') then palette(7) <= CPU_D; else palette(15) <= CPU_D; end if;
+	
 			when others =>
 				null;
 			end case;
@@ -2114,6 +2169,7 @@ begin
 					when x"20" =>	-- R32 (was R39)
 						vd_out(2) <= mode_extended;
 						vd_out(4) <= dispen;
+						vd_out(5) <= pal_sel;
 						vd_out(6) <= mode_regmap_int;
 						vd_out(7) <= mode_upet;
 					when x"21" => 	-- R33 (was R40)
@@ -2179,6 +2235,22 @@ begin
 						vd_out(3 downto 0) <= sprite_fgcol(6);
 					when x"57" =>	-- R87
 						vd_out(3 downto 0) <= sprite_fgcol(7);
+					when x"58" =>   -- R88
+						if (pal_sel = '0') then vd_out <= palette(0); else vd_out <= palette(8); end if;
+					when x"59" =>   -- R89
+						if (pal_sel = '0') then vd_out <= palette(1); else vd_out <= palette(9); end if;
+					when x"5a" =>   -- R90
+						if (pal_sel = '0') then vd_out <= palette(2); else vd_out <= palette(10); end if;
+					when x"5b" =>   -- R91
+						if (pal_sel = '0') then vd_out <= palette(3); else vd_out <= palette(11); end if;
+					when x"5c" =>   -- R92
+						if (pal_sel = '0') then vd_out <= palette(4); else vd_out <= palette(12); end if;
+					when x"5d" =>   -- R93
+						if (pal_sel = '0') then vd_out <= palette(5); else vd_out <= palette(13); end if;
+					when x"5e" =>   -- R94
+						if (pal_sel = '0') then vd_out <= palette(6); else vd_out <= palette(14); end if;
+					when x"5f" =>   -- R95
+						if (pal_sel = '0') then vd_out <= palette(7); else vd_out <= palette(15); end if;
 					when others =>
 						vd_out <= sprite_d;
 					end case;
