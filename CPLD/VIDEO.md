@@ -129,11 +129,11 @@ The following are the internal Viccy registers:
 - r39: VPOS: vertical position (in rasterlines) of start of raster screen; replaces r7
   - bit 0-7, defaults to 84 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
 - r40: ALT1: alternate register control I
-  - bit 0: if set, enable access to alternate r12/r13 video memory and r20/r21 attribute memory addresses
+  - bit 0: if set, enable access to alternate r12/r13 video memory, r20/r21 attribute memory addresses, and r88-95 alternate palette
   - bit 1: alternate bitmap mode bit
   - bit 2: alternate attribute mode bit
   - bit 3: alternate extended mode bit
-  - bit 4: - 
+  - bit 4: if set, set palette to alternate palette on raster match - reset to original palette at start of screen 
   - bit 5: if set, set bitmap, attribute and extended mode bits to alternate values on raster match - reset to orig values at start of screen
   - bit 6: if set, set attribute address memory counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
   - bit 7: if set, set video memory address counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
