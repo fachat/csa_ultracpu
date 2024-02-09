@@ -99,6 +99,7 @@ architecture Behavioral of Video is
 	signal mode_attrib_reg: std_logic;	
 	signal mode_regmap_int: std_logic;
 	signal alt_match_modes : std_logic;
+	signal alt_match_palette : std_logic;
 	signal alt_match_vaddr : std_logic;
 	signal alt_match_attr : std_logic;
 	signal alt_rc_cnt: std_logic_vector(3 downto 0);
@@ -326,8 +327,9 @@ architecture Behavioral of Video is
 	signal sprite_base: std_logic_vector(7 downto 0);
 	
 	-- palette
-	signal palette: AOA8(0 to 15);
+	signal palette: AOA8(0 to 31);
 	signal pal_sel: std_logic;		-- which half is visible in the register file
+	signal pal_alt: std_logic;		-- use alternate palette
 	
 	-- output to mixer
 	signal sprite_on: std_logic;
@@ -482,7 +484,11 @@ architecture Behavioral of Video is
 		variable palcol: std_logic_vector(7 downto 0);
 		variable rgb: std_logic_vector(5 downto 0);
 	begin
-		palcol := palette(to_integer(unsigned(col)));
+		if (pal_alt = '0') then
+			palcol := palette(to_integer(unsigned(col)));
+		else
+			palcol := palette(to_integer(unsigned(col)) + 16);
+		end if;
 		rgb(1 downto 0) := palcol(1 downto 0);	-- BLUE
 		rgb(3 downto 2) := palcol(4 downto 3);  -- GREEN
 		rgb(5 downto 4) := palcol(7 downto 6); 	-- RED
@@ -1697,10 +1703,19 @@ begin
 				mode_attrib <= mode_attrib_reg;
 				mode_extended <= mode_extended_reg;
 				mode_bitmap <= mode_bitmap_reg;
-			elsif (is_raster_match = '1' and alt_match_modes = '1') then
-				mode_attrib <= mode_attrib_alt;
-				mode_extended <= mode_extended_alt;
-				mode_bitmap <= mode_bitmap_alt;
+			elsif (is_raster_match = '1') then
+				if (alt_match_modes = '1') then
+					mode_attrib <= mode_attrib_alt;
+					mode_extended <= mode_extended_alt;
+					mode_bitmap <= mode_bitmap_alt;
+				end if;
+			end if;
+			if (v_zero = '1') then
+				pal_alt <= '0';
+			elsif (is_raster_match = '1') then
+				if (alt_match_palette = '1') then
+					pal_alt <= '1';
+				end if;
 			end if;
 		end if;
 	end process;
@@ -1710,7 +1725,7 @@ begin
 		if (h_zero = '1') then
 			mode_set_flag <= '0';
 		elsif (falling_edge(phi2)) then
-			if (crtc_sel = '1' and crtc_is_data = '1' and (regsel = x"19" or regsel = x"27")
+			if (crtc_sel = '1' and crtc_is_data = '1' and (regsel = x"19" or regsel = x"20")
 					and crtc_rwb = '0'	-- note this seems to break display...???
 					) then
 				mode_set_flag <= '1';
@@ -1783,6 +1798,7 @@ begin
 			alt_match_modes <= '0';
 			alt_match_vaddr <= '0';
 			alt_match_attr <= '0';
+			alt_match_palette <= '0';
 			alt_rc_cnt <= "0000";
 			alt_set_rc <= '0';
 			dispen <= '1';
@@ -1983,6 +1999,7 @@ begin
 				mode_bitmap_alt <= CPU_D(1);
 				mode_attrib_alt <= CPU_D(2);
 				mode_extended_alt <= CPU_D(3);
+				alt_match_palette <= CPU_D(4);
 				alt_match_modes <= CPU_D(5);
 				alt_match_attr <= CPU_D(6);
 				alt_match_vaddr <= CPU_D(7);				
@@ -2024,21 +2041,21 @@ begin
 			-- R88 - R95 are reserved for future palette extensions
 			--
 			when x"58" =>   -- R88
-				if (pal_sel = '0') then palette(0) <= CPU_D; else palette(8) <= CPU_D; end if;
+				palette(0 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"59" =>   -- R89
-				if (pal_sel = '0') then palette(1) <= CPU_D; else palette(9) <= CPU_D; end if;
+				palette(1 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"5a" =>   -- R90
-				if (pal_sel = '0') then palette(2) <= CPU_D; else palette(10) <= CPU_D; end if;
+				palette(2 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"5b" =>   -- R91
-				if (pal_sel = '0') then palette(3) <= CPU_D; else palette(11) <= CPU_D; end if;
+				palette(3 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"5c" =>   -- R92
-				if (pal_sel = '0') then palette(4) <= CPU_D; else palette(12) <= CPU_D; end if;
+				palette(4 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"5d" =>   -- R93
-				if (pal_sel = '0') then palette(5) <= CPU_D; else palette(13) <= CPU_D; end if;
+				palette(5 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"5e" =>   -- R94
-				if (pal_sel = '0') then palette(6) <= CPU_D; else palette(14) <= CPU_D; end if;
+				palette(6 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 			when x"5f" =>   -- R95
-				if (pal_sel = '0') then palette(7) <= CPU_D; else palette(15) <= CPU_D; end if;
+				palette(7 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16) <= CPU_D;
 	
 			when others =>
 				null;
@@ -2200,6 +2217,7 @@ begin
 						vd_out(1) <= mode_bitmap_alt;
 						vd_out(2) <= mode_attrib_alt;
 						vd_out(3) <= mode_extended_alt;
+						vd_out(5) <= alt_match_palette;
 						vd_out(5) <= alt_match_modes;
 						vd_out(6) <= alt_match_attr;
 						vd_out(7) <= alt_match_vaddr;
@@ -2236,21 +2254,21 @@ begin
 					when x"57" =>	-- R87
 						vd_out(3 downto 0) <= sprite_fgcol(7);
 					when x"58" =>   -- R88
-						if (pal_sel = '0') then vd_out <= palette(0); else vd_out <= palette(8); end if;
+						vd_out <= palette(0 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"59" =>   -- R89
-						if (pal_sel = '0') then vd_out <= palette(1); else vd_out <= palette(9); end if;
+						vd_out <= palette(1 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"5a" =>   -- R90
-						if (pal_sel = '0') then vd_out <= palette(2); else vd_out <= palette(10); end if;
+						vd_out <= palette(2 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"5b" =>   -- R91
-						if (pal_sel = '0') then vd_out <= palette(3); else vd_out <= palette(11); end if;
+						vd_out <= palette(3 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"5c" =>   -- R92
-						if (pal_sel = '0') then vd_out <= palette(4); else vd_out <= palette(12); end if;
+						vd_out <= palette(4 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"5d" =>   -- R93
-						if (pal_sel = '0') then vd_out <= palette(5); else vd_out <= palette(13); end if;
+						vd_out <= palette(5 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"5e" =>   -- R94
-						if (pal_sel = '0') then vd_out <= palette(6); else vd_out <= palette(14); end if;
+						vd_out <= palette(6 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when x"5f" =>   -- R95
-						if (pal_sel = '0') then vd_out <= palette(7); else vd_out <= palette(15); end if;
+						vd_out <= palette(7 + to_integer(unsigned'('0' & pal_sel)) * 8 + to_integer(unsigned'('0' & mode_altreg)) * 16);
 					when others =>
 						vd_out <= sprite_d;
 					end case;
