@@ -70,6 +70,11 @@ entity Top is
 	   nbe_dout : out std_logic;
 	   be_in: in std_logic;
 	   
+	-- PETIO
+		sel1: out std_logic;
+		sel2: out std_logic;
+		sel4: out std_logic;
+		
 	-- V/RAM interface
 	   VA : out std_logic_vector (18 downto 0);	-- 512k
 	   FA : out std_logic_vector (19 downto 15);	-- 512k, mappable in 32k blocks
@@ -83,7 +88,7 @@ entity Top is
       hsync : out  STD_LOGIC;
 	   pet_vsync: out std_logic;
 
-		pxl_out: out std_logic_vector(3 downto 0);
+		pxl_out: out std_logic_vector(7 downto 0);
 	   
 	-- SPI
 	   spi_out : out std_logic;
@@ -184,7 +189,7 @@ architecture Behavioral of Top is
 	signal vis_80_in: std_logic;
 	signal vgraphic: std_logic;
 	signal screenb0: std_logic;
-	signal v_out: std_logic_vector(5 downto 0);
+	signal v_out: std_logic_vector(7 downto 0);
 	signal vis_regmap: std_logic;		-- when set, Viccy occupies not 4, but 96 addresses due to register-to-memory mapping
 	
 	-- cpu
@@ -326,7 +331,7 @@ architecture Behavioral of Top is
 	   vid_fetch : out std_logic; 	-- true during video memory fetch by Viccy
 	   
 	   --sr_load : in std_logic;
-	   vid_out : out std_logic_vector(5 downto 0);
+	   vid_out : out std_logic_vector(7 downto 0);
 	
 		irq_out : out std_logic;
 		
@@ -574,6 +579,9 @@ begin
 
 	-- internal selects
 	sel0 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"0" else '0';
+	sel1 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"1" and ca_in(3) = '0' else '0';
+	sel2 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"2" else '0';
+	sel4 		<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"4" else '0';
 	dac_sel 	<= '1' when m_iosel = '1' and ca_in(7 downto 4) = x"3" else '0';
 	vid_sel	<= '1' when m_iosel = '1' and 
 --														ca_in(7 downto 4) = x"8"
@@ -657,11 +665,8 @@ begin
 	);
 
 	vgraphic <= not(graphic);
-	
-	pxl_out(3) <= v_out(5);
-	pxl_out(2) <= v_out(3);
-	pxl_out(1) <= v_out(1);
-	pxl_out(0) <= v_out(0) or v_out(2) or v_out(4);
+
+	pxl_out <= v_out;
 
 	------------------------------------------------------
 	-- DAC interface

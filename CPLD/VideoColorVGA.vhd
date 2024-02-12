@@ -58,7 +58,7 @@ entity Video is
 	   
 	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
 
-	   vid_out: out std_logic_vector(5 downto 0);
+	   vid_out: out std_logic_vector(7 downto 0);
 		
 		irq_out: out std_logic;
 		
@@ -482,7 +482,7 @@ architecture Behavioral of Video is
 		) return std_logic_vector is
 
 		variable palcol: std_logic_vector(7 downto 0);
-		variable rgb: std_logic_vector(5 downto 0);
+		variable rgb: std_logic_vector(7 downto 0);
 	begin
 		if (pal_alt = '0') then
 			palcol := palette(to_integer(unsigned(col)));
@@ -490,8 +490,8 @@ architecture Behavioral of Video is
 			palcol := palette(to_integer(unsigned(col)) + 16);
 		end if;
 		rgb(1 downto 0) := palcol(1 downto 0);	-- BLUE
-		rgb(3 downto 2) := palcol(4 downto 3);  -- GREEN
-		rgb(5 downto 4) := palcol(7 downto 6); 	-- RED
+		rgb(4 downto 2) := palcol(4 downto 2);  -- GREEN
+		rgb(7 downto 5) := palcol(7 downto 5); 	-- RED
 		
 		return rgb;
 	end function;
@@ -1714,7 +1714,7 @@ begin
 				pal_alt <= '0';
 			elsif (is_raster_match = '1') then
 				if (alt_match_palette = '1') then
-					pal_alt <= '1';
+					pal_alt <= not(pal_alt);
 				end if;
 			end if;
 		end if;

@@ -133,7 +133,7 @@ The following are the internal Viccy registers:
   - bit 1: alternate bitmap mode bit
   - bit 2: alternate attribute mode bit
   - bit 3: alternate extended mode bit
-  - bit 4: if set, set palette to alternate palette on raster match - reset to original palette at start of screen 
+  - bit 4: if set, alternate palette between normal and alternate palettes on raster match - reset to normal palette at start of screen 
   - bit 5: if set, set bitmap, attribute and extended mode bits to alternate values on raster match - reset to orig values at start of screen
   - bit 6: if set, set attribute address memory counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
   - bit 7: if set, set video memory address counter to alternate address on raster match (r38/39) - reset to orig values at start of screen
