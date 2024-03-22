@@ -103,6 +103,9 @@ architecture Behavioral of Mapper is
 	signal buswin: std_logic;
 	signal iowin_int: std_logic;
 	
+	signal vramsel_int: std_logic;
+	signal framsel_int: std_logic;
+	
 	signal bank: std_logic_vector(7 downto 0);
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
@@ -116,6 +119,7 @@ architecture Behavioral of Mapper is
 	
 begin
 
+	dbgout <= '0';
 	
 	avalid <= vda or vpa;
 		
@@ -280,18 +284,25 @@ begin
 				and bus_win_9_is_io = '1')
 			else '0';
 			
-	vramsel <= '0' when avalid = '0' else
---			'1';
+	vramsel_int <= '0' when avalid = '0' else
 			'1' when screenwin = '1' else
 			boota19;			-- second 512k (or 1st 512k on boot)
 
-	framsel <= '0' when avalid='0' 
+	framsel_int <= '0' when avalid='0' 
 					or boota19 = '1' else	-- not in upper half of 1M address space is ROM (4-7 are ignored, only 1M addr space)
 			'1' when low64k = '0' or A(15) = '0' else	-- lowest 32k or 64k-512k is RAM, i.e. all above 64k besides ROM
 			'0' when screenwin = '1' or iowin_int = '1' or buswin = '1' or wprot = '1' else	-- not in screen window
 			'1' when c8296ram = '1' else	-- upper half mapped (except peek through)
 			'0' when petio = '1' else	-- not in I/O space
 			'1';
+			
+	ram_p: process(phi2, avalid, boota19, low64k, A, screenwin, iowin_int, buswin, wprot, c8296ram, petio) 
+	begin
+		if (rising_edge(phi2)) then
+			vramsel <= vramsel_int;
+			framsel <= framsel_int;
+		end if;
+	end process;
 	
 	iosel <= '0' when avalid='0' 
 					or low64k = '0' 			-- not in lowest 64k

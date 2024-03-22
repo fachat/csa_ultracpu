@@ -33,7 +33,9 @@ entity Clock is
 	   reset	: in std_logic;
 	   
 	   memclk: out std_logic;	-- memory access clock signal
-	   
+	   phi1to2:	out std_logic;	-- high during falling qclk at middle of memclk (memclk going up)
+	   phi2to1:	out std_logic;	-- high during falling qclk at end of memclk (memclk going down)
+		
 	   clk1m : out std_logic;	-- trigger CPU access @ 1MHz
 	   clk2m	: out std_logic;	-- trigger CPU access @ 2MHz
 	   clk4m	: out std_logic;	-- trigger CPU access @ 4MHz
@@ -82,6 +84,19 @@ begin
 			else
 				clk_cnt <= clk_cnt + 1;
 			end if;
+			
+			-- clock enable for memclk [dotclk(1)] low to high and high to low transition when qclk is falling
+			if (dotclk_int(1 downto 0) = "01") then
+				phi1to2 <= '1';
+			else
+				phi1to2 <= '0';
+			end if;
+			if (dotclk_int(1 downto 0) = "11") then
+				phi2to1 <= '1';
+			else
+				phi2to1 <= '0';
+			end if;
+			
 		end if;
 	end process;
 	

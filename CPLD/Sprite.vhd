@@ -60,7 +60,7 @@ entity Sprite is
 		is80: in std_logic;
 		
 		enabled: out std_logic;		-- if sprite data should be read in rasterline
-		active: out std_logic;		-- if sprite pixel out is active (in x/y area)
+		--active: out std_logic;		-- if sprite pixel out is active (in x/y area)
 		ison: out std_logic;			-- if sprite pixel is not background (for collision / prio)
 		overraster: out std_logic;		-- if sprite should appear over the raster
 		overborder: out std_logic;		-- if sprite should appear over the border
@@ -360,7 +360,7 @@ begin
 	overborder <= s_overborder;
 	overraster <= s_overraster;
 	enabled <= enabled_int;
-	active <= active_int;
+	--active <= active_int;
 	ison <= ison_int;
 	
 end Behavioral;

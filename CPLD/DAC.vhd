@@ -322,12 +322,11 @@ begin
 	regw_p: process(reset, phi2, sel, regsel, rwb, spi_done, dma_last, dma_irqen, dma_active)
 	begin
 			
-		if (reset = '1' or dma_irqen = '0') then
-			irq_int <= '0';
-		elsif (dma_irqen = '1' and dma_last = '1') then
+		if (dma_irqen = '1' and dma_last = '1') then
 			irq_int <= '1';
 		elsif (falling_edge(phi2)) then
-			if (sel = '1' and rwb = '0' and regsel = "1111") then
+		
+			if (reset = '1' or dma_irqen = '0' or (sel = '1' and rwb = '0' and regsel = "1111")) then
 				-- write to register 15
 				irq_int <= '0';
 			end if;

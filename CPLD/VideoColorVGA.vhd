@@ -57,7 +57,8 @@ entity Video is
       memclk : in STD_LOGIC;	-- system clock (12.5MHz)
 	   
 	   vid_fetch : out std_logic; -- true during video access phase (all, character, chrom, and hires pixel data)
-
+		vreq_video : out std_logic;	-- true if *next* memory access should be video
+		
 	   vid_out: out std_logic_vector(5 downto 0);
 		
 		irq_out: out std_logic;
@@ -316,7 +317,7 @@ architecture Behavioral of Video is
 	signal sprite_d: std_logic_vector(7 downto 0);
 	signal sprite_fetch_offset: AOA6(0 to 7);
 	signal sprite_enabled: std_logic_vector(7 downto 0);
-	signal sprite_active: std_logic_vector(7 downto 0);
+	--signal sprite_active: std_logic_vector(7 downto 0);
 	signal sprite_ison: std_logic_vector(7 downto 0);
 	signal sprite_overraster: std_logic_vector(7 downto 0);
 	signal sprite_overborder: std_logic_vector(7 downto 0);
@@ -467,7 +468,7 @@ architecture Behavioral of Video is
 		is80: in std_logic;
 
 		enabled: out std_logic;		-- if sprite data should be read in rasterline
-		active: out std_logic;		-- if sprite pixel out is active (in x/y area)
+		--active: out std_logic;		-- if sprite pixel out is active (in x/y area)
 		ison: out std_logic;			-- if sprite pixel is not background (for collision / prio)
 		overraster: out std_logic;		-- if sprite should appear over the raster
 		overborder: out std_logic;		-- if sprite should appear over the border
@@ -636,6 +637,13 @@ begin
 						or sprite_ptr_fetch
 						or sprite_data_fetch
 						;
+					
+			-- provisional approach for initial testing of new approach
+			if (dotclk(3 downto 2) = "10") then
+				vreq_video <= '0';
+			else 
+				vreq_video <= '1';
+			end if;
 --		end if;
 	end process;
 	
@@ -998,7 +1006,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(0),
-		sprite_active(0),
+		--sprite_active(0),
 		sprite_ison(0),
 		sprite_overraster(0),
 		sprite_overborder(0),
@@ -1031,7 +1039,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(1),
-		sprite_active(1),
+		--sprite_active(1),
 		sprite_ison(1),
 		sprite_overraster(1),
 		sprite_overborder(1),
@@ -1064,7 +1072,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(2),
-		sprite_active(2),
+		--sprite_active(2),
 		sprite_ison(2),
 		sprite_overraster(2),
 		sprite_overborder(2),
@@ -1097,7 +1105,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(3),
-		sprite_active(3),
+		--sprite_active(3),
 		sprite_ison(3),
 		sprite_overraster(3),
 		sprite_overborder(3),
@@ -1130,7 +1138,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(4),
-		sprite_active(4),
+		--sprite_active(4),
 		sprite_ison(4),
 		sprite_overraster(4),
 		sprite_overborder(4),
@@ -1163,7 +1171,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(5),
-		sprite_active(5),
+		--sprite_active(5),
 		sprite_ison(5),
 		sprite_overraster(5),
 		sprite_overborder(5),
@@ -1196,7 +1204,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(6),
-		sprite_active(6),
+		--sprite_active(6),
 		sprite_ison(6),
 		sprite_overraster(6),
 		sprite_overborder(6),
@@ -1229,7 +1237,7 @@ begin
 		interlace_int,
 		is_80,
 		sprite_enabled(7),
-		sprite_active(7),
+		--sprite_active(7),
 		sprite_ison(7),
 		sprite_overraster(7),
 		sprite_overborder(7),
@@ -1778,7 +1786,7 @@ begin
 	end process;
 	
 	
-	reg9: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, regsel, reset) 
+	reg9: process(phi2, CPU_D, crtc_sel, crtc_rs, crtc_rwb, crtc_is_data, regsel, reset) 
 	begin
 		if (reset = '1') then
 			mode_rev <= '0';
@@ -2063,7 +2071,7 @@ begin
 		end if;
 	end process;
 
-	readreg: process(crtc_rwb, crtc_sel, crtc_rs, regsel, reset) 
+	readreg: process(crtc_rwb, crtc_sel, crtc_rs_int, crtc_is_data, crtc_reg, regsel, reset) 
 	begin
 		if (reset = '1') then
 			vd_out <= (others => '0');

@@ -115,7 +115,7 @@ end Top;
 
 architecture Behavioral of Top is
 
-	type T_VADDR_SRC is (VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_DAC);
+	type T_VADDR_SRC is (VRA_NONE, VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_DAC);
 		
 	attribute NOREDUCE : string;
 	
@@ -138,6 +138,9 @@ architecture Behavioral of Top is
 	signal VA_select: T_VADDR_SRC;
 	
 	signal memclk: std_logic;
+	signal phi1to2: std_logic;
+	signal phi2to1: std_logic;
+	
 	signal clk1m: std_logic;
 	signal clk2m: std_logic;
 	signal clk4m: std_logic;
@@ -199,6 +202,12 @@ architecture Behavioral of Top is
 	signal wait_int: std_logic;
 	signal ramrwb_int: std_logic;
 	signal do_cpu : std_logic;
+
+	-- video RAMarbiter
+	signal vreq_video: std_logic;
+	signal vreq_dac: std_logic;
+	signal vreq_cpu: std_logic;
+	signal vreq_ipl: std_logic;
 	
 	-- SPI
 	signal spi_dout : std_logic_vector(7 downto 0);
@@ -236,6 +245,8 @@ architecture Behavioral of Top is
 	   reset	: in std_logic;
 	   
 	   memclk 	: out std_logic;	-- memory access clock signal
+	   phi1to2:	out std_logic;	-- high during falling qclk at middle of memclk (memclk going up)
+	   phi2to1:	out std_logic;	-- high during falling qclk at end of memclk (memclk going down)
 	   
 	   clk1m 	: out std_logic;	-- trigger CPU access @ 1MHz
 	   clk2m	: out std_logic;	-- trigger CPU access @ 2MHz
@@ -324,7 +335,8 @@ architecture Behavioral of Top is
       memclk : in STD_LOGIC;	-- system clock 12.5MHz
 	   
 	   vid_fetch : out std_logic; 	-- true during video memory fetch by Viccy
-	   
+	   vreq_video: out std_logic;		-- true when *next* vram access should be video
+		
 	   --sr_load : in std_logic;
 	   vid_out : out std_logic_vector(5 downto 0);
 	
@@ -397,6 +409,8 @@ begin
 	   q50m,
 	   reset,
 	   memclk,
+		phi1to2,
+		phi2to1,
 	   clk1m,
 	   clk2m,
 	   clk4m,
@@ -430,10 +444,10 @@ begin
 	begin
 		if (reset = '1') then
 			is_cpu <= '0';
-		elsif (mode = "11") then
-			is_cpu <= '1';
-		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "11") then	-- falling_edge(memclk)
- 			if (is_cpu_trigger = '1') then
+		elsif (falling_edge(q50m) and phi2to1 = '1') then	-- falling_edge(memclk)
+			if (mode = "11") then
+				is_cpu <= '1';
+ 			elsif (is_cpu_trigger = '1') then
 				is_cpu <= '1';
 			elsif (do_cpu = '1') then
 				is_cpu <= '0';
@@ -456,7 +470,7 @@ begin
 	wait_int <= not(is_cpu); -- or ipl;
 		
 	-- do_cpu is set when the coming falling edge of memclk should be active for the CPU
-	release2_p: process(q50m, dotclk, reset) --memclk_d, memclk_dd, memclk_ddd, reset)
+	release2_p: process(q50m, dotclk, reset) 
 	begin
 		if (reset = '1') then
 			do_cpu <= '0';
@@ -651,6 +665,7 @@ begin
 		dotclk,	-- pixel clock, 25MHz
 		memclk,		-- sysclk (12.5MHz)
 		vid_fetch,
+		vreq_video,
 		v_out,
 		irq_out,
 		reset
@@ -798,7 +813,12 @@ begin
 		end if;
 	end process;
 
-	Ctrl_Rd: process(sel0, phi2_int, rwb, reset, ca_in, D)
+	Ctrl_Rd: process(sel0, phi2_int, rwb, reset, ca_in, D,
+		vis_80_in, screenb0, vis_enable, lockb0, boot, is8296, 
+		wp_rom9, wp_roma, wp_romb, wp_rompet, lowbank, mode,
+		bus_window_9, bus_window_c, bus_win_9_is_io, bus_win_c_is_io,
+		vidblock
+	)
 	begin
 	
 		s0_d <= (others => '0');
@@ -849,41 +869,83 @@ begin
 		if (reset = '1') then
 			--ramrwb_int	<= '1';
 			nframsel <= '1';
-			nvramsel <= '1';
+			--nvramsel <= '1';
 		elsif (rising_edge(q50m)) then
+--		elsif (falling_edge(q50m)) then
 				
-			nframsel <= nframsel_int;
-			nvramsel <= nvramsel_int;
+			--if (dotclk(0) ='0') then
+				nframsel <= nframsel_int;
+				nvramsel <= nvramsel_int;
+			--end if;
 		end if;
 		
-			if (ipl = '0' and vid_fetch = '0' and dac_dma_req = '0') then
-				VA_select <= VRA_CPU;
-			else
-				if (ipl = '1') then
+		
+		vreq_ipl <= ipl;
+		vreq_dac <= dac_dma_req;
+		vreq_cpu <= '0';
+		if (do_cpu = '1' and m_vramsel_out = '0') then
+			vreq_cpu <= '1';
+		end if;
+		
+		if (falling_edge(q50m)) then 
+			if (phi2to1 = '1') then
+				-- at end of previous cycle we determine whichh type we have
+				if (vreq_ipl = '1') then
 					VA_select <= VRA_IPL;
-				elsif (vid_fetch = '1') then
+				elsif (vreq_video = '1') then
 					VA_select <= VRA_VIDEO;
-				elsif (dac_dma_req = '1') then
+				elsif (vreq_dac = '1') then
 					VA_select <= VRA_DAC;
-				else
+				elsif (vreq_cpu = '1') then
 					VA_select <= VRA_CPU;
+				else
+					-- setting this to VRA_NONE seems to break it right now
+					VA_select <= VRA_CPU;
+				end if;
+				
+				-- vram select goes inactive here
+				--nvramsel_int <= '1';
+				
+			elsif (phi1to2 = '1') then
+				-- at the middle of the cycle we enable vram access if needed
+				if (not(VA_select = VRA_NONE)) then
+					--nvramsel_int <= '0';
 				end if;
 			end if;
 			
-			if (ipl = '1') then
-				ramrwb_int <= '0';		-- IPL load writes data to RAM
-			elsif (vid_fetch = '1' 		-- video fetch
-				or dac_dma_req = '1' 	-- DAC fetch
-				or m_vramsel_out = '0' 	-- not selected
-				) then
-				ramrwb_int <= '1';	-- video only reads
-			elsif (memclk = '1') then
-				ramrwb_int <= rwb;
-			else
-				ramrwb_int <= '1';
-			end if;
+--	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
+--			not(memclk) when (vid_fetch='1') else -- or dac_dma_req = '1') else
+--			'1' when wait_int = '1' else
+--			not(memclk) or not(m_vramsel_out);
+		
+--			if (ipl = '0' and vid_fetch = '0' and dac_dma_req = '0') then
+--				VA_select <= VRA_CPU;
+--			else
+--				if (ipl = '1') then
+--					VA_select <= VRA_IPL;
+--				elsif (vid_fetch = '1') then
+--					VA_select <= VRA_VIDEO;
+--				elsif (dac_dma_req = '1') then
+--					VA_select <= VRA_DAC;
+--				else
+--					VA_select <= VRA_CPU;
+--				end if;
+--			end if;
+			
+--			if (ipl = '1') then
+--				ramrwb_int <= '0';		-- IPL load writes data to RAM
+--			elsif (vid_fetch = '1' 		-- video fetch
+--				or dac_dma_req = '1' 	-- DAC fetch
+--				or m_vramsel_out = '0' 	-- not selected
+--				) then
+--				ramrwb_int <= '1';	-- video only reads
+--			elsif (memclk = '1') then
+--				ramrwb_int <= rwb;
+--			else
+--				ramrwb_int <= '1';
+--			end if;
 						
---		end if;
+		end if;
 
 
 
@@ -895,26 +957,36 @@ begin
 		
 			-- RAM R/W (only for video RAM, FRAM gets /WE from CPU's RWB)
 			ramrwb <= ramrwb_int; 
-
+			
 			dac_dma_ack <= '0';
+			
+			if (VA_select = VRA_DAC) then
+				dac_dma_ack <= '1';
+			end if;
+		end if;
+
 
 			case (VA_select) is
 			when VRA_IPL =>
 				VA(7 downto 0) <= ipl_cnt(11 downto 4);
 				VA(18 downto 8) <= ipl_addr(18 downto 8);
+				ramrwb_int <= '1'; -- read only
 			when VRA_CPU =>
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(18 downto 8) <= ma_out (18 downto 8);
+				ramrwb_int <= rwb;
 			when VRA_DAC =>
 				VA <= dac_dma_addr(18 downto 0);
-				dac_dma_ack <= '1';
+				ramrwb_int <= '1'; -- read only
 			when VRA_VIDEO =>  
 				VA(15 downto 0) <= va_out(15 downto 0);
 				VA(18 downto 16) <= (others => '0');
+				ramrwb_int <= '1'; -- read only
 			when others =>
 				VA 	<= (others => '0');
+				ramrwb_int <= '1'; -- read only
 			end case;
-		end if;
+			
 	end process;
 
 	
@@ -960,10 +1032,9 @@ begin
 	
 	-- memclk changes at falling edge
 	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
-			'1'	when memclk = '0' else	-- inactive after previous access
-			'0' 	when (vid_fetch='1' or dac_dma_req = '1') else
-			'1' 	when wait_int = '1' else
-			not(m_vramsel_out);
+			not(memclk) when (vid_fetch='1') else -- or dac_dma_req = '1') else
+			'1' when wait_int = '1' else
+			not(memclk) or not(m_vramsel_out);
 			
 	
 	------------------------------------------------------
