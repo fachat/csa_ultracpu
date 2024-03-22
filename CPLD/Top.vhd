@@ -875,7 +875,7 @@ begin
 				
 			--if (dotclk(0) ='0') then
 				nframsel <= nframsel_int;
-				nvramsel <= nvramsel_int;
+				--nvramsel <= nvramsel_int;
 			--end if;
 		end if;
 		
@@ -883,7 +883,7 @@ begin
 		vreq_ipl <= ipl;
 		vreq_dac <= dac_dma_req;
 		vreq_cpu <= '0';
-		if (do_cpu = '1' and m_vramsel_out = '0') then
+		if (is_cpu = '1' and m_vramsel_out = '0') then
 			vreq_cpu <= '1';
 		end if;
 		
@@ -900,17 +900,22 @@ begin
 					VA_select <= VRA_CPU;
 				else
 					-- setting this to VRA_NONE seems to break it right now
-					VA_select <= VRA_CPU;
+					VA_select <= VRA_CPU; --VRA_NONE;
 				end if;
 				
 				-- vram select goes inactive here
-				--nvramsel_int <= '1';
+				nvramsel_int <= '1';
 				
 			elsif (phi1to2 = '1') then
 				-- at the middle of the cycle we enable vram access if needed
-				if (not(VA_select = VRA_NONE)) then
-					--nvramsel_int <= '0';
-				end if;
+				case (VA_select) is
+				when VRA_IPL =>
+					nvramsel_int <= '0';
+				when VRA_NONE =>
+					nvramsel_int <= '1';
+				when others =>
+					nvramsel_int <= '0';
+				end case;
 			end if;
 			
 --	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
@@ -947,7 +952,7 @@ begin
 						
 		end if;
 
-
+		nvramsel <= nvramsel_int;
 
 		-- keep VA, ramrwb etc stable one half qclk cycle after
 		-- de-select.
@@ -1030,11 +1035,11 @@ begin
 			'0'	when m_framsel_out = '1' else
 			'1';
 	
-	-- memclk changes at falling edge
-	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
-			not(memclk) when (vid_fetch='1') else -- or dac_dma_req = '1') else
-			'1' when wait_int = '1' else
-			not(memclk) or not(m_vramsel_out);
+--	-- memclk changes at falling edge
+--	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
+--			not(memclk) when (vid_fetch='1') else -- or dac_dma_req = '1') else
+--			'1' when wait_int = '1' else
+--			not(memclk) or not(m_vramsel_out);
 			
 	
 	------------------------------------------------------
