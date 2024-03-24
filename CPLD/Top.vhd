@@ -711,10 +711,11 @@ begin
 	--nldac <= nldac_int;
 	--nldac <= '1' when m_vramsel_out = '1' and is_cpu = '1' and (VA_select = VRA_CPU) else '0';
 	--nldac <= is_cpu;
-	nldac <= '0'	when ipl = '1' 		else	-- IPL
-				'1' 	when va_is_cpu_d = '1' and ramrwb_int = '0'	else	-- CPU write
-				'0';
-		
+--	nldac <= '0'	when ipl = '1' 		else	-- IPL
+--				'1' 	when va_is_cpu_d = '1' and ramrwb_int = '0'	else	-- CPU write
+--				'0';
+	nldac <= vreq_cpu;
+	
 	------------------------------------------------------
 	-- SPI interface
 	
@@ -886,7 +887,7 @@ begin
 				
 			--if (dotclk(0) ='0') then
 				nframsel <= nframsel_int;
-				--nvramsel <= nvramsel_int;
+				nvramsel <= nvramsel_int;
 			--end if;
 		end if;
 		
@@ -913,38 +914,28 @@ begin
 				end if;
 				
 				-- vram select goes inactive here
-				--nvramsel_int <= '1';
+				nvramsel_int <= '1';
 				
 			elsif (phi1to2 = '1') then
 				-- at the middle of the cycle we enable vram access if needed
 				case (VA_select) is
 				when VRA_IPL =>
-					--nvramsel_int <= '0';
+					nvramsel_int <= '0';
 					wait_ram <= m_vramsel_out;
 				when VRA_NONE =>
-					--nvramsel_int <= '1';
+					nvramsel_int <= '1';
 					wait_ram <= m_vramsel_out;
 				when VRA_CPU =>
-					--nvramsel_int <= '0'; --not(m_vramsel_out);
+					nvramsel_int <= '0'; --not(m_vramsel_out);
 					wait_ram <= '0';
 				when others =>
-					--nvramsel_int <= '0';
+					nvramsel_int <= '0';
 					wait_ram <= m_vramsel_out;
 				end case;
 			end if;
 
 		end if;
-		
-		if (memclk = '0') then
-			nvramsel_int <= '1';
-		elsif (VA_select = VRA_CPU) then
-			nvramsel_int <= not(m_vramsel_out);
-		elsif (VA_select = VRA_NONE) then
-			nvramsel_int <= '1';
-		else
-			nvramsel_int <= '0';
-		end if;
-		
+				
 		if (rising_edge(q50m)) then
 			if (VA_select = VRA_CPU) then
 				va_is_cpu_d <= '1';
@@ -955,7 +946,7 @@ begin
 		
 	end process;
 
-	nvramsel <= nvramsel_int;
+--	nvramsel <= nvramsel_int;
 	
 	v_out_p2: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
 			vid_fetch, rwb, m_vramsel_out, dac_dma_req, is_cpu, is_cpu_trigger)
