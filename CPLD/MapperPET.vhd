@@ -299,8 +299,8 @@ begin
 	ram_p: process(phi2, avalid, boota19, low64k, A, screenwin, iowin_int, buswin, wprot, c8296ram, petio) 
 	begin
 		if (rising_edge(phi2)) then
-			vramsel <= vramsel_int;
 			framsel <= framsel_int;
+			vramsel <= vramsel_int;
 		end if;
 	end process;
 	
