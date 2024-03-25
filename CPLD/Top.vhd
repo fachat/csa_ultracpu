@@ -880,17 +880,17 @@ begin
 	begin
 		if (reset = '1') then
 			--ramrwb_int	<= '1';
-			nframsel <= '1';
+			--nframsel <= '1';
 			--nvramsel <= '1';
 		elsif (rising_edge(q50m)) then
 --		elsif (falling_edge(q50m)) then
 				
 			--if (dotclk(0) ='0') then
-				nframsel <= nframsel_int;
 			--end if;
 		end if;
 		
 				nvramsel <= nvramsel_int;
+				nframsel <= nframsel_int;
 		
 		vreq_ipl <= ipl;
 		vreq_dac <= dac_dma_req;
@@ -917,6 +917,7 @@ begin
 				
 				-- vram select goes inactive here
 				nvramsel_int <= '1';
+				nframsel_int <= '1';
 				
 			elsif (phi1to2 = '1') then
 				-- at the middle of the cycle we enable vram access if needed
@@ -934,6 +935,8 @@ begin
 					nvramsel_int <= '0';
 					wait_ram <= m_vramsel_out;
 				end case;
+				
+				nframsel_int <= not(m_framsel_out);
 			end if;
 
 		end if;
@@ -1033,9 +1036,9 @@ begin
 		
 	-- select RAM
 	
-	nframsel_int <= '1'	when memclk = '0' else
-			'0'	when m_framsel_out = '1' else
-			'1';
+--	nframsel_int <= '1'	when memclk = '0' else
+--			'0'	when m_framsel_out = '1' else
+--			'1';
 	
 --	-- memclk changes at falling edge
 --	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
