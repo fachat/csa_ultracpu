@@ -534,7 +534,12 @@ begin
 	
 	-- split phi2, stretched phi2 for the CPU to accomodate for waits.
 	-- for full speed, don't delay VIA timers
+	phi2_p: process(phi2_int, q50m)
+	begin
+		if (rising_edge(q50m)) then
 	phi2_out <= phi2_int; -- or wait_bus or wait_setup;
+		end if;
+	end process;
 	
 	-- use a pullup and this mechanism to drive a 5V signal from a 3.3V CPLD
 	-- According to UG445 Figure 7: push up until detected high, then let pull up resistor do the rest.
@@ -978,7 +983,7 @@ begin
 			when VRA_IPL =>
 				VA(7 downto 0) <= ipl_cnt(11 downto 4);
 				VA(18 downto 8) <= ipl_addr(18 downto 8);
-				ramrwb_int <= '1'; -- read only
+				ramrwb_int <= '0'; -- write only
 			when VRA_CPU =>
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(18 downto 8) <= ma_out (18 downto 8);
