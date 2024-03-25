@@ -530,7 +530,7 @@ begin
 	
 	-- Note if we use phi2 without setting it high on waits (and would use RDY instead), 
 	-- the I/O timers will always count on 8MHz - which is not what we want (at 1MHz at least)
-	phi2_int <= memclk or not(do_cpu) or ipl;
+	phi2_int <= (memclk or not(do_cpu)) and not(ipl); --or ipl;
 	
 	-- split phi2, stretched phi2 for the CPU to accomodate for waits.
 	-- for full speed, don't delay VIA timers
@@ -881,7 +881,7 @@ begin
 		if (reset = '1') then
 			--ramrwb_int	<= '1';
 			nframsel <= '1';
-			--nvramsel <= '1';
+			nvramsel <= '1';
 		elsif (rising_edge(q50m)) then
 --		elsif (falling_edge(q50m)) then
 				
@@ -896,7 +896,9 @@ begin
 		vreq_dac <= dac_dma_req;
 		vreq_cpu <= is_cpu_trigger or is_cpu;
 		
-		if (falling_edge(q50m)) then 
+		if (reset = '1') then
+			VA_select <= VRA_NONE;
+		elsif (falling_edge(q50m)) then 
 			if (phi2to1 = '1') then
 				-- at end of previous cycle we determine whichh type we have
 				if (vreq_ipl = '1') then
@@ -926,7 +928,7 @@ begin
 					nvramsel_int <= '1';
 					wait_ram <= m_vramsel_out;
 				when VRA_CPU =>
-					nvramsel_int <= '0'; --not(m_vramsel_out);
+					nvramsel_int <= not(m_vramsel_out);
 					wait_ram <= '0';
 				when others =>
 					nvramsel_int <= '0';

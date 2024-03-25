@@ -300,9 +300,9 @@ begin
 	begin
 		if (rising_edge(phi2)) then
 			framsel <= framsel_int;
-			vramsel <= vramsel_int;
 		end if;
 	end process;
+			vramsel <= vramsel_int;
 	
 	iosel <= '0' when avalid='0' 
 					or low64k = '0' 			-- not in lowest 64k
