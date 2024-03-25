@@ -911,8 +911,8 @@ begin
 					-- potential CPU access (depending on vramsel)
 					VA_select <= VRA_CPU;
 				else
-					VA_select <= VRA_CPU;
-					--VA_select <= VRA_NONE; 
+					--VA_select <= VRA_CPU;
+					VA_select <= VRA_NONE; 
 				end if;
 				
 				-- vram select goes inactive here
