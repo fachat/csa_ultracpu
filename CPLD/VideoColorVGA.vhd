@@ -244,6 +244,8 @@ architecture Behavioral of Video is
 	-- sync
 	signal h_sync_int : std_logic := '0';	
 	signal v_sync_int : std_logic := '0';
+	signal h_sync_ext : std_logic := '0';	
+	signal v_sync_ext : std_logic := '0';
 	
 	-- raster interrupt
 	signal raster_match: std_logic_vector(9 downto 0);
@@ -377,8 +379,11 @@ architecture Behavioral of Video is
            qclk: in std_logic;          -- Q clock (50MHz)
            dotclk: in std_logic_vector(3 downto 0);     -- 25Mhz, 1/2, 1/4, 1/8, 1/16
 
-           h_sync : out  STD_LOGIC;
            v_sync : out  STD_LOGIC;
+           h_sync : out  STD_LOGIC;
+
+			  v_sync_ext : out  STD_LOGIC;
+			  h_sync_ext : out  STD_LOGIC;
 
 			  h_zero : out std_logic;
 			  v_zero : out std_logic;
@@ -656,8 +661,10 @@ begin
 	port map (
 		qclk,
 		dotclk,
-		h_sync_int,
 		v_sync_int,
+		h_sync_int,
+		v_sync_ext,
+		h_sync_ext,
 		h_zero,
 		v_zero,
 		h_enable,
@@ -710,11 +717,13 @@ begin
 	
 	alt_do_set_rc <= is_raster_match and alt_set_rc;
 	
-	h_sync <= not(h_sync_int); -- and not(v_sync_int));
+	h_sync <= h_sync_ext;
 	
 	is_80 <= mode_80 or is_80_in;
 	
-	v_sync <= not(v_sync_int);
+	v_sync <= v_sync_ext;
+	
+	-- PET vsync is always positive pulse
 	pet_vsync <= v_sync_int;
 	
 	-----------------------------------------------------------------------------
