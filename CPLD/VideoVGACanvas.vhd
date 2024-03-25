@@ -42,6 +42,9 @@ entity Canvas is
 	   v_sync : out  STD_LOGIC;
       h_sync : out  STD_LOGIC;
 
+	   v_sync_ext : out  STD_LOGIC;
+	   h_sync_ext : out  STD_LOGIC;
+
 		h_zero : out std_logic;
 		v_zero : out std_logic;
 		
@@ -105,11 +108,18 @@ architecture Behavioral of Canvas is
 
 	signal v_zero_int: std_logic;
 	signal h_sync_int: std_logic;
+	signal v_sync_int: std_logic;
 	
 	signal x_addr_int: std_logic_vector(9 downto 0);
 	signal y_addr_int: std_logic_vector(9 downto 0);
 	
 begin
+
+        -- passed through to the actual output; some modes inverted, others not
+        -- 640x480 has h negative v negative
+        -- 768x576 has h negative v positive
+        h_sync_ext <= not( h_sync_int );
+        v_sync_ext <= not( v_sync_int );
 
 	-----------------------------------------------------------------------------
 	-- horizontal geometry calculation
@@ -217,7 +227,7 @@ begin
 		if (reset = '1') then
 			v_cnt <= (others => '0');
 			v_state <= "00";
-			v_sync <= '0';
+			v_sync_int <= '0';
 			v_enable <= '0';
 		elsif (falling_edge(h_enable_int)) then
 
@@ -236,9 +246,9 @@ begin
 				v_enable <= '1';
 			end if;
 
-			v_sync <= '0';
+			v_sync_int <= '0';
 			if (v_state = "11") then
-				v_sync <= '1';
+				v_sync_int <= '1';
 			end if;
 
 			if (v_limit = '1') then
@@ -285,6 +295,7 @@ begin
 		end if;
 	end process;
 
+	v_sync <= v_sync_int;
 	v_zero <= v_zero_int;
 	
 	ya: process(qclk, dotclk, v_zero_int, y_addr_int, h_sync_int)

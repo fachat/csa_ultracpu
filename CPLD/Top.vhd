@@ -537,9 +537,9 @@ begin
 	phi2_p: process(phi2_int, q50m)
 	begin
 		if (rising_edge(q50m)) then
-	phi2_out <= phi2_int; -- or wait_bus or wait_setup;
 		end if;
 	end process;
+	phi2_out <= phi2_int; -- or wait_bus or wait_setup;
 	
 	-- use a pullup and this mechanism to drive a 5V signal from a 3.3V CPLD
 	-- According to UG445 Figure 7: push up until detected high, then let pull up resistor do the rest.

@@ -86,7 +86,7 @@ architecture Behavioral of Mapper is
 	
 	-- convenience
 	signal low64k: std_logic;
-	signal low32k: std_logic;
+	--signal low32k: std_logic;
 	signal c8296ram: std_logic;
 	signal petrom: std_logic;
 	signal petrom9: std_logic;
@@ -105,6 +105,11 @@ architecture Behavioral of Mapper is
 	
 	signal vramsel_int: std_logic;
 	signal framsel_int: std_logic;
+	signal ffsel_int: std_logic;
+	signal memsel_int: std_logic;
+	signal iosel_int: std_logic;
+	signal iowin_int2: std_logic;
+   signal RA_int : std_logic_vector (19 downto 8);
 	
 	signal bank: std_logic_vector(7 downto 0);
 	
@@ -136,10 +141,10 @@ begin
 	begin
 		if (reset ='1') then
 			bankl <= (others => '0');
-		elsif (rising_edge(qclk) and phi2='0') then
+		elsif (falling_edge(qclk) and phi2='0') then
 			if (forceb0 = '1') then
 				bankl <= (others => '0');
-			else
+			else 
 				bankl <= D;
 			end if;
 		end if;
@@ -148,7 +153,7 @@ begin
 	bank <= bankl;
 	
 	low64k <= '1' when bank = "00000000" else '0';
-	low32k <= '1' when low64k = '1' and A(15) = '0' else '0';
+	--low32k <= '1' when low64k = '1' and A(15) = '0' else '0';
 	
 	petio <= '1' when A(15 downto 8) = x"E8"
 		else '0';
@@ -211,15 +216,15 @@ begin
 	--
 	
 	-- banks 2-15
-	RA(19) <=	bank(3);
+	RA_int(19) <=	bank(3);
 	
-	RA(18 downto 17) <= 
-			lowbank(3 downto 2) when low32k = '1' else
+	RA_int(18 downto 17) <= 
+			lowbank(3 downto 2) when low64k = '1' and A(15) = '0' else
 			bank(2 downto 1);			-- just map
 	
 	-- bank 0/1
-	RA(16) <= 
-			lowbank(1) when low32k = '1' else
+	RA_int(16) <= 
+			lowbank(1) when low64k = '1' and A(15) = '0' else
 			bank(0) when low64k = '0' else  	-- CPU is not in low 64k
 			'1' 	when c8296ram = '1' 		-- 8296 enabled,
 					and A(15) = '1' 	-- upper half of bank0
@@ -227,28 +232,34 @@ begin
 			'0';
 			
 	-- within bank0
-	RA(15) <= A(15) when low64k = '0' else		-- some upper bank
+	RA_int(15) <= 
+			A(15) when low64k = '0' else		-- some upper bank
 			lowbank(0) when A(15) = '0' else-- lower half of bank0
 			'1' when c8296ram = '0' else	-- upper half of bank0, no 8296 mapping
 			cfg_mp(3) when A(14) = '1' else	-- 8296 map block $c000-$ffff -> $1c000-1ffff / 14000-17fff
 			cfg_mp(2);			-- 8296 map block $8000-$bfff -> $18000-1bfff / 10000-13fff
 
-	-- map 1:1, in 2k blocks
-	RA(10 downto 8) <= A(10 downto 8);
 	
 	-- lower half of 4k screenwin is mapped to char memory $8xxx-Bxxx
 	-- upper half of 4k screenwin is mapped into color memory $Cxxx-$Fxxx
 	-- Note: vidblock maps in 2k steps; 8 positions are possible, so we
 	-- get 16k char RAM at $8000-$BFFF and 16k color RAM at $C000-FFFF
-	RA(14) <= A(14) when screenwin = '0' else
-				A(11);
-	RA(13) <= A(13) when screenwin = '0' else
-				vidblock(2);
-	RA(12) <= A(12) when screenwin = '0' else
-				vidblock(1);
-	RA(11) <= A(11) when screenwin = '0' else
-				vidblock(0); 
+	RA_int(14) <= 
+			A(14) when screenwin = '0' else
+			A(11);
+	RA_int(13) <= 
+			A(13) when screenwin = '0' else
+			vidblock(2);
+	RA_int(12) <= 
+			A(12) when screenwin = '0' else
+			vidblock(1);
+	RA_int(11) <= 
+			A(11) when screenwin = '0' else
+			vidblock(0); 
 			
+	-- map 1:1, in 2k blocks
+	RA_int(10 downto 8) <= 
+			A(10 downto 8);
 				
 	--boota19 <= '1'; --bank(3) xor boot;
 	boota19 <= bank(3) xor boot;
@@ -296,28 +307,33 @@ begin
 			'0' when petio = '1' else	-- not in I/O space
 			'1';
 			
-	ram_p: process(phi2, avalid, boota19, low64k, A, screenwin, iowin_int, buswin, wprot, c8296ram, petio) 
+	ram_p: process(phi2, avalid, boota19, low64k, A, screenwin, iowin_int2, buswin, wprot, c8296ram, petio) 
 	begin
 		if (rising_edge(phi2)) then
+			ffsel <= ffsel_int;
+			iowin <= iowin_int2;
+			iosel <= iosel_int;
+			memsel <= memsel_int;
 		end if;
 	end process;
+			RA <= RA_int;
 			framsel <= framsel_int;
 			vramsel <= vramsel_int;
 	
-	iosel <= '0' when avalid='0' 
+	iosel_int <= '0' when avalid='0' 
 					or low64k = '0' 			-- not in lowest 64k
 					or c8296ram = '1' else 	-- or if in 8296 ram instead of normal address map and no peekthrough
 			'1' when petio ='1' else 
 			'0';
 			
-	iowin <= '0' when avalid = '0' 
+	iowin_int2 <= '0' when avalid = '0' 
 			else iowin_int;
 	
-	memsel <= '1' when
+	memsel_int <= '1' when
 		bank(7 downto 4) = "0001" else
 			buswin;
 			
-	ffsel <= '0' when avalid='0' else
+	ffsel_int <= '0' when avalid='0' else
 			'1' when low64k ='1' 
 				and A(15 downto 8) = x"FF" else 
 			'0';
