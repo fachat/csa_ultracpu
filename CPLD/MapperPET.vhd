@@ -141,7 +141,8 @@ begin
 	begin
 		if (reset ='1') then
 			bankl <= (others => '0');
-		elsif (falling_edge(qclk) and phi2='0') then
+--		elsif (falling_edge(qclk) and phi2='0') then
+		elsif (phi2 = '0') then 
 			if (forceb0 = '1') then
 				bankl <= (others => '0');
 			else 
@@ -314,9 +315,9 @@ begin
 			iowin <= iowin_int2;
 			iosel <= iosel_int;
 			memsel <= memsel_int;
-			RA <= RA_int;
 		end if;
 	end process;
+			RA <= RA_int;
 			framsel <= framsel_int;
 			vramsel <= vramsel_int;
 	

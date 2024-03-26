@@ -116,7 +116,8 @@ end Top;
 architecture Behavioral of Top is
 
 	type T_VADDR_SRC is (VRA_NONE, VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_DAC);
-		
+	type T_FADDR_SRC is (FRA_NONE, FRA_CPU);
+	
 	attribute NOREDUCE : string;
 	
 	-- control
@@ -137,10 +138,13 @@ architecture Behavioral of Top is
 	signal vid_fetch: std_logic;
 	signal VA_select: T_VADDR_SRC;
 	signal va_is_cpu_d: std_logic;
+	signal FA_select: T_FADDR_SRC;
 	
 	signal memclk: std_logic;
-	signal phi1to2: std_logic;
-	signal phi2to1: std_logic;
+	signal cp00: std_logic;		-- clk enable on qclk falling when memclk is in the middle of low
+	signal cp01: std_logic;		-- clk enable on qclk falling when memclk is going low to high
+	signal cp10: std_logic;		-- clk enable on qclk falling when memclk is going high to low
+	signal cp11: std_logic;		-- clk enable on qclk falling when memclk is in the middle of high
 	
 	signal clk1m: std_logic;
 	signal clk2m: std_logic;
@@ -247,8 +251,10 @@ architecture Behavioral of Top is
 	   reset	: in std_logic;
 	   
 	   memclk 	: out std_logic;	-- memory access clock signal
-	   phi1to2:	out std_logic;	-- high during falling qclk at middle of memclk (memclk going up)
-	   phi2to1:	out std_logic;	-- high during falling qclk at end of memclk (memclk going down)
+		cp00: out std_logic;		-- clk enable on qclk falling when memclk is in the middle of low
+		cp01: out std_logic;		-- clk enable on qclk falling when memclk is going low to high
+		cp10: out std_logic;		-- clk enable on qclk falling when memclk is going high to low
+		cp11: out std_logic;		-- clk enable on qclk falling when memclk is in the middle of high
 	   
 	   clk1m 	: out std_logic;	-- trigger CPU access @ 1MHz
 	   clk2m	: out std_logic;	-- trigger CPU access @ 2MHz
@@ -411,8 +417,10 @@ begin
 	   q50m,
 	   reset,
 	   memclk,
-		phi1to2,
-		phi2to1,
+		cp00,
+		cp01,
+		cp10,
+		cp11,
 	   clk1m,
 	   clk2m,
 	   clk4m,
@@ -443,11 +451,12 @@ begin
 	
 	-- depending on mode, goes high when we have a CPU access pending,
 	-- and else low when a CPU access is done
-	is_cpu_p: process(reset, q50m, dotclk, is_cpu_trigger, is_cpu, do_cpu, mode, phi2to1)
+	is_cpu_p: process(reset, q50m, dotclk, is_cpu_trigger, is_cpu, do_cpu, mode, cp10)
 	begin
 		if (reset = '1') then
 			is_cpu <= '0';
-		elsif (falling_edge(q50m) and phi2to1 = '1') then	-- falling_edge(memclk)
+		--elsif (rising_edge(q50m) and dotclk(1 downto 0) = "11") then
+		elsif (falling_edge(q50m) and cp10 = '1') then
 			if (mode = "11") then
 				is_cpu <= '1';
  			elsif (is_cpu_trigger = '1') then
@@ -457,15 +466,11 @@ begin
 			end if;
 		end if;
 	end process;
+
+	-- vreq_cpu is sampled at falling edge of phi2 (phi2to1)
+	-- so using is_cpu directly is a race condition, as it falls with falling phi2.
+	vreq_cpu <= is_cpu_trigger or is_cpu;
 	
-	-- note: 
-	-- m_ramsel_out depends on bankl, which is qualified with rising edge of qclk
-	-- memclk is created at falling edge of qclk
-	-- is_vid is qualified with rising edge of qclk, but depends on pxl/char_window
-	-- that is created at same falling edge of qclk as when memclk falls low
-	-- so is_vid is early, but goes low at same falling edge as memclk
---	wait_ram <= '1' when m_vramsel_out = '1' and (vid_fetch = '1' or dac_dma_req = '1') else	-- video access in RAM
---			'0';
 	
 	-- stretch clock such that we approx. one cycle per is_cpu_trigger (1, 2, 4MHz)
 	-- wait_int rises with falling edge of memclk (see trigger above), or is 
@@ -477,9 +482,8 @@ begin
 	begin
 		if (reset = '1') then
 			do_cpu <= '0';
-		--elsif (rising_edge(memclk_ddd)) then
-		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "11") then
-		--elsif (falling_edge(q50m) and phi1to2 = '1') then
+		--elsif (rising_edge(q50m) and dotclk(1 downto 0) = "11") then
+		elsif (falling_edge(q50m) and cp11 = '1') then
 			if (	(is_bus = '0' 
 					and wait_int = '0' and wait_ram = '0')
 				or (is_bus = '1' 
@@ -880,7 +884,7 @@ begin
 
 
 
-	v_out_p: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
+	v_out_p: process(q50m, memclk, ipl, nvramsel_int, nframsel_int, ipl, reset,
 			vid_fetch, rwb, m_vramsel_out, dac_dma_req, is_cpu, is_cpu_trigger)
 	begin
 		if (reset = '1') then
@@ -899,12 +903,11 @@ begin
 		
 		vreq_ipl <= ipl;
 		vreq_dac <= dac_dma_req;
-		vreq_cpu <= is_cpu_trigger or is_cpu;
 		
 		if (reset = '1') then
 			VA_select <= VRA_NONE;
 		elsif (falling_edge(q50m)) then 
-			if (phi2to1 = '1') then
+			if (cp10 = '1') then
 				-- at end of previous cycle we determine whichh type we have
 				if (vreq_ipl = '1') then
 					VA_select <= VRA_IPL;
@@ -920,11 +923,17 @@ begin
 					VA_select <= VRA_NONE; 
 				end if;
 				
+				if (vreq_cpu = '1') then
+					FA_select <= FRA_CPU;
+				else
+					FA_select <= FRA_NONE;
+				end if;
+				
 				-- vram select goes inactive here
 				nvramsel_int <= '1';
 				nframsel_int <= '1';
 				
-			elsif (phi1to2 = '1') then
+			elsif (cp01 = '1') then
 				-- at the middle of the cycle we enable vram access if needed
 				case (VA_select) is
 				when VRA_IPL =>
@@ -941,7 +950,13 @@ begin
 					wait_ram <= m_vramsel_out;
 				end case;
 				
-				nframsel_int <= not(m_framsel_out);
+				case (FA_select) is
+				when FRA_CPU =>
+					nframsel_int <= not(m_framsel_out);
+				when others =>
+					nframsel_int <= '1';
+				end case;
+				
 			end if;
 
 		end if;

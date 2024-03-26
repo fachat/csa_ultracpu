@@ -33,8 +33,10 @@ entity Clock is
 	   reset	: in std_logic;
 	   
 	   memclk: out std_logic;	-- memory access clock signal
-	   phi1to2:	out std_logic;	-- high during falling qclk at middle of memclk (memclk going up)
-	   phi2to1:	out std_logic;	-- high during falling qclk at end of memclk (memclk going down)
+		cp00: out std_logic;		-- clk enable on qclk falling when memclk is in the middle of low
+		cp01: out std_logic;		-- clk enable on qclk falling when memclk is going low to high
+		cp10: out std_logic;		-- clk enable on qclk falling when memclk is going high to low
+		cp11: out std_logic;		-- clk enable on qclk falling when memclk is in the middle of high
 		
 	   clk1m : out std_logic;	-- trigger CPU access @ 1MHz
 	   clk2m	: out std_logic;	-- trigger CPU access @ 2MHz
@@ -85,16 +87,25 @@ begin
 				clk_cnt <= clk_cnt + 1;
 			end if;
 			
-			-- clock enable for memclk [dotclk(1)] low to high and high to low transition when qclk is falling
+			cp00 <= '0';
+			cp01 <= '0';
+			cp10 <= '0';
+			cp11 <= '0';
+			-- clock enable phases for memclk [dotclk(1)] low to high (cp01) 
+			-- and high to low (cp10) transition or in the middle of memclk phases
+			-- (cp00 when memclk is low, cp11 when memclk is high)
+			-- when qclk is falling
+			if (dotclk_int(1 downto 0) = "00") then
+				cp00 <= '1';
+			end if;
 			if (dotclk_int(1 downto 0) = "01") then
-				phi1to2 <= '1';
-			else
-				phi1to2 <= '0';
+				cp01 <= '1';
 			end if;
 			if (dotclk_int(1 downto 0) = "11") then
-				phi2to1 <= '1';
-			else
-				phi2to1 <= '0';
+				cp10 <= '1';
+			end if;
+			if (dotclk_int(1 downto 0) = "10") then
+				cp11 <= '1';
 			end if;
 			
 		end if;
