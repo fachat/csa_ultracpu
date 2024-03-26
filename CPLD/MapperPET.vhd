@@ -311,12 +311,12 @@ begin
 	ram_p: process(phi2, avalid, boota19, low64k, A, screenwin, iowin_int2, buswin, wprot, c8296ram, petio) 
 	begin
 		if (rising_edge(phi2)) then
+		end if;
+	end process;
 			ffsel <= ffsel_int;
 			iowin <= iowin_int2;
 			iosel <= iosel_int;
 			memsel <= memsel_int;
-		end if;
-	end process;
 			RA <= RA_int;
 			framsel <= framsel_int;
 			vramsel <= vramsel_int;

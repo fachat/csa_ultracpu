@@ -117,6 +117,7 @@ architecture Behavioral of Top is
 
 	type T_VADDR_SRC is (VRA_NONE, VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_DAC);
 	type T_FADDR_SRC is (FRA_NONE, FRA_CPU);
+	type T_BUS_STATE is (BUS_NONE, BUS_CPU, BUS_SETUP, BUS_WAIT);
 	
 	attribute NOREDUCE : string;
 	
@@ -233,6 +234,9 @@ architecture Behavioral of Top is
 	signal bus_window_9: std_logic; -- map $009xxx to MEMSEL
 	signal bus_win_9_is_io: std_logic;
 	signal bus_win_c_is_io: std_logic;
+	
+	signal bus_state: T_BUS_STATE;
+	signal bus_state_d: T_BUS_STATE;
 	
 	-- DAC
 	signal dac_sel: std_logic;
@@ -496,41 +500,74 @@ begin
 		end if;
 	end process;
 	
-	release3_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
+	------------------------------------------------------
+	-- bus timing
+
+	bus_stat_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
 	begin
-		if (reset = '1'
-			or chold = '0'
-			) then
-			wait_setup <= '0';
-		-- elsif (rising_edge(memclk_d)) then
+		if (reset = '1') then
+			bus_state <= BUS_NONE;
 		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
-			-- after memclk rises, but before chold goes down
-		
-			-- first four memclk cycles in phi2 (csetup=1)
-			if (is_bus = '1'
-				and csetup = '1'
-				) then wait_setup <= '1';
+			if (is_bus = '0') then
+				bus_state <= BUS_NONE;
+			elsif (csetup = '1') then
+				bus_state <= BUS_SETUP;
+			elsif (bus_state_d = BUS_SETUP) then
+				if (chold = '0') then
+					bus_state <= BUS_CPU;
+				end if;
+			else
+				bus_state <= BUS_WAIT;
 			end if;
 		end if;
 		
-		if (reset = '1') then
-			wait_bus <= '0';
-		--elsif (rising_edge(memclk_d)) then
-		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
-			-- after memclk rises, but before chold goes down
-			
-			-- memclk cycles after bus setup (csetup=0)
-			if (wait_setup = '1') then
-				-- wait_setup has taken over
-				-- priority over setting it
-				wait_bus <= '0';
-			elsif (is_bus = '1' 
-				and csetup = '0'
-				)
-				then wait_bus <= '1';
-			end if;
-		end if;	
+		if (falling_edge(q50m) and cp11 = '1') then
+			bus_state_d <= bus_state;
+		end if;
 	end process;
+	
+	
+	
+
+	wait_setup <= '1' when bus_state = BUS_SETUP else '0';
+	wait_bus <= '1' when bus_state = BUS_WAIT else '0';
+	
+--	release3_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
+--	begin
+--		if (reset = '1'
+--			or chold = '0'
+--			) then
+--			wait_setup <= '0';
+--		-- elsif (rising_edge(memclk_d)) then
+--		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
+--			-- after memclk rises, but before chold goes down
+--		
+--			-- first four memclk cycles in phi2 (csetup=1)
+--			if (is_bus = '1'
+--				and csetup = '1'
+--				) then wait_setup <= '1';
+--			end if;
+--		end if;
+--		
+--		if (reset = '1') then
+--			wait_bus <= '0';
+--		--elsif (rising_edge(memclk_d)) then
+--		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
+--			-- after memclk rises, but before chold goes down
+--			
+--			-- memclk cycles after bus setup (csetup=0)
+--			if (wait_setup = '1') then
+--				-- wait_setup has taken over
+--				-- priority over setting it
+--				wait_bus <= '0';
+--			elsif (is_bus = '1' 
+--				and csetup = '0'
+--				)
+--				then wait_bus <= '1';
+--			end if;
+--		end if;	
+--	end process;
+	----------------------------------------------
 	
 	-- Note if we use phi2 without setting it high on waits (and would use RDY instead), 
 	-- the I/O timers will always count on 8MHz - which is not what we want (at 1MHz at least)

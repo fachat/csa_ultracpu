@@ -195,9 +195,7 @@ begin
 			-- chold must be zero before rising edge of memclk_d before
 			-- next phi2 end
 			chold <= '1';
-			if (	(clk_cnt(5 downto 0) = "101111")
-				or 
-				(clk_cnt(5 downto 0) = "000000")
+			if (	(clk_cnt(5 downto 1) = "10111")
 				) then
 				chold <= '0';
 			end if;
