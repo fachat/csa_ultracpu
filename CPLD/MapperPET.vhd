@@ -137,7 +137,7 @@ begin
 	-- bleeds through, before the result is switched back when bankl is in effect.
 	-- Therefore we sample D at half-qclk before the transition of phi2.
 	-- This may lead to speed limits in faster designs, but works here.
-	BankLatch: process(reset, D, phi2, qclk)
+	BankLatch: process(reset, D, phi2, qclk, forceb0)
 	begin
 		if (reset ='1') then
 			bankl <= (others => '0');

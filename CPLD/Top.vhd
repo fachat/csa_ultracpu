@@ -459,8 +459,8 @@ begin
 	begin
 		if (reset = '1') then
 			is_cpu <= '0';
-		--elsif (rising_edge(q50m) and dotclk(1 downto 0) = "11") then
-		elsif (falling_edge(q50m) and cp10 = '1') then
+		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "11") then
+		--elsif (falling_edge(q50m) and cp10 = '1') then
 			if (mode = "11") then
 				is_cpu <= '1';
  			elsif (is_cpu_trigger = '1') then
@@ -482,7 +482,7 @@ begin
 	wait_int <= not(is_cpu); -- or ipl;
 		
 	-- do_cpu is set when the coming falling edge of memclk should be active for the CPU
-	release2_p: process(q50m, dotclk, reset) 
+	release2_p: process(q50m, reset, cp11) 
 	begin
 		if (reset = '1') then
 			do_cpu <= '0';
@@ -503,7 +503,7 @@ begin
 	------------------------------------------------------
 	-- bus timing
 
-	bus_stat_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
+	bus_stat_p: process(reset, q50m, is_bus, chold, csetup, dotclk, cp11)
 	begin
 		if (reset = '1') then
 			bus_state <= BUS_NONE;
@@ -1011,7 +1011,7 @@ begin
 --	nvramsel <= nvramsel_int;
 	
 	v_out_p2: process(q50m, memclk, VA_select, ipl, reset,
-			rwb, ipl_cnt, ca_in, dac_dma_addr, va_out)
+			rwb, ipl_cnt, ca_in, ma_out, dac_dma_addr, va_out)
 	begin
 
 		-- keep VA, ramrwb etc stable one half qclk cycle after
