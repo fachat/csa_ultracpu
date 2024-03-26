@@ -314,9 +314,9 @@ begin
 			iowin <= iowin_int2;
 			iosel <= iosel_int;
 			memsel <= memsel_int;
+			RA <= RA_int;
 		end if;
 	end process;
-			RA <= RA_int;
 			framsel <= framsel_int;
 			vramsel <= vramsel_int;
 	

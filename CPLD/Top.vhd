@@ -978,27 +978,30 @@ begin
 		end if;
 
 		-- delay A, R/-W a bit to implement hold times
-		if (rising_edge(q50m)) then
 			case (VA_select) is
 			when VRA_IPL =>
 				VA(7 downto 0) <= ipl_cnt(11 downto 4);
 				VA(18 downto 8) <= ipl_addr(18 downto 8);
-				ramrwb_int <= '0'; -- write only
 			when VRA_CPU =>
 				VA(7 downto 0) <= ca_in (7 downto 0);
 				VA(18 downto 8) <= ma_out (18 downto 8);
-				ramrwb_int <= rwb;
 			when VRA_DAC =>
 				VA <= dac_dma_addr(18 downto 0);
-				ramrwb_int <= '1'; -- read only
 			when VRA_VIDEO =>  
 				VA(15 downto 0) <= va_out(15 downto 0);
 				VA(18 downto 16) <= (others => '0');
-				ramrwb_int <= '1'; -- read only
 			when others =>
 				VA 	<= (others => '0');
-				ramrwb_int <= '1'; -- read only
 			end case;
+			
+			if (VA_select = VRA_IPL) then
+				ramrwb_int <= '0'; -- write only
+			elsif (VA_select = VRA_CPU) then
+				ramrwb_int <= rwb;
+			else
+				ramrwb_int <= '1'; -- read only
+			end if;
+		if (rising_edge(q50m)) then
 		end if;
 			
 	end process;
