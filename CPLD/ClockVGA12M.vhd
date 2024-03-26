@@ -107,11 +107,11 @@ begin
 		if (reset = '1') then
 --			memclk <= '0';
 
-			c8phi2 <= '0';
-			c2phi2 <= '0';
-			cphi2 <= '0';
-			chold <= '0';
-			csetup <= '0';
+--			c8phi2 <= '0';
+--			c2phi2 <= '0';
+--			cphi2 <= '0';
+--			chold <= '0';
+--			csetup <= '0';
 		elsif (falling_edge(qclk)) then
 
 			-- memory clock (12.5MHz)

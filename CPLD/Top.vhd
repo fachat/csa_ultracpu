@@ -958,8 +958,8 @@ begin
 
 --	nvramsel <= nvramsel_int;
 	
-	v_out_p2: process(q50m, memclk, VA_select, ipl, nvramsel_int, nframsel_int, ipl, reset,
-			vid_fetch, rwb, m_vramsel_out, dac_dma_req, is_cpu, is_cpu_trigger)
+	v_out_p2: process(q50m, memclk, VA_select, ipl, reset,
+			rwb, ipl_cnt, ca_in, dac_dma_addr, va_out)
 	begin
 
 		-- keep VA, ramrwb etc stable one half qclk cycle after
