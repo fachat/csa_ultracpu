@@ -1074,7 +1074,7 @@ begin
 				and rwb='1' 
 				and m_vramsel_out ='1' 
 				and phi2_int='1' 
-				and is_cpu='1' 	-- do not bleed video access into system bus when waiting but breaks timing
+				--and is_cpu='1' 	-- do not bleed video access into system bus when waiting but breaks timing
 		else
 			spi_dout when spi_cs = '1'
 				and rwb = '1'
