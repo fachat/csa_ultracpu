@@ -760,7 +760,8 @@ begin
 --	nldac <= '0'	when ipl = '1' 		else	-- IPL
 --				'1' 	when va_is_cpu_d = '1' and ramrwb_int = '0'	else	-- CPU write
 --				'0';
-	nldac <= vreq_cpu;
+--	nldac <= vreq_cpu;
+	nldac <= '1' when va_is_cpu_d = '1' and rwb = '0' and m_vramsel_out = '1' else '0'; -- CPU write to vram
 	
 	------------------------------------------------------
 	-- SPI interface
