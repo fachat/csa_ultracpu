@@ -325,8 +325,8 @@ text	.asc "          MICRO-/ULTIMATE-PET           "
 	.asc "EXPERIMENTAL USB KBD SUPPORT ON BASIC4  "
 	.asc "IF YOU SELECT OPTION WITH USB KEYBOARD  "
 	.asc "                                        "
-	.asc "BASIC4 SD-CARD SUPPORT                  "
-	.asc "(C) 2020 MICHAEL STEIL"
+	.asc "                                        "
+	.asc "SD-CARD SUPPORT (C) 2020 MICHAEL STEIL  "
 	.asc 0
 
 	.)

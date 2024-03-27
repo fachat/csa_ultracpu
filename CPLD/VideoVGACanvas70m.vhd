@@ -55,7 +55,7 @@ entity Canvas is
       y_addr: out std_logic_vector(9 downto 0);	-- y coordinate in rasterlines
 
 		x_default_offset: out std_logic_vector(6 downto 0);
-		y_default_offset: out std_logic_vector(7 downto 0);
+		y_default_offset: out natural;
 		
 	   reset : in std_logic
 	   );
@@ -125,7 +125,7 @@ begin
 	v_sync_ext <= v_sync_int;
 
 	x_default_offset <= std_logic_vector(to_unsigned(20,7));
-	y_default_offset <= std_logic_vector(to_unsigned(132,8));
+	y_default_offset <= 132;
 
 
 	-----------------------------------------------------------------------------

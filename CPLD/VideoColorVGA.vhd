@@ -279,7 +279,7 @@ architecture Behavioral of Video is
 	signal sprite_data_window: std_logic;
 
 	signal x_default_offset: std_logic_vector(6 downto 0);
-	signal y_default_offset: std_logic_vector(7 downto 0);
+	signal y_default_offset: natural;
 	
 	-- clock phases (16 half-pixels in one slot)
 --	signal pxl0_ce: std_logic;
@@ -398,7 +398,7 @@ architecture Behavioral of Video is
            y_addr: out std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
 
 			  x_default_offset: out std_logic_vector(6 downto 0);
-			  y_default_offset: out std_logic_vector(7 downto 0);
+			  y_default_offset: out natural;
 			  
            reset : in std_logic
         );
@@ -1834,7 +1834,7 @@ begin
 			vis_rows_per_char <= "1111"; -- 15
 			slots_per_line <= "1010000";	-- 80
 			hsync_pos <= x_default_offset; -- "0001101";	-- 13
-			vsync_pos <= y_default_offset; -- std_logic_vector(to_unsigned(84,8));
+			vsync_pos <= std_logic_vector(to_unsigned(y_default_offset,8));
 			clines_per_screen <= "00011001";	-- 25
 			attr_base <= x"d000";
 			attr_base_alt <= x"d000";
@@ -1913,10 +1913,10 @@ begin
 				rows_per_char <= CPU_D(3 downto 0);
 				if (mode_upet = '1') then
 					if (CPU_D(3) = '1') then
-						vsync_pos <= std_logic_vector(to_unsigned(59,8));
+						vsync_pos <= std_logic_vector(to_unsigned(y_default_offset - 25,8));
 						rows_per_char <= "1000";	-- limit to 8
 					else
-						vsync_pos <= std_logic_vector(to_unsigned(84,8));
+						vsync_pos <= std_logic_vector(to_unsigned(y_default_offset,8));
 					end if;
 				end if;
 			when x"0a" =>

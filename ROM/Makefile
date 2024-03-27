@@ -37,34 +37,34 @@ spiimg: zero boot basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 charg
 
 spiimg70m: zero boot70m basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 chargen_pet1_16 basic4 kernal4 edit40g edit80g iplldr $(EDITROMS) apmonax edit80_grfkb_ext_chk.bin edit80_chk.bin usbcode usbcomp dos.bin
 	# ROM images
-	cat iplldr					> spiimg	# 256b   : IPL loader
-	cat boot					>> spiimg	# 2k+6*256  : boot code
-	cat usbcomp					>> spiimg	# 256b	 : 
-	cat apmonax					>> spiimg	# 4-8k   : @MON monitor (sys40960)
+	cat iplldr					> $@		# 256b   : IPL loader
+	cat boot70m					>> $@		# 2k+6*256  : boot code
+	cat usbcomp					>> $@		# 256b	 : 
+	cat apmonax					>> $@		# 4-8k   : @MON monitor (sys40960)
 	# standard character ROM (converted to 16 byte/char)
-	cat chargen_pet16 				>> spiimg	# 8-16k  : 8k 16bytes/char PET character ROM
+	cat chargen_pet16 				>> $@		# 8-16k  : 8k 16bytes/char PET character ROM
 	# BASIC 1
-	cat basic1 edit1 zero kernal1			>> spiimg	# 16-32k : BASIC1/Edit/Kernel ROMs (16k $c000-$ffff)
+	cat basic1 edit1 zero kernal1			>> $@		# 16-32k : BASIC1/Edit/Kernel ROMs (16k $c000-$ffff)
 	# BASIC 2
-	cat basic2 edit2g zero kernal2 			>> spiimg	# 32-48k : BASIC2/Edit/Kernel ROMs (16k $c000-$ffff)
+	cat basic2 edit2g zero kernal2 			>> $@		# 32-48k : BASIC2/Edit/Kernel ROMs (16k $c000-$ffff)
 	# BASIC 4
-	cat basic4 					>> spiimg	# 48-60k : BASIC4 ROMS (12k $b000-$dfff)
-	cat kernal4					>> spiimg	# 60-64k : BASIC4 kernel (4k)
+	cat basic4 					>> $@		# 48-60k : BASIC4 ROMS (12k $b000-$dfff)
+	cat kernal4					>> $@		# 60-64k : BASIC4 kernel (4k)
 	# editor ROMs (each line 4k)
-	cat edit40_grfkb_ext.bin  			>> spiimg	# sjgray ext 40 column editor w/ wedge by for(;;)
-	cat edit40_c64kb_ext.bin	 		>> spiimg	# sjgray ext 40 column editor for C64 kbd (experimental)
-	cat edit80_grfkb_ext_chk.bin			>> spiimg	# sjgray ext 80 column editor w/ wedge by for(;;)
-	cat edit80_c64kb_ext.bin	 		>> spiimg	# sjgray ext 80 column editor for C64 kbd (experimental)
-	cat edit40g zero 				>> spiimg	# original BASIC 4 editor ROM graph keybd
-	cat edit40_c64kb.bin 		 		>> spiimg	# sjgray base 40 column editor for C64 kbd (experimental)
-	cat edit80_chk.bin zero				>> spiimg	# (original) BASIC 4 80 column editor ROM (graph keybd)
-	cat edit80_c64kb.bin zero	 		>> spiimg	# sjgray base 80 column editor for C64 kbd (experimental)
+	cat edit40_grfkb_ext.bin  			>> $@		# sjgray ext 40 column editor w/ wedge by for(;;)
+	cat edit40_c64kb_ext.bin	 		>> $@		# sjgray ext 40 column editor for C64 kbd (experimental)
+	cat edit80_grfkb_ext_chk.bin			>> $@		# sjgray ext 80 column editor w/ wedge by for(;;)
+	cat edit80_c64kb_ext.bin	 		>> $@		# sjgray ext 80 column editor for C64 kbd (experimental)
+	cat edit40g zero 				>> $@		# original BASIC 4 editor ROM graph keybd
+	cat edit40_c64kb.bin 		 		>> $@		# sjgray base 40 column editor for C64 kbd (experimental)
+	cat edit80_chk.bin zero				>> $@		# (original) BASIC 4 80 column editor ROM (graph keybd)
+	cat edit80_c64kb.bin zero	 		>> $@		# sjgray base 80 column editor for C64 kbd (experimental)
 	# alternate BASIC 1 character ROM (as 16 bytes/char)
-	cat chargen_pet1_16				>> spiimg	# BASIC 1 character set (8k)
+	cat chargen_pet1_16				>> $@		# BASIC 1 character set (8k)
 	# USB support
-	cat usbcode					>> spiimg	# 8k USB code
+	cat usbcode					>> $@		# 8k USB code
 	# SD-Card support
-	cat dos.bin					>> spiimg	# 16k SD-Card DOS
+	cat dos.bin					>> $@		# 16k SD-Card DOS
 
 zero: 
 	dd if=/dev/zero of=zero bs=2048 count=1
