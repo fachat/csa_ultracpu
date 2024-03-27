@@ -54,6 +54,9 @@ entity Canvas is
 	   x_addr: out std_logic_vector(9 downto 0);	-- x coordinate in pixels
       y_addr: out std_logic_vector(9 downto 0);	-- y coordinate in rasterlines
 
+		x_default_offset: out std_logic_vector(6 downto 0);
+		y_default_offset: out std_logic_vector(7 downto 0);
+		
 	   reset : in std_logic
 	   );
 	 attribute maxskew: string;
@@ -120,6 +123,9 @@ begin
 	-- 768x576 has h negative v positive
 	h_sync_ext <= not( h_sync_int );
 	v_sync_ext <= v_sync_int;
+
+	x_default_offset <= std_logic_vector(to_unsigned(20,7));
+	y_default_offset <= std_logic_vector(to_unsigned(132,8));
 
 
 	-----------------------------------------------------------------------------

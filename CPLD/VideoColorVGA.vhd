@@ -277,6 +277,9 @@ architecture Behavioral of Video is
 	signal sr_window : std_logic;
 	signal sprite_ptr_window: std_logic;
 	signal sprite_data_window: std_logic;
+
+	signal x_default_offset: std_logic_vector(6 downto 0);
+	signal y_default_offset: std_logic_vector(7 downto 0);
 	
 	-- clock phases (16 half-pixels in one slot)
 --	signal pxl0_ce: std_logic;
@@ -394,6 +397,9 @@ architecture Behavioral of Video is
            x_addr: out std_logic_vector(9 downto 0);    -- x coordinate in pixels
            y_addr: out std_logic_vector(9 downto 0);    -- y coordinate in rasterlines
 
+			  x_default_offset: out std_logic_vector(6 downto 0);
+			  y_default_offset: out std_logic_vector(7 downto 0);
+			  
            reset : in std_logic
         );
 	end component;
@@ -671,6 +677,8 @@ begin
 		v_enable,
 		x_addr,
 		y_addr,
+		x_default_offset,
+		y_default_offset,
 		reset
 	);
 
@@ -1825,8 +1833,8 @@ begin
 			bits_per_char <= "1000"; -- 8
 			vis_rows_per_char <= "1111"; -- 15
 			slots_per_line <= "1010000";	-- 80
-			hsync_pos <= "0001101";	-- 13
-			vsync_pos <= std_logic_vector(to_unsigned(84,8));
+			hsync_pos <= x_default_offset; -- "0001101";	-- 13
+			vsync_pos <= y_default_offset; -- std_logic_vector(to_unsigned(84,8));
 			clines_per_screen <= "00011001";	-- 25
 			attr_base <= x"d000";
 			attr_base_alt <= x"d000";

@@ -1,14 +1,14 @@
 
-all: spiimg loadrom.bin loadrom
+all: spiimg spiimg70m loadrom.bin loadrom
 
 EDITROMS=edit40_c64kb.bin edit80_c64kb.bin edit40_grfkb_ext.bin edit80_grfkb_ext.bin edit40_c64kb_ext.bin edit80_c64kb_ext.bin 
 TOOLS=romcheck
 
-spiimg: zero boot basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 chargen_pet1_16 basic4 kernal4 edit40g edit80g iplldr $(EDITROMS) apmonax edit80_grfkb_ext_chk.bin edit80_chk.bin usbcode usbcomp
+spiimg: zero boot basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 chargen_pet1_16 basic4 kernal4 edit40g edit80g iplldr $(EDITROMS) apmonax edit80_grfkb_ext_chk.bin edit80_chk.bin usbcode usbcomp dos.bin
 	# ROM images
 	cat iplldr					> spiimg	# 256b   : IPL loader
+	cat boot					>> spiimg	# 2k+6*256  : boot code
 	cat usbcomp					>> spiimg	# 256b	 : 
-	cat boot					>> spiimg	# 4k +6*256  : IPL loader
 	cat apmonax					>> spiimg	# 4-8k   : @MON monitor (sys40960)
 	# standard character ROM (converted to 16 byte/char)
 	cat chargen_pet16 				>> spiimg	# 8-16k  : 8k 16bytes/char PET character ROM
@@ -30,7 +30,41 @@ spiimg: zero boot basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 charg
 	cat edit80_c64kb.bin zero	 		>> spiimg	# sjgray base 80 column editor for C64 kbd (experimental)
 	# alternate BASIC 1 character ROM (as 16 bytes/char)
 	cat chargen_pet1_16				>> spiimg	# BASIC 1 character set (8k)
-	cat usbcode					>> spiimg	# 16k USB code
+	# USB support
+	cat usbcode					>> spiimg	# 8k USB code
+	# SD-Card support
+	cat dos.bin					>> spiimg	# 16k SD-Card DOS
+
+spiimg70m: zero boot70m basic1 edit1 kernal1 basic2 edit2g kernal2 chargen_pet16 chargen_pet1_16 basic4 kernal4 edit40g edit80g iplldr $(EDITROMS) apmonax edit80_grfkb_ext_chk.bin edit80_chk.bin usbcode usbcomp dos.bin
+	# ROM images
+	cat iplldr					> spiimg	# 256b   : IPL loader
+	cat boot					>> spiimg	# 2k+6*256  : boot code
+	cat usbcomp					>> spiimg	# 256b	 : 
+	cat apmonax					>> spiimg	# 4-8k   : @MON monitor (sys40960)
+	# standard character ROM (converted to 16 byte/char)
+	cat chargen_pet16 				>> spiimg	# 8-16k  : 8k 16bytes/char PET character ROM
+	# BASIC 1
+	cat basic1 edit1 zero kernal1			>> spiimg	# 16-32k : BASIC1/Edit/Kernel ROMs (16k $c000-$ffff)
+	# BASIC 2
+	cat basic2 edit2g zero kernal2 			>> spiimg	# 32-48k : BASIC2/Edit/Kernel ROMs (16k $c000-$ffff)
+	# BASIC 4
+	cat basic4 					>> spiimg	# 48-60k : BASIC4 ROMS (12k $b000-$dfff)
+	cat kernal4					>> spiimg	# 60-64k : BASIC4 kernel (4k)
+	# editor ROMs (each line 4k)
+	cat edit40_grfkb_ext.bin  			>> spiimg	# sjgray ext 40 column editor w/ wedge by for(;;)
+	cat edit40_c64kb_ext.bin	 		>> spiimg	# sjgray ext 40 column editor for C64 kbd (experimental)
+	cat edit80_grfkb_ext_chk.bin			>> spiimg	# sjgray ext 80 column editor w/ wedge by for(;;)
+	cat edit80_c64kb_ext.bin	 		>> spiimg	# sjgray ext 80 column editor for C64 kbd (experimental)
+	cat edit40g zero 				>> spiimg	# original BASIC 4 editor ROM graph keybd
+	cat edit40_c64kb.bin 		 		>> spiimg	# sjgray base 40 column editor for C64 kbd (experimental)
+	cat edit80_chk.bin zero				>> spiimg	# (original) BASIC 4 80 column editor ROM (graph keybd)
+	cat edit80_c64kb.bin zero	 		>> spiimg	# sjgray base 80 column editor for C64 kbd (experimental)
+	# alternate BASIC 1 character ROM (as 16 bytes/char)
+	cat chargen_pet1_16				>> spiimg	# BASIC 1 character set (8k)
+	# USB support
+	cat usbcode					>> spiimg	# 8k USB code
+	# SD-Card support
+	cat dos.bin					>> spiimg	# 16k SD-Card DOS
 
 zero: 
 	dd if=/dev/zero of=zero bs=2048 count=1
@@ -50,8 +84,11 @@ char8to16: char8to16.c
 iplldr: iplldr.a65
 	xa -w -o $@ $<
 
-boot: boot.a65 boot_menu.a65 boot_rom1.a65 boot_rom2.a65 boot_rom4.a65 boot_usb.a65 
+boot: boot.a65 boot_menu.a65 boot_rom1.a65 boot_rom2.a65 boot_rom4.a65 boot_usb.a65 dosromcomp.a65 patch4.a65
 	xa -w -XMASM -P $@.lst -o $@ $<
+
+boot70m: boot.a65 boot_menu.a65 boot_rom1.a65 boot_rom2.a65 boot_rom4.a65 boot_usb.a65 dosromcomp.a65 patch4.a65
+	xa -w -XMASM -DCLK70M -P $@.lst -o $@ $<
 
 romtest02: romtest02.a65
 	xa -w -o romtest02 romtest02.a65
@@ -65,7 +102,8 @@ romtest01a: romtest01a.a65
 romtest02a: romtest02a.a65
 	xa -w -o romtest02a romtest02a.a65 
 
-# PET ROMs
+##########################################################################	
+# Original PET ROMs
 
 ARCHIVE=http://www.zimmers.net/anonftp/pub/cbm
 
@@ -117,11 +155,15 @@ kernal4t:
 kernal4: kernal4t romcheck
 	./romcheck -s 0xf0 -i 0xdff -o kernal4 kernal4t
 
+
 edit40g:
 	curl -o edit40g $(ARCHIVE)/firmware/computers/pet/edit-4-40-n-50Hz.901498-01.bin
 	
 edit80g:
 	curl -o edit80g $(ARCHIVE)/firmware/computers/pet/edit-4-80-n-50Hz.4016_to_8016.bin
+
+##########################################################################	
+# Steve's modified/re-created editor ROMs
 
 cbm-edit-rom: 
 	git clone https://github.com/fachat/cbm-edit-rom.git
@@ -141,20 +183,37 @@ edit80_grfkb_ext_chk.bin: edit80_grfkb_ext.bin romcheck
 edit80_chk.bin: edit80g romcheck
 	./romcheck -s 0xe0 -l 0x800 -i 0x7ff -o $@ $<
 
+##########################################################################	
+# SD-Card and DOS
+
+cbm-x16dos: 
+	git clone https://github.com/fachat/cbm-x16dos.git
+
+cbm-x16dos/build/UPET/dos.bin: cbm-x16dos
+	(cd $<; make)
+
+dos.bin: cbm-x16dos/build/UPET/dos.bin
+	cp $< $@
+
+dosromcomp.a65: cbm-x16dos
+
+##########################################################################	
+# USB driver code
 	
-usb65/platforms/upet/petromcomp usb65/platforms/upet/usbrom: usb65
-	(cd usb65/platforms/upet; make petromcomp usbrom)
+usb65/platforms/upet/petromcomp usb65/platforms/upet/petrom: usb65
+	(cd usb65/platforms/upet; make petromcomp petrom)
 
 usb65:
 	git clone https://github.com/fachat/usb65.git
 	(cd usb65; git checkout upet)
 
-usbcode: usbcode.a65 usb65/platforms/upet/usbrom
+usbcode: usbcode.a65 usb65/platforms/upet/petrom
 	xa -o $@ $<
 
 usbcomp: usbcomp.a65 usb65/platforms/upet/petromcomp
 	xa -o $@ $<
-	
+
+##########################################################################	
 # load other PET Editor ROM and reboot
 
 loadrom: loadrom.lst
@@ -170,12 +229,12 @@ ${TOOLS}: % : %.c
 
 clean:
 	rm -f romtest01 romtest01a romtest02 romtest02a zero chargen_pet16 char8to16 charPet2Invers
+	rm -f basic2 edit2g kernal2 chargen_pet basic4 kernal4 edit40g edit80g basic1 edit1 kernal1 chargen_pet1 chargen_pet1_16
 	rm -f iplldr edit80_chk.bin edit80_grfkb_ext_chk.bin kernal4t
 	rm -f romcheck loadrom loadrom.bin boot
 	rm -f usbcode usbcomp 
 
 rebuildclean:
-	rm -f basic2 edit2g kernal2 chargen_pet basic4 kernal4 edit40g edit80g basic1 edit1 kernal1 chargen_pet1 chargen_pet1_16
 	rm -f $(EDITROMS)
 
 
