@@ -13,6 +13,7 @@
 MCTRL	=$e801
 BANK	=$e802
 ;SPEED	=$e803
+VIDMAP	=$e805
 ;R8296	=$fff0
 
 PIA1PA	=$e810
@@ -20,6 +21,7 @@ PIA1PB	=$e812
 
 CRTC	=$e880
 
+DEFATTR	=5		; default value for attribute memory
 
 	.word $0401
 	*=$0401
@@ -63,32 +65,68 @@ loop	sta sp,y	; not used flag
 	; as editor inits the cursor to active at $8000...
 	; 32k bank 0
 	; $9000 in video bank
-	lda #0+32
+	lda #0
 	sta bankreg+0
+	lda #2
+	sta vidreg+0	; video at $9000 (PET config default)
 	lda #$10	; upet compat -> bit 15 inverted
 	sta crtc12+0
 
 	; 32k bank 2 (1 is used for ROM)
 	; $9800 in video bank
-	lda #2+48
+	lda #2
 	sta bankreg+1
-	lda #$18
+	lda #1
+	sta vidreg+1	; video at $8800
+	lda #$08
 	sta crtc12+1
 
 	; 32k bank 3
 	; $8800 in video bank
-	lda #3+16
+	lda #3
 	sta bankreg+2
-	lda #$08
+	sta vidreg+2	; video at $9800
+	lda #$18
 	sta crtc12+2
 
 	; 32k bank 4
 	; $a000 in video bank
-	lda #4+64
+	lda #4
 	sta bankreg+3
+	sta vidreg+3	; video at $a000
 	lda #$20
 	sta crtc12+3
 
+;	; clean color RAM to default for non-standard screens
+	php		; save I 
+	sei
+	clc
+	xce		; native mode
+	php		; save m,x, and c bits
+
+	rep #%00010000	; XR long
+	.xl
+
+	ldx #$0800-1
+	lda #DEFATTR
+l	sta $08c800,x
+	sta $08d800,x
+	sta $08e000,x
+	dex
+	bpl l
+
+	plp		; restore, m,x, and c bits
+	.xs
+	xce
+	plp		; restore i
+
+	ldy #0
+t	lda msg,y
+	beq set
+	jsr $ffd2
+	iny
+	bne t
+set
 	; make kernel writable for a moment
 	lda #%01100000
 	sta MCTRL
@@ -110,6 +148,7 @@ loop	sta sp,y	; not used flag
 	sta MCTRL
 	rts
 
+msg	.asc "USE LSHIFT+RSHIFT+REV TO SWITCH",0
 	.)
 
 	
@@ -141,22 +180,27 @@ TSRRUN	.(
 	sta sp,x
 
 	; alt1 - check both SHIFT - interferes with RESET key sequence @ - LSHIFT - RSHIFT - DEL!
-;	lda #%11011110
-;	ldx #8
+	lda #%11011110
+	ldx #8
+	stx PIA1PA
+	cmp PIA1PB
+	bne end
+	; alt1a - check both SHIFT + REV
+	; note REV would be %11111110, but this creates phantom key presses at 9/5, which luckily is not mapped
+	inc PIA1PA
+	cmp PIA1PB
+	bne end
+
+	; alt2 - check SQR+CTRL - note that this creates an end-of-line cursor move
+;	lda #%11011111
+;	ldx #1
 ;	stx PIA1PA
 ;	cmp PIA1PB
 ;	bne end
-
-	; alt2 - check SQR+CTRL
-	lda #%11011111
-	ldx #1
-	stx PIA1PA
-	cmp PIA1PB
-	bne end
-	ldx #9
-	stx PIA1PA
-	cmp PIA1PB
-	bne end
+;	ldx #9
+;	stx PIA1PA
+;	cmp PIA1PB
+;	bne end
 
 	; wait for key release
 loop	cmp PIA1PB
@@ -171,11 +215,22 @@ loop	cmp PIA1PB
 end	
 	; overwrite bank and crtc address registers
 	ldx current
+	; map lower 32k
 	lda bankreg,x
 	sta BANK
+	; map $8xxx window
+	lda vidreg,x
+	sta VIDMAP
+	; set screen address in Viccy
 	lda #12
 	sta CRTC
 	lda crtc12,x
+	sta CRTC+1
+	; set color address in Viccy
+	lda #20
+	sta CRTC
+	lda crtc12,x
+	ora #$c0
 	sta CRTC+1
 
 	lda sp,x
@@ -200,6 +255,7 @@ return
 irqv	.word 0
 current	.byt 0
 bankreg	.dsb 4
+vidreg	.dsb 4
 sp	.dsb 4
 crtc12	.dsb 4
 

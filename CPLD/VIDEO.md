@@ -83,7 +83,7 @@ The following are the internal Viccy registers:
     - TODO: implement together with parts of R22
   - bit 6: attribute enable (VDC)
   - bit 7: bitmap mode (hires)
-- r26: FGBG_COLS: default colours (VDC)
+- r26: FGBG_COLS: default colours (VDC, not in full colour modes, other restrictions see video modes below))
   - bits 3-0: background color
   - bits 7-4: foreground color
 - r27: ROW_INC: address increment per row: add this to the memory address after each character row (VDC)
@@ -227,7 +227,7 @@ For all the text modes, the hires bit in r25.7 must be zero.
 In this mode, extended mode and attribute memory are disabled in R33 and R25 respectively.
 
 Each character data is read from character memory, and used as index in the character generator memory.
-The data from the character generator memory is shifted out, using foreground (1-pxiels) or background (0-pixels) colours
+The data from the character generator memory is shifted out, using foreground (1-pixels) or background (0-pixels) colours
 from R26.
 
 This basically emulates a simple b/w screen, just with colours adjustable via R26.

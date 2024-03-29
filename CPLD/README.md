@@ -66,7 +66,7 @@ Note that if you use 80 columns, AND double pixel rows (+interlace), you get the
 This mode is, however, not easily manageable by normal code in bank 0. In the $8xxx area the video
 and colour memory can be accessed. The first half accesses the character video memory, the second half
 is reserved for the colour memory. Now, 80x50 character require almost 4k of character video memory,
-more than twice then is available in the reserved space from $8000 to $8800. So, the screen can,
+almost twice as much as is available in the reserved space from $8000 to $8800. So, the screen can,
 in this mode, only be managed using long addresses into bank 8 (the video bank), or code running
 in the video bank.
 
@@ -98,23 +98,6 @@ So, setting bit 0=1 and bit 1=1 gives double the number of character rows
 (or raster rows in bitmap mode). I.e. with this you can enable 50 character row
 screens.
 
-#### Moving Sync
-
-The character height can be switched between 8 pixel rows and 9 pixel rows (using 
-R9 of the emulated CRTC, see below). 
-This gives a displayed height of the screen of either 400 or 450 (each rasterline is
-displayed twice, see previous section). 
-
-For the video code, the screen starts with the first displayed rasterline. The sync position
-is fixed to that position, i.e. it has a fixed rasterline where the vertical sync is triggered.
-The value is selected such, that the displayed data is about centered on the screen.
-
-Now, if the character height is changed, the height of the displayed data is changed, and to 
-keep the this area vertically centered, the position of the vertical sync in relation to the 
-first rasterline is moved. 
-
-While, due to limited resources in the previously used CPLD, this was a problem and disturbed 
-the video timing, this is fixed in the FPGA implementation.
 
 ### $e801 (59393) Memory Map Control
 
