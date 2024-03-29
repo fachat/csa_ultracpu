@@ -399,6 +399,7 @@ architecture Behavioral of Top is
 	   serclk: out std_logic;
 	   sersel: out std_logic_vector(2 downto 0);	   
 	   spiclk : in std_logic;
+	   spislowclk: in std_logic;
 	   
 	   ipl: in std_logic;
 	   reset : in std_logic
@@ -779,7 +780,8 @@ begin
 	   spi_clkx,
 	   spi_sel,
 	   memclk,
-	   
+		dotclk(2),	-- slow clock
+		
 	   ipl_state,
 	   reset
 	);
