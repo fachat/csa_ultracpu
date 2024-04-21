@@ -42,7 +42,7 @@ entity DAC is
 		irq: out std_logic;
 		
 		qclk: in std_logic;
-		dotclk: in std_logic_vector(3 downto 0);
+		dotclk: in std_logic_vector(1 downto 0);
 		vdin: in std_logic_vector(7 downto 0);
 
 		dma_req: out std_logic;

@@ -58,6 +58,7 @@ entity Top is
 	   e : in std_logic;
 	   mlb: in std_logic;
 	   --mx : in std_logic;
+		cpu_nbe: out std_logic;
 
 	-- bus
 	-- ROM, I/O (on CPU bus)	   
@@ -369,7 +370,7 @@ architecture Behavioral of Top is
 		irq: out std_logic;
 		
 		qclk: in std_logic;
-		dotclk: in std_logic_vector(3 downto 0);
+		dotclk: in std_logic_vector(1 downto 0);
 		vdin: in std_logic_vector(7 downto 0);
 
 		dma_req: out std_logic;
@@ -417,6 +418,8 @@ architecture Behavioral of Top is
 
 begin
 
+	cpu_nbe <= '0';
+	
 	clocky: Clock
 	port map (
 	   q50m,
@@ -740,7 +743,7 @@ begin
 		dac_irq, 
 		
 		q50m,
-		dotclk,
+		dotclk(1 downto 0),
 		vd_in,
 
 		dac_dma_req,
