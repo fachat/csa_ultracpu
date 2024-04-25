@@ -32,4 +32,16 @@ The SPI interface has four addresses, of which 3 are currently used:
 - $e80a (59402): data register (peek)
   - Read: Bit 0-7: read the current state of the shift register
 
+## Devices
+
+These devices are currently attached:
+
+- 0: n/a
+- 1: Flash ROM (CPU boot code and ROM)
+- 2: USB (MAX3421E)
+- 3: SD-Card
+- 4: Ethernet (ENC28J60H)
+- 5: RTC / battery buffered RAM
+- 6: FPGA config flash ROM
+- 7: none (inactive)
 

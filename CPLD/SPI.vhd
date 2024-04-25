@@ -71,7 +71,6 @@ architecture Behavioral of SPI is
 	signal serin_d: std_logic;
 	
 	signal spiclk_int: std_logic;
-	signal spiclk_half: std_logic;
 	
 	function To_Std_Logic(L: BOOLEAN) return std_ulogic is
 	begin
@@ -84,16 +83,10 @@ architecture Behavioral of SPI is
 	
 begin
 
-	half_p: process(reset, spiclk, spiclk_half)
-	begin
-		if (reset = '1') then
-			spiclk_half <= '0';
-		elsif (falling_edge(spiclk)) then
-			spiclk_half <= not(spiclk_half);
-		end if;
-	end process;
-	
-	spiclk_int <= spiclk when sel(2) = '0' else
+	-- interestingly spislowclk does not work with the Flash boot ROM... it needs to be spiclk ...
+	-- (probably because the boot code does not wait for the shift to finish :-(
+	spiclk_int <= --'0' when reset = '1' else 
+			spiclk when sel(2) = '0' else
 			spislowclk;
 		
 	-- read registers

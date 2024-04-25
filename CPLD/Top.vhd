@@ -119,6 +119,7 @@ architecture Behavioral of Top is
 	type T_VADDR_SRC is (VRA_NONE, VRA_IPL, VRA_CPU, VRA_VIDEO, VRA_DAC);
 	type T_FADDR_SRC is (FRA_NONE, FRA_CPU);
 	type T_BUS_STATE is (BUS_NONE, BUS_CPU, BUS_SETUP, BUS_WAIT);
+	type T_IPL_STATE is (IPL_SETTLE, IPL_CMD, IPL_LOAD, IPL_DONE);
 	
 	attribute NOREDUCE : string;
 	
@@ -129,8 +130,10 @@ architecture Behavioral of Top is
 	signal ipl: std_logic;		-- Initial program load from SPI flash
 	signal ipl_d: std_logic;		-- Initial program load from SPI flash
 	constant ipl_addr: std_logic_vector(18 downto 8) := "00011111111";	-- top most RAM page in bank 0
-	signal ipl_state: std_logic;	-- 00 = send addr, 01=read block
-	signal ipl_state_d: std_logic;	-- 00 = send addr, 01=read block
+	signal ipl_state: T_IPL_STATE;
+	signal ipl_state_d: T_IPL_STATE;
+	signal ipl_is_load: std_logic;
+	signal ipl_is_flash: std_logic;
 	signal ipl_cnt: std_logic_vector(11 downto 0); -- 11-4: block address count, 3-0: SPI state count
 	signal ipl_out: std_logic;	-- SPI output from IPL to flash
 	signal ipl_next: std_logic;	-- start next phase
@@ -483,7 +486,7 @@ begin
 	-- stretch clock such that we approx. one cycle per is_cpu_trigger (1, 2, 4MHz)
 	-- wait_int rises with falling edge of memclk (see trigger above), or is 
 	-- constant low (full speed)
-	wait_int <= not(is_cpu); -- or ipl;
+	wait_int <= not(is_cpu);
 		
 	-- do_cpu is set when the coming falling edge of memclk should be active for the CPU
 	release2_p: process(q50m, reset, cp11) 
@@ -536,46 +539,10 @@ begin
 	wait_setup <= '1' when bus_state = BUS_SETUP else '0';
 	wait_bus <= '1' when bus_state = BUS_WAIT else '0';
 	
---	release3_p: process(reset, q50m, is_bus, chold, csetup, dotclk)
---	begin
---		if (reset = '1'
---			or chold = '0'
---			) then
---			wait_setup <= '0';
---		-- elsif (rising_edge(memclk_d)) then
---		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
---			-- after memclk rises, but before chold goes down
---		
---			-- first four memclk cycles in phi2 (csetup=1)
---			if (is_bus = '1'
---				and csetup = '1'
---				) then wait_setup <= '1';
---			end if;
---		end if;
---		
---		if (reset = '1') then
---			wait_bus <= '0';
---		--elsif (rising_edge(memclk_d)) then
---		elsif (rising_edge(q50m) and dotclk(1 downto 0) = "10") then
---			-- after memclk rises, but before chold goes down
---			
---			-- memclk cycles after bus setup (csetup=0)
---			if (wait_setup = '1') then
---				-- wait_setup has taken over
---				-- priority over setting it
---				wait_bus <= '0';
---			elsif (is_bus = '1' 
---				and csetup = '0'
---				)
---				then wait_bus <= '1';
---			end if;
---		end if;	
---	end process;
-	----------------------------------------------
-	
+
 	-- Note if we use phi2 without setting it high on waits (and would use RDY instead), 
 	-- the I/O timers will always count on 8MHz - which is not what we want (at 1MHz at least)
-	phi2_int <= (memclk or not(do_cpu)) and not(ipl); --or ipl;
+	phi2_int <= (memclk or not(do_cpu)) and not(ipl);
 	
 	-- split phi2, stretched phi2 for the CPU to accomodate for waits.
 	-- for full speed, don't delay VIA timers
@@ -782,10 +749,10 @@ begin
 	   spi_outx,
 	   spi_clkx,
 	   spi_sel,
-	   memclk,
+	   memclk,		-- dotclk(1)
 		dotclk(2),	-- slow clock
 		
-	   ipl_state,
+	   ipl_is_load,
 	   reset
 	);
 
@@ -797,23 +764,23 @@ begin
 			spi_in1;
 	
 	-- SPI serial data out
-	spi_out <= ipl_out	when ipl = '1' 	else
+	spi_out <= ipl_out	when ipl_is_flash = '1' 	else
 		spi_outx;
 		
 	-- SPI serial clock
-	spi_clk <= ipl_cnt(0)	when ipl = '1' and ipl_state = '0' else
+	spi_clk <= ipl_cnt(0)	when ipl_is_flash = '1' else
 		spi_clkx;
 	
 	spi_sela <= '1' 	when reset = '1' else
-				'1' 	when ipl = '1' else
+				'1' 	when ipl_is_flash = '1' else
 				spi_sel(0);
 				
 	spi_selb <= '1'	when reset = '1' else
-				'0'	when ipl = '1' else
+				'0'	when ipl_is_flash = '1' else
 				spi_sel(1);
 				
 	spi_selc <= '1' 	when reset = '1' else
-				'0' 	when ipl = '1' else
+				'0' 	when ipl_is_flash = '1' else
 				spi_sel(2);
 	
 	
@@ -927,7 +894,7 @@ begin
 
 
 
-	v_out_p: process(q50m, memclk, ipl, nvramsel_int, nframsel_int, ipl, reset,
+	v_out_p: process(q50m, memclk, nvramsel_int, nframsel_int, ipl, reset,
 			vid_fetch, rwb, m_vramsel_out, dac_dma_req, is_cpu, is_cpu_trigger)
 	begin
 		if (reset = '1') then
@@ -1016,7 +983,7 @@ begin
 
 --	nvramsel <= nvramsel_int;
 	
-	v_out_p2: process(q50m, memclk, VA_select, ipl, reset,
+	v_out_p2: process(q50m, memclk, VA_select, reset,
 			rwb, ipl_cnt, ca_in, ma_out, dac_dma_addr, va_out)
 	begin
 
@@ -1100,68 +1067,71 @@ begin
 		else
 			(others => 'Z');
 		
-	-- select RAM
-	
---	nframsel_int <= '1'	when memclk = '0' else
---			'0'	when m_framsel_out = '1' else
---			'1';
-	
---	-- memclk changes at falling edge
---	nvramsel_int <= ipl_cnt(0) when ipl = '1' else	-- IPL loads data into RAM
---			not(memclk) when (vid_fetch='1') else -- or dac_dma_req = '1') else
---			'1' when wait_int = '1' else
---			not(memclk) or not(m_vramsel_out);
-			
 	
 	------------------------------------------------------
 	-- IPL logic
 	
+	ipl_is_load <= '1' when ipl_state = IPL_LOAD else '0';
+	ipl_is_flash <= '1' when ipl_state = IPL_CMD or ipl_state = IPL_LOAD else '0';
+
 	ipl_p: process(q50m, dotclk, reset, ipl, ipl_d)
 	begin
 		if (reset = '1') then 
-			ipl_state <= '0';
+			ipl_state <= IPL_SETTLE;
 			ipl_cnt <= (others => '0');
 			ipl <= '1';
 		--elsif (falling_edge(memclk) and ipl_d = '1') then
 		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "11" and ipl_d = '1') then
 		
 			--ipl <= '0';	-- block IPL to test
-			
-			if (ipl_state_d = '0') then
-				-- initial count and SPI Flash read command
-				
+			case (ipl_state_d) is
+			when IPL_SETTLE =>
+				-- settle to allow for spi_clk pin to transfer to IO
 				if (ipl_next = '1') then
-					ipl_state <= '1';
+					ipl_state <= IPL_CMD;
 					ipl_cnt <= (others => '0');
 				else
 					ipl_cnt <= ipl_cnt + 1;
 				end if;
-			else
-				-- read block
+			when IPL_CMD =>
+				-- initial count and SPI Flash read command				
 				if (ipl_next = '1') then
-					ipl <= '0';
-					ipl_state <= '0';
+					ipl_state <= IPL_LOAD;
+					ipl_cnt <= (others => '0');
 				else
 					ipl_cnt <= ipl_cnt + 1;
 				end if;
-			end if;
+			when IPL_LOAD =>
+				-- read block
+				if (ipl_next = '1') then
+					ipl <= '0';
+					ipl_state <= IPL_DONE;
+				else
+					ipl_cnt <= ipl_cnt + 1;
+				end if;
+			when others =>
+			end case;
 		end if;
 	end process;
 	
 	ipl_state_p: process(reset, q50m, dotclk, ipl_state)
 	begin
 		if (reset = '1') then
-			ipl_state_d <= '0';
 			ipl_next <= '0';
 			ipl_out <= '0';
 			ipl_d <= '1';
 		--elsif (rising_edge(memclk)) then
-		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "10") then
+		elsif (falling_edge(q50m) and dotclk(1 downto 0) = "01") then
 			ipl_state_d <= ipl_state;
 			ipl_d <= ipl;
 			
 			ipl_next <= '0';
-			if (ipl_state = '0') then
+			case (ipl_state) is
+			when IPL_SETTLE =>
+				if (ipl_cnt = "000001000000") then
+					ipl_next <= '1';
+				end if;
+			when IPL_CMD =>
 				if (ipl_cnt = "000001000000") then
 					ipl_next <= '1';
 				end if;
@@ -1173,14 +1143,14 @@ begin
 				else
 					ipl_out <= '0';
 				end if;
-
-			else
+			when IPL_LOAD =>
 				if (ipl_cnt = "111111111111") then
 					ipl_next <= '1';
 				end if;
 				 
 				ipl_out <= '0';
-			end if;
+			when others =>
+			end case;
 		end if;
 	end process;
 
