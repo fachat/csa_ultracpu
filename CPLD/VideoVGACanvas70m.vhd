@@ -141,6 +141,7 @@ begin
 			h_cnt(9 downto 4) <= (others => '0');
 			h_state <= "00";
 			h_sync_int <= '0';
+			h_enable_int <= '0';
 		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "1111") then
 
 			if (h_limit = '1' and h_state = "11") then
@@ -154,6 +155,11 @@ begin
 				h_state <= h_state + 1;
 			end if;
 
+			h_enable_int <= '0';
+			if (h_state = "01") then
+				h_enable_int <= '1';
+			end if;
+			
 			h_sync_int <= '0';
 			if (h_state = "11") then
 				h_sync_int <= '1';
@@ -170,7 +176,6 @@ begin
 		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "0111") then
 
 			h_limit <= '0';
-			h_enable_int <= '0';
 
 			case h_state is
 				when "00" =>	-- back porch
@@ -181,7 +186,6 @@ begin
 					if (h_cnt(9 downto 3) = h_width) then
 						h_limit <= '1';
 					end if;
-					h_enable_int <= '1';
 				when "10" =>	-- front porch
 					if (h_cnt(9 downto 3) = h_front_porch) then
 						h_limit <= '1';
@@ -207,11 +211,9 @@ begin
 			end if;
 		end if;
 		
-		if (falling_edge(qclk)) then
-			h_enable <= h_enable_int;
-		end if;
 	end process;
 
+	h_enable <= h_enable_int;
 	h_zero <= h_zero_int;
 	
 	xa: process(qclk, dotclk, h_zero_int, x_addr_int)

@@ -120,9 +120,10 @@ begin
 			is_last_vis <= '0';
 			is_border <= is_border_int;
 			if ((h_extborder = '0' and is_preload_int = '1') 
-					or (is_80 = '1' and is_preload_int_d = '1') 
-					or (is_80 = '0' and is_preload_int_dd = '1')) 
-					then
+					or (is_preload_int_d = '1') 
+--					or (is_80 = '1' and is_preload_int_d = '1') 
+--					or (is_80 = '0' and is_preload_int_d = '1')
+					) then
 					is_border_int <= '0';
 			elsif (h_state = '1') then
 					if (vh_cnt = slots_per_line) then

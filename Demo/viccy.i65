@@ -66,5 +66,7 @@ SPRT_YPOS       =1
 SPRT_XYPOS      =2
 SPRT_CTRL       =3
 
+VCCY_PAL_BASE	=88
+
 #endif
 

@@ -47,7 +47,7 @@ l1000	; start of program
 	sei
 	jsr iniirq
 loop
-	jsr setviccy
+	jsr clrviccy
 	jsr clrscr
 	jsr inichain
 	cli
@@ -71,11 +71,12 @@ loop
 	jsr demoreset
 	jsr demohires
 	jsr demosprites
+	jsr demopalette
 
 	jsr wait
 	jsr wait
 	jsr wait
-;x jmp x
+x jmp x
 	jsr stopirq
 	sei
 	jsr resetchain
@@ -1037,12 +1038,12 @@ noinc
 	bcc l1
 	lda #82
 l1	sta cur
-	lda #<490
+	lda #<500+OFFSET70
 	sec
 	sbc cur
 	ora #1		; that prevents the top line from flickering, as we are in non-interlace mode
 	sta line
-	lda #>490
+	lda #>500+OFFSET70
 	sbc #0
 	sta line+1
 
@@ -1084,10 +1085,10 @@ l0	tay
 	rts
 
 itabc	.word iclr-1
-	.word 494+OFFSET70
+	.word 505+OFFSET70
 	.word 0
 
-txt 	.asc "           * RESETABLE ADDRESS COUNTERS ON RASTERLINE MATCH"
+txt 	.asc "           * RESETABLE ADDRESS COUNTERS/PALETTE ON RASTERLINE MATCH"
 	.asc CR,0
 	.)
 
@@ -1188,7 +1189,7 @@ end
 	rts
 
 itab	.word idemo-1
-	.word 518+OFFSET70
+	.word 525+OFFSET70
 	.word 0
 
 txt 	.asc "           * SPRITES (SINGLE/MULTICOL,EXPAND,PRIO)"
@@ -1200,6 +1201,106 @@ s_balloon
 	.byt 3,255,224,3,255,224,2,255,160,1,127,64   
 	.byt 1,62,64,0,156,128,0,156,128,0,73,0,0,73,0
 	.byt 0,62,0,0,62,0,0,62,0,0,28,0              
+	.)
+
+; ---------------------------------------------------------
+; palette demo
+
+	.(
+
+&demopalette
+	lda #<txt
+	ldy #>txt
+	jsr txtout
+
+	lda #<itab
+	ldy #>itab
+	jsr addirq
+
+	jmp wait
+
+idemo
+	lda cnt2
+	and #%00111111
+	bne end
+
+	lda cnt2
+	and #%11000000
+	lsr
+	lsr
+	tay
+
+	ldx #VCCY_CTRL
+	stx VDC
+	lda VDC+1
+	and #%11011111
+	sta VDC+1
+	pha
+
+	ldx #VCCY_PAL_BASE
+	stx VDC
+	ldx #8
+l1	lda pal0,y
+	sta VDC+3	; includes index increment
+	iny
+	dex
+	bne l1
+
+	ldx #VCCY_CTRL
+	stx VDC	
+	pla
+	pha
+	ora #%00100000
+	sta VDC+1
+
+	ldx #VCCY_PAL_BASE
+	stx VDC
+	ldx #8
+l2	lda pal0,y
+	sta VDC+3	; includes index increment
+	iny
+	dex
+	bne l2
+
+	ldx #VCCY_CTRL
+	stx VDC	
+	pla
+	sta VDC+1
+
+end
+	lda #VCCY_BRDR_COL
+	sta VDC
+	inc VDC+1
+	rts
+
+txt 	.asc "           * PALETTE FOR 16 OUT OF 64 COLOURS"
+	.asc CR,0
+
+itab	.word idemo-1
+	.word 528+OFFSET70
+	.word 0
+
+
+pal0	.byt %00000000, %01001001, %00000010, %01101111
+	.byt %00001100, %01111101, %00001101, %01111111
+	.byt %01100000, %11101101, %01100001, %11101111
+	.byt %01101100, %11111101, %10010010, %11111111
+
+pal1	.byt %00000000, %01001000, %00000000, %01101100
+	.byt %00001100, %01111100, %00001100, %01111100
+	.byt %01100000, %11101100, %01100000, %11101100
+	.byt %01101100, %11111100, %10010000, %11111100
+
+pal2	.byt %00000000, %01000001, %00000010, %01100011
+	.byt %00000000, %01100001, %00000001, %01100011
+	.byt %01100000, %11100001, %01100001, %11100011
+	.byt %01100000, %11100001, %10000010, %11100011
+
+pal3	.byt %00000000, %00001001, %00000010, %00001111
+	.byt %00001100, %00011101, %00001101, %00011111
+	.byt %00000000, %00001101, %00000001, %00001111
+	.byt %00001100, %00011101, %00010010, %00011111
+
 	.)
 
 ; ---------------------------------------------------------
@@ -1366,7 +1467,7 @@ inichain .(
 	rts
 
 itab	.word resetscr-1
-	.word 520+OFFSET70
+	.word 540+OFFSET70
 	.word 0
 
 resetscr
@@ -1444,7 +1545,31 @@ sreg	.(
 	rts
 	.)
 
-setviccy .(
+clrviccy .(
+	lda #9
+	sta vdctab+VCCY_CHR_HDISP
+	lda #15
+	sta vdctab+VCCY_CHR_VDISP
+
+	lda #0
+	ldx #VCCY_SPRT_BASE_0 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_1 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_2 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_3 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_4 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_5 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_6 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_7 + SPRT_CTRL
+	jsr sreg
+
+&setviccy 
 	lda #3
 	sta SCTRL	; 12 MHz CPU
 	lda #0		; 40 column, display enable
@@ -1466,24 +1591,6 @@ l0	lda vdctab,y
 lx	iny
 	cpy #42
 	bcc l0
-
-	lda #0
-	ldx #VCCY_SPRT_BASE_0 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_1 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_2 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_3 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_4 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_5 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_6 + SPRT_CTRL
-	jsr sreg
-	ldx #VCCY_SPRT_BASE_7 + SPRT_CTRL
-	jsr sreg
 	rts
 
 &vdctab	.byt 0		; r0 ignored
@@ -1503,7 +1610,7 @@ lx	iny
 	.byt >$d000	; r20: start of attribute memory high
 	.byt <$d000	; r21: start of attribute memory low
 	.byt 9		; r22: ignored
-	.byt 7		; r23: character rows displayed
+	.byt 15		; r23: character rows displayed
 	.byt 0		; r24: b0-3 scroll down, b4: up/low border ext, b5 blink rate, b6: reverse
 	.byt 16		; r25: b0-3 scroll right, b4: l/r border ext, b6: attrib enable, b7: bitmap mode
 	.byt BGCOL+16	; r26: b0-3: bg colour, b4-7: fg colour

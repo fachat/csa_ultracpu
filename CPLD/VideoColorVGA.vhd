@@ -639,7 +639,7 @@ begin
 	sr_fetch_int <= sr_window and fetch_int;
 
 	fetch_p: process(chr_fetch_int, pxl_fetch_int, attr_fetch_int, crom_fetch_int, qclk,
-						sprite_ptr_fetch, sprite_data_fetch)
+						sprite_ptr_fetch, sprite_data_fetch, dotclk)
 	begin
 		-- video access?
 --		if (falling_edge(qclk) and dotclk(1 downto 0) = "11") then
@@ -1636,9 +1636,7 @@ begin
 --				and (interlace_int or not(rline_cnt0));
 --		end if;
 
-		if (falling_edge(qclk) and dotclk(2) = '0' and dotclk(1) = '1') then
-			dena_int <= enable;
-		end if;
+		dena_int <= enable;
 	end process;
 
 	--------------------------------------------
@@ -1874,7 +1872,7 @@ begin
 			sprite_base <= "10010111";
 			pal_sel <= '0';
 			palette(0) <= "00000000";	-- black
-			palette(1) <= "01101101";	-- dark grey
+			palette(1) <= "01001001";	-- dark grey
 			palette(2) <= "00000010";	-- dark blue
 			palette(3) <= "01101111";	-- light blue
 			palette(4) <= "00001100";	-- dark green
@@ -1887,7 +1885,7 @@ begin
 			palette(11) <= "11101111";	-- light purple
 			palette(12) <= "01101100";	-- brown? dark yellow?
 			palette(13) <= "11111101";	-- light yellow
-			palette(14) <= "01101101";	-- light grey
+			palette(14) <= "10010010";	-- light grey
 			palette(15) <= "11111111";	-- white		
 		elsif (falling_edge(phi2) 
 				and crtc_sel = '1'
