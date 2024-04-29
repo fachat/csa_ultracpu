@@ -338,8 +338,8 @@ sl	sta VICCY
         .byt 127        ; r36: irq status (clear all sources)
         .byt 0          ; r37: v/h sync status (VDC)
 #ifdef CLK70M
-        .byt 20         ; r38: horizontal position (chars)
-        .byt 132        ; r39: vertical position (rasterlines)
+        .byt 21         ; r38: horizontal position (chars)
+        .byt 110        ; r39: vertical position (rasterlines)
 #else
         .byt 13         ; r38: horizontal position (chars)
         .byt 59         ; r39: vertical position (rasterlines)

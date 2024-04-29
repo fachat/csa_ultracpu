@@ -29,6 +29,8 @@ tmp2	=$0a
 
 BSOUT	=$ffd2
 
+OFFSET70=22
+
 	.word $0401
 	* = $0401
 
@@ -73,10 +75,11 @@ loop
 	jsr wait
 	jsr wait
 	jsr wait
-x jmp x
+;x jmp x
 	jsr stopirq
 	sei
 	jsr resetchain
+	jsr setviccy
 	jmp loop
 
 
@@ -128,7 +131,7 @@ idemo2
 	rts
 
 itab	.word idemo2-1
-	.word 149
+	.word 149+OFFSET70
 	.word 0
 
 
@@ -171,7 +174,7 @@ idemo3
 	rts
 
 itab	.word idemo3-1
-	.word 167
+	.word 167+OFFSET70
 	.word 0
 
 txt 	.asc "           * COLOUR PET COMPATIBLE COLOUR MODE"
@@ -213,7 +216,7 @@ idemo3
 	rts
 
 itab	.word idemo3-1
-	.word 185
+	.word 185+OFFSET70
 	.word 0
 
 txt 	.asc "           * MULTI-COLOUR MODE"
@@ -249,7 +252,7 @@ idemo4
 	rts
 
 itab	.word idemo4-1
-	.word 203
+	.word 203+OFFSET70
 	.word 0
 
 txt 	.asc "           * INTERLACE MODE"
@@ -285,7 +288,7 @@ idemo5
 	rts
 
 itab	.word idemo5-1
-	.word 218
+	.word 218+OFFSET70
 	.word 0
 
 txt 	.asc "           * HARDWARE CURSOR"
@@ -293,6 +296,7 @@ txt 	.asc "           * HARDWARE CURSOR"
 	.)
 
 ; --------------------
+
 
 	.(
 &demohwpos
@@ -307,15 +311,15 @@ txt 	.asc "           * HARDWARE CURSOR"
 	jmp wait
 
 idemo5	
-	ldx #44
-	lda vdctab+44
+	ldx #VCCY_HPOS
+	lda vdctab+VCCY_HPOS
 	clc
 	adc #3		; shift three to the right
 	jsr sreg
-	ldx #1
+	ldx #VCCY_HDISP
 	lda #60		; only 60 chars
 	jsr sreg
-	ldx #27
+	ldx #VCCY_ROW_INC
 	lda #20		; compensate
 	jsr sreg	
 
@@ -325,7 +329,7 @@ idemo5
 	rts
 
 itab	.word idemo5-1
-	.word 235
+	.word 235+OFFSET70
 	.word 0
 
 txt 	.asc "           * HORIZONTAL WIDTH AND POSITION"
@@ -347,8 +351,8 @@ txt 	.asc "           * HORIZONTAL WIDTH AND POSITION"
 	jmp wait
 
 idemo5	
-	ldx #44
-	lda vdctab+44	; reset shift
+	ldx #VCCY_HPOS
+	lda vdctab+VCCY_HPOS	; reset shift
 	jsr sreg
 	ldx #VCCY_HDISP
 	lda #80		; reset chars to 80
@@ -372,7 +376,7 @@ idemo5
 	rts
 
 itab	.word idemo5-1
-	.word 253
+	.word 253+OFFSET70
 	.word 0
 
 txt 	.asc "           * HORIZONTAL SMOOTH SCROLL"
@@ -406,7 +410,7 @@ idemo5
 	rts
 
 itab	.word idemo5-1
-	.word 140
+	.word 140+OFFSET70
 	.word 0
 
 txt 	.asc CR
@@ -461,7 +465,7 @@ x1	sta cur
 
 	ldx #VCCY_VSCRL
 	jsr sreg
-	sta $8002
+	;sta $8002
 noinc
 	lda #VCCY_BRDR_COL
 	sta VDC
@@ -469,7 +473,7 @@ noinc
 	rts
 
 itab	.word idemo5-1
-	.word 2		;289
+	.word 2+OFFSET70
 	.word 0
 
 txt 	.asc "           * VERTICAL SMOOTH SCROLL + VARIABLE CHAR HEIGHT"
@@ -487,7 +491,7 @@ idemo2
 	rts
 
 itab2	.word idemo2-1
-	.word 117
+	.word 117+OFFSET70
 	.word 0
 
 idemo3
@@ -506,7 +510,7 @@ idemo3
 
 
 itab3	.word idemo3-1
-	.word 135
+	.word 135+OFFSET70
 	.word 0
 
 idemores
@@ -519,7 +523,7 @@ idemores
 	rts
 
 itabres	.word idemores-1
-	.word 271
+	.word 271+OFFSET70
 	.word 0
 
 
@@ -557,7 +561,7 @@ idemo5	ldx #VCCY_MODE
 	rts
 
 itab	.word idemo5-1
-	.word 289
+	.word 289+OFFSET70
 	.word 0
 
 txt 	.asc "           * SWITCHABLE 40/80 COLS"
@@ -582,7 +586,7 @@ txt 	.asc "           * SWITCHABLE 40/80 COLS"
 
 	jmp wait
 
-txt 	.asc "           * 50 ROW MODES"
+txt 	.asc "           * 50 ROW MODES - UP TO 96","x"-32,"71 CHARS"
 	.asc CR,0
 
 idemo5	
@@ -608,7 +612,7 @@ l0	bit VDC+1
 	rts
 
 itab	.word idemo5-1
-	.word 325-18
+	.word 325-18+OFFSET70
 	.word 0
 
 idemox	ldx #VCCY_MODE
@@ -616,7 +620,7 @@ idemox	ldx #VCCY_MODE
 	jmp sreg	
 
 itab2	.word idemox-1
-	.word 316
+	.word 316+OFFSET70
 	.word 0
 
 	.)
@@ -660,7 +664,7 @@ l	bit VDC+1
 mode	.byt 0
 
 itab	.word idemo5-1
-	.word 325
+	.word 325+OFFSET70
 	.word 0
 
 idemox	ldx #VCCY_CHEIGHT
@@ -743,7 +747,7 @@ end
 
 
 itab2	.word idemox-1
-	.word 353
+	.word 353+OFFSET70
 	.word 0
 
 txt 	.asc "           * RE-DEFINABLE CHARACTER SET, LARGE HEIGHT AND CUT-OFF"
@@ -1049,7 +1053,7 @@ l1	sta cur
 	rts
 
 itab	.word idemo5-1
-line	.word 404
+line	.word 404+OFFSET70
 	.word 0
 
 iclr
@@ -1080,7 +1084,7 @@ l0	tay
 	rts
 
 itabc	.word iclr-1
-	.word 494
+	.word 494+OFFSET70
 	.word 0
 
 txt 	.asc "           * RESETABLE ADDRESS COUNTERS ON RASTERLINE MATCH"
@@ -1184,7 +1188,7 @@ end
 	rts
 
 itab	.word idemo-1
-	.word 518
+	.word 518+OFFSET70
 	.word 0
 
 txt 	.asc "           * SPRITES (SINGLE/MULTICOL,EXPAND,PRIO)"
@@ -1362,7 +1366,7 @@ inichain .(
 	rts
 
 itab	.word resetscr-1
-	.word 520
+	.word 520+OFFSET70
 	.word 0
 
 resetscr
@@ -1462,6 +1466,24 @@ l0	lda vdctab,y
 lx	iny
 	cpy #42
 	bcc l0
+
+	lda #0
+	ldx #VCCY_SPRT_BASE_0 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_1 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_2 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_3 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_4 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_5 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_6 + SPRT_CTRL
+	jsr sreg
+	ldx #VCCY_SPRT_BASE_7 + SPRT_CTRL
+	jsr sreg
 	rts
 
 &vdctab	.byt 0		; r0 ignored
@@ -1495,8 +1517,8 @@ lx	iny
 	.byt 0		; r35 (was r42): irq control
 	.byt 127	; r36 (was r43): irq status (clear all sources)
 	.byt 0		; r37: v/h sync status (VDC)
-	.byt 13		; r38 (was r44): horizontal position (chars)
-	.byt 59		; r39 (was r45): vertical position (rasterlines)
+	.byt 21		; r38 (was r44): horizontal position (chars)
+	.byt 59+OFFSET70; r39 (was r45): vertical position (rasterlines)
 	.byt 0		; r40 (was r46): alt match
 	.byt 0		; r41 (was r47): alt raster row
 	.)
@@ -1565,7 +1587,7 @@ wait	.(
 	ldx #0
 	ldy #0
 l0	nop
-	lda #20
+	lda #50
 l1	sec
 	sbc #1
 	bne l1
@@ -1576,6 +1598,6 @@ l1	sec
 	dey
 	bne l0
 	dex
-	;bne l0
+	bne l0
 	rts
 	.)
