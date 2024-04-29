@@ -77,7 +77,7 @@ architecture Behavioral of Canvas is
 	constant h_width: std_logic_vector(9 downto 0)			:= std_logic_vector(to_unsigned((104 + 768				-8)/8	-1, 10));
 	constant h_front_porch: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((104 + 768 + 24			)/8		-1, 10));
 	constant h_sync_width: std_logic_vector(9 downto 0)	:= std_logic_vector(to_unsigned((104 + 768 + 24 + 80 	)/8		-1, 10));
-	-- zero for pixel coordinates is 120 pixels left of default borders
+	-- zero for pixel coordinates is 120 pixels = 15 chars left of default borders
 	-- note: during hsync. may be relevant for raster match
 	--constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((104 + 768 + 24 + 80 - (120-104))-2, 10));
 	constant h_zero_pos: std_logic_vector(9 downto 0)		:= std_logic_vector(to_unsigned((104 + 768 + 24 + 80 - (120-104))-2, 10));
@@ -87,10 +87,10 @@ architecture Behavioral of Canvas is
 	constant v_width: std_logic_vector(9 downto 0)			:=std_logic_vector(to_unsigned(17 + 576					-1, 10));
 	constant v_front_porch: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(17 + 576 + 1				-1, 10));
 	constant v_sync_width: std_logic_vector(9 downto 0)	:=std_logic_vector(to_unsigned(17 + 576 + 1 + 3			-1, 10));
-	-- zero for pixel coordinates is 42 pixels up of default borders
-	constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(17 + 576 + 1 + 3 - (42 - 17), 10));
-	-- this starts first rasterline at start of screen
-	--constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(33 +6 -1, 10));
+	-- zero for pixel coordinates is 21 rasterlines up of default borders
+	-- this is one sprite height and the max we have with 768x576, as all the off-screen is 21 rasterlines only!
+	--constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(17 + 576 + 1 + 3 - (42 - 17), 10));
+	constant v_zero_pos: std_logic_vector(9 downto 0)		:=std_logic_vector(to_unsigned(17 + 576 + 1 + 3 - (21 - 17), 10));
 
 	-- runtime counters
 
@@ -124,8 +124,10 @@ begin
 	h_sync_ext <= not( h_sync_int );
 	v_sync_ext <= v_sync_int;
 
+	-- in characters
 	x_default_offset <= std_logic_vector(to_unsigned(21,7));
-	y_default_offset <= 132;
+	-- in rasterlines
+	y_default_offset <= 110;
 
 
 	-----------------------------------------------------------------------------

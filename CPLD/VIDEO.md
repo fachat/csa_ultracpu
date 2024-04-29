@@ -125,9 +125,9 @@ The following are the internal Viccy registers:
   - bit 6: hsync
 
 - r38: HPOS: horizontal position (in chars); replaces r2
-  - bit 0-6, defaults to 8
+  - bit 0-6, defaults to 21 (on 70 MHz)
 - r39: VPOS: vertical position (in rasterlines) of start of raster screen; replaces r7
-  - bit 0-7, defaults to 84 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
+  - bit 0-7, defaults to 110 (so 25 rows with 8 rasterlines/char are centered on screen); in upet compat mode, gets set when r9 is written
 - r40: ALT1: alternate register control I
   - bit 0: if set, enable access to alternate r12/r13 video memory, r20/r21 attribute memory addresses, and r88-95 alternate palette
   - bit 1: alternate bitmap mode bit

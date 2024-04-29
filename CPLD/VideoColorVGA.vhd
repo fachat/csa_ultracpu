@@ -652,7 +652,8 @@ begin
 					
 			-- provisional approach for initial testing of new approach
 			if (dotclk(3 downto 2) = "10") then
-				vreq_video <= '0';
+				--vreq_video <= '0';
+				vreq_video <= sprite_data_fetch;
 			else 
 				vreq_video <= '1';
 			end if;
@@ -804,6 +805,7 @@ begin
 	-- sprite handling
 
 	-- enables sprite fetch on the first 8 slots (8x4 accesses), when the correct sprite is enabled (sprite_active)
+	-- sprite_fetch_active is set whenever sprite_fetch_idx matches a sprite active in the given rasterline
 	fetch_sprite_en <= '1' when is_enable = '1' 
 								-- and first_row = '1'
 								and (interlace_int = '1' or rline_cnt0 = '0')
@@ -811,6 +813,8 @@ begin
 								and sprite_fetch_win = '1'
 							else '0';
 
+	-- these two are derived from the window functions in the general fetch timing
+	-- sprite_ptr_window and sprite_data_window are alternate to char/attr/pixel fetch in off-screen areas
 	sprite_ptr_fetch <= sprite_ptr_window and fetch_sprite_en;
 	sprite_data_fetch <= sprite_data_window and fetch_sprite_en;	
 	
