@@ -149,6 +149,7 @@ architecture Behavioral of Video is
 	signal raster_outbit: std_logic_vector(3 downto 0);
 	signal sr_buf: std_logic_vector(7 downto 0);
 	signal raster_isbg: std_logic;
+	signal do_shift: std_logic;
 	
 	-- 1 bit slot counter to enable 40 column
 	signal in_slot: std_logic;
@@ -876,7 +877,7 @@ begin
 	end process;
 
 
-	spritesprite_p: process(qclk, dena_int, collision_trigger_sprite_sprite, collision_accum_sprite_sprite)
+	spritesprite_p: process(qclk, collision_trigger_sprite_sprite, collision_accum_sprite_sprite)
 	begin
 
 		collision_sprite_sprite_none <= '0';
@@ -1266,7 +1267,7 @@ begin
 	-- replace discrete color circuitry of ultracpu 1.2b
 
 	
-	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, dena_int,
+	char_buf_p: process(qclk, memclk, chr_fetch_int, attr_fetch_int, pxl_fetch_int, VRAM_D, qclk, 
 		mode_rev, sr_crsr, sr_blink, mode_attrib, mode_extended, attr_buf, cblink_active, uline_active)
 	begin
 
@@ -1401,7 +1402,7 @@ begin
 	rasterout_p: process(qclk, dotclk, sr, x_border, y_border, dispen, mode_extended, mode_attrib, sr_attr, col_border, is_outbit, 
 		col_bg0, col_fg, col_bg1, col_bg2)
 	begin
-		if (falling_edge(qclk) and dotclk(0) = '1') then -- and (is_80 = '1' or dotclk(1) = '1')) then
+		if (falling_edge(qclk) and dotclk(0) = '0') then -- and (is_80 = '1' or dotclk(1) = '1')) then
 			raster_isbg <= '0';
 			if (mode_extended = '0' and mode_attrib = '0') then
 				-- 2 COL MODE
@@ -1443,22 +1444,27 @@ begin
 					raster_outbit <= col_border;
 				end case;
 			end if;
-			if (is_80 = '1' or dotclk(1) = '1') then
-				raster_out(6) <= raster_out(7);
-				raster_out(5) <= raster_out(6);
-				raster_out(4) <= raster_out(5);
-				raster_out(3) <= raster_out(4);
-				raster_out(2) <= raster_out(3);
-				raster_out(1) <= raster_out(2);
-				raster_out(0) <= raster_out(1);
-				raster_bg(6 downto 0) <= raster_bg(7 downto 1);
-			end if;
-			raster_out(to_integer(unsigned(h_shift))) <= raster_outbit;
-			raster_bg(to_integer(unsigned(h_shift))) <= raster_isbg;
+		end if;
+		
+		if (rising_edge(qclk)) then
+			raster_out(7) <= raster_outbit;
+			raster_bg(7) <= raster_isbg;
+			
+			inner_l: for i in 0 to 6 loop
+
+				if (h_shift = i) then
+					raster_out(i) <= raster_outbit;
+					raster_bg(i) <= raster_isbg;
+				elsif (dotclk(0) = '0' and (is_80 = '1' or dotclk(1) = '0')) then
+					raster_out(i) <= raster_out(i+1);
+					raster_bg(i) <= raster_bg(i+1);
+				end if;
+			end loop;
+				
 		end if;
 	end process;
-	
-	collision_p: process(qclk, phi2, dena_int, collision_trigger_sprite_border, collision_trigger_sprite_raster, 
+					
+	collision_p: process(qclk, phi2, collision_trigger_sprite_border, collision_trigger_sprite_raster, 
 			collision_accum_sprite_raster, collision_accum_sprite_border, collision_trigger_sprite_sprite,
 			collision_sprite_border_none, collision_sprite_raster_none)
 	begin
@@ -1610,7 +1616,7 @@ begin
 	-----------------------------------------------------------------------------
 	-- output sr control
 
-	en_p: process(nsrload, qclk)
+	en_p: process(nsrload, qclk, enable)
 	begin
 		-- sr_load changes on falling edge of qclk
 		-- sr_load_d changes on rising edge of qclk
@@ -1625,9 +1631,11 @@ begin
 --			enable <= h_enable and v_enable
 --				and (interlace_int or not(rline_cnt0));
 --		end if;
-	end process;
 
-	dena_int <= enable;
+		if (falling_edge(qclk) and dotclk(2) = '0' and dotclk(1) = '1') then
+			dena_int <= enable;
+		end if;
+	end process;
 
 	--------------------------------------------
 	-- raster interrupt handling

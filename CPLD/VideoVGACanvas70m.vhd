@@ -124,7 +124,7 @@ begin
 	h_sync_ext <= not( h_sync_int );
 	v_sync_ext <= v_sync_int;
 
-	x_default_offset <= std_logic_vector(to_unsigned(20,7));
+	x_default_offset <= std_logic_vector(to_unsigned(21,7));
 	y_default_offset <= 132;
 
 
@@ -139,7 +139,6 @@ begin
 			h_cnt(9 downto 4) <= (others => '0');
 			h_state <= "00";
 			h_sync_int <= '0';
-			h_enable_int <= '0';
 		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "1111") then
 
 			if (h_limit = '1' and h_state = "11") then
@@ -151,11 +150,6 @@ begin
 
 			if (h_limit = '1') then
 				h_state <= h_state + 1;
-			end if;
-
-			h_enable_int <= '0';
-			if (h_state = "01") then
-				h_enable_int <= '1';
 			end if;
 
 			h_sync_int <= '0';
@@ -174,6 +168,7 @@ begin
 		elsif (falling_edge(qclk) and dotclk(3 downto 0) = "0111") then
 
 			h_limit <= '0';
+			h_enable_int <= '0';
 
 			case h_state is
 				when "00" =>	-- back porch
@@ -184,6 +179,7 @@ begin
 					if (h_cnt(9 downto 3) = h_width) then
 						h_limit <= '1';
 					end if;
+					h_enable_int <= '1';
 				when "10" =>	-- front porch
 					if (h_cnt(9 downto 3) = h_front_porch) then
 						h_limit <= '1';
@@ -208,9 +204,12 @@ begin
 				h_zero_int <= '0';
 			end if;
 		end if;
+		
+		if (falling_edge(qclk)) then
+			h_enable <= h_enable_int;
+		end if;
 	end process;
 
-	h_enable <= h_enable_int;
 	h_zero <= h_zero_int;
 	
 	xa: process(qclk, dotclk, h_zero_int, x_addr_int)
