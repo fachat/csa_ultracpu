@@ -1625,12 +1625,12 @@ begin
 		-- sr_load changes on falling edge of qclk
 		-- sr_load_d changes on rising edge of qclk
 		-- in_slot changes at falling edge of slotclk, which itself changes on falling edge of qclk
-		if (rising_edge(nsrload)
-			--and (in_slot = '1')
-			) then
+--		if (rising_edge(nsrload)
+--			--and (in_slot = '1')
+--			) then
 			enable <= h_enable and v_enable
 				and (interlace_int or not(rline_cnt0));
-		end if;
+--		end if;
 --		if (falling_edge(qclk) and sr_fetch_int = '1') then
 --			enable <= h_enable and v_enable
 --				and (interlace_int or not(rline_cnt0));
