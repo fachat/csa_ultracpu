@@ -231,7 +231,7 @@ clean:
 	rm -f romtest01 romtest01a romtest02 romtest02a zero chargen_pet16 char8to16 charPet2Invers
 	rm -f basic2 edit2g kernal2 chargen_pet basic4 kernal4 edit40g edit80g basic1 edit1 kernal1 chargen_pet1 chargen_pet1_16
 	rm -f iplldr edit80_chk.bin edit80_grfkb_ext_chk.bin kernal4t
-	rm -f romcheck loadrom loadrom.bin boot
+	rm -f romcheck loadrom loadrom.bin boot boot70m
 	rm -f usbcode usbcomp 
 
 rebuildclean:
