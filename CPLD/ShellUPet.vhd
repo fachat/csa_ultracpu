@@ -122,7 +122,8 @@ architecture Behavioral of ShellUPet is
 	signal extio: std_logic;
 	signal ioinh: std_logic;
 	signal nbe_out: std_logic;
-	  	
+	signal ngraphic: std_logic;
+	
 	component Top is
     	Port ( 
 	-- clock
@@ -207,6 +208,9 @@ architecture Behavioral of ShellUPet is
 	   
 begin
 
+	-- compensate for the missing inverter on the UPET board
+	ngraphic <= not(graphic);
+
 top_c: Top
 	port map (
 	-- clock
@@ -220,7 +224,7 @@ top_c: Top
 	cphi2,
 
 	-- config
-	graphic,
+	ngraphic,
 	   
 	-- CPU interface
 	A,

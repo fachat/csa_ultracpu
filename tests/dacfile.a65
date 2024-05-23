@@ -26,7 +26,7 @@ DAC_ST_LAST	=%00100000	; if set, last fetch has happened, and is waiting for SPI
 DAC_ST_FILL	=%00001111	; mask of number of bytes in fetch buffer
 
 DATA		=$0000	; file data in bank 9 
-RATE		=94	; approx 8kHz
+RATE		=136	; approx 8kHz
 
 CDATA		=$8400; screen mem in CPU space
 
@@ -78,11 +78,11 @@ end
 
 	; init DMA rate; 
 	;
-	; base freq is 12MHz/16 = 750kHz
+	; base freq is 17.5MHz/16 = 1093kHz
 	; multiplied by rate value is rate data
 	; is sent out to DAC.
-	; rate 17 = 44100 Hz
-	; rate 37 = 20270 Hz
+	; rate 25 = 43750 Hz
+	; rate 55 = 19886 Hz
 	; ..
 	lda #<RATE
 	sta DAC_BASE + DAC_RATE
