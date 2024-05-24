@@ -31,7 +31,7 @@ use ieee.numeric_std.all;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity ShellUPet is
+entity ShellUltra is
     Port ( 
 	-- clock
 	   q50m : in std_logic;
@@ -110,75 +110,13 @@ entity ShellUPet is
 	   spi_amosi : out std_logic;
 	   nldac : out std_logic
 	 );
-end Top;
+end ShellUltra;
 
-architecture Behavioral of ShellUPet is
+architecture Behavioral of ShellUltra is
 
-	signal qclk: std_logic;
-	signal nres: std_logic;
-	signal nirq: std_logic;
-	signal c8phi2: std_logic;
-	signal c2phi2: std_logic;
-	signal cphi2: std_logic;
-	signal graphic: std_logic;
-
-	signal A: std_logic_vector(15 downto 0);
-	signal D: std_logic_vector(7 downto 0);
-	
-	signal vda: std_logic;
-	signal vpa: std_logic;
-	signal rwb: std_logic;
-	signal rdy: std_logic;
-	signal phi2: std_logic;
-	signal vpb: std_logic;
-	signal e: std_logic;
-	signal mlb: std_logic;
-	signal cpu_nbe: std_logic;
-
-	signal nbe_dout: std_logic;
-	signal sync: std_logic;
-	signal be_in: std_logic;
-
-	signal nmemsel: std_logic;
-	signal niosel: std_logic;
-	signal extio: std_logic;
-	signal ioinh: std_logic;
-	signal nbe_out: std_logic;
-	  
-	signal nsel1:  std_logic;
-	signal nsel2:  std_logic;
-	signal nsel4:  std_logic;
-
-	signal VA :  std_logic_vector (18 downto 0);	-- 512k
-	signal FA :  std_logic_vector (19 downto 15);	-- 512k, mappable in 32k blocks
-	signal VD :  std_logic_vector (7 downto 0);
-	   
-	signal nvramsel :  STD_LOGIC;
-	signal nframsel :  STD_LOGIC;
-	signal ramrwb :  std_logic;
-	   
-	signal vsync :   STD_LOGIC;
- 	signal hsync :   STD_LOGIC;
-	signal pet_vsync:  std_logic;
-
-	signal pxl_out:  std_logic_vector(5 downto 0);
-	   
-	-- SPI
-	signal spi_out :  std_logic;
-	signal spi_clk :  std_logic;
-	   -- MISO
-	signal spi_in1  :  std_logic;
-	signal spi_in3  :  std_logic;
-	   -- selects
-	signal spi_sela :  std_logic;
-	signal spi_selb :  std_logic;
-	signal spi_selc :  std_logic;
-			   
-	-- Audio / DAC output
-	signal spi_naudio :  std_logic;
-	signal spi_aclk :  std_logic;
-	signal spi_amosi :  std_logic;
-	signal nldac :  std_logic
+	signal nsel1: std_logic;
+	signal nsel2: std_logic;
+	signal nsel4: std_logic;
 	
 	component Top is
     	Port ( 
@@ -197,9 +135,9 @@ architecture Behavioral of ShellUPet is
 	   
 	-- CPU interface
 	   A : in  STD_LOGIC_VECTOR (15 downto 0);
-           D : inout  STD_LOGIC_VECTOR (7 downto 0);
-           vda : in  STD_LOGIC;
-           vpa : in  STD_LOGIC;
+      D : inout  STD_LOGIC_VECTOR (7 downto 0);
+      vda : in  STD_LOGIC;
+      vpa : in  STD_LOGIC;
 	   rwb : in std_logic;
 	   rdy : in std_logic;
            phi2 : out  STD_LOGIC;	-- with pull-up to go to 5V
@@ -264,7 +202,7 @@ architecture Behavioral of ShellUPet is
 	   
 begin
 
-    top: Top
+    top_c: Top
 	port map (
 	-- clock
 	q50m,
