@@ -14,47 +14,47 @@ So, here you can find the
 But, you can still have a look at the schematics and layout using the
 PNG images created
 
-- [csa_ultracpu_v1.3c-sch-1.png](csa_ultracpu_v1.3c-sch-1.png) Part 1 - CS/A Bus interface
-- [csa_ultracpu_v1.3c-sch-2.png](csa_ultracpu_v1.3c-sch-2.png) Part 2 - CPLD, CPU, Fast RAM
-- [csa_ultracpu_v1.3c-sch-3.png](csa_ultracpu_v1.3c-sch-3.png) Part 3 - Power
-- [csa_ultracpu_v1.3c-sch-4.png](csa_ultracpu_v1.3c-sch-4.png) Part 4 - Video and Audio output
-- [csa_ultracpu_v1.3c-sch-5.png](csa_ultracpu_v1.3c-sch-5.png) Part 5 - SPI devices (Eth, USB, RTCC, ...)
-- [csa_ultracpu_v1.3c-sch-6.png](csa_ultracpu_v1.3c-sch-6.png) Part 6 - Video RAM, data fetch and shift register
+- [csa_ultracpu_v2.0b-sch-1.png](csa_ultracpu_v2.0b-sch-1.png) Part 1 - CS/A Bus interface
+- [csa_ultracpu_v2.0b-sch-2.png](csa_ultracpu_v2.0b-sch-2.png) Part 2 - CPLD, CPU, Fast RAM
+- [csa_ultracpu_v2.0b-sch-3.png](csa_ultracpu_v2.0b-sch-3.png) Part 3 - Power
+- [csa_ultracpu_v2.0b-sch-4.png](csa_ultracpu_v2.0b-sch-4.png) Part 4 - Video and Audio output
+- [csa_ultracpu_v2.0b-sch-5.png](csa_ultracpu_v2.0b-sch-5.png) Part 5 - SPI devices (Eth, USB, RTCC, ...)
+- [csa_ultracpu_v2.0b-sch-6.png](csa_ultracpu_v2.0b-sch-6.png) Part 6 - Video RAM, data fetch and shift register
 
-- [csa_ultracpu_v1.3c-layout.png](csa_ultracpu_v1.3c-layout.png) layout of the chips
-- [csa_ultracpu_v1.3c-brd.png](csa_ultracpu_v1.3c-brd.png) layout of the traces
+- [csa_ultracpu_v2.0b-layout.png](csa_ultracpu_v2.0b-layout.png) layout of the chips
+- [csa_ultracpu_v2.0b-brd.png](csa_ultracpu_v2.0b-brd.png) layout of the traces
 
 ## Bill of Material
 
 The main chips are:
 
 - 1x W65816S CPU
-
-- 1x x Spartan 3E FPGA
+- 1x x Spartan 6 FPGA
 - 2x 8x512k parallel SRAM with 25ns access time
-- Several ICs for Video generation:
-  - 1x 74hct245d
-  - 1x 74hct138d (optional brown fix)
+- Several ICs for Video generation
 - several ICs for the bus interface
-  - 2x 74hct244d
-  - 3x 74hct245d
-  - 1x 74ls14d
-  - 1x 74ls06d
 - 1x DS1813 RESET controller
 
-- 50 MHZ crystal oscillator
+- 70 MHZ crystal oscillator
 - 16 MHZ crystal oscillator (bus clock - may be optional)
 
 - Voltage regulators
 
-- x 0.1uF bypass caps
+- bypass caps
 
 - 1x LM2937-3.3V SOT
 - div. resistors/caps to generate 3.3V output
 
 More details can be found in the [Eagle parts list](csa_ultracpu.csv).
 
+A full [BOM](csa_ultracpu_BOM.xlsx) with parts numbers from Mouser is now provided as well.
+
 ## Changelog
+
+### V2.0B
+
+This moves from the Spartan 3 to a Spartan 6, increases clock speed to 70 MHz for a 
+higher resolutoin video output, and more.
 
 ### V1.3C
 
