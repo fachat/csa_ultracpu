@@ -100,7 +100,7 @@ Here are three subdirectories:
 ### Board
 
 To build the board, you have to find a provider that builds PCBs from Eagle .brd files.
-Currently no gerbers are provided.
+Additionally, gerber files and a full Bill-of-material are provided in the Board subdirectory.
 
 ### FPGA
 
