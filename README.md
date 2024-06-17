@@ -25,23 +25,25 @@ The board is built with a number of features:
 - Improved system design:
   - 512k video RAM, plus 512k fast RAM, accessible using banks on the W65816 CPU
   - boot from an SPI Flash ROM
-  - up to 12.5 MHz mode (via configuration register)
+  - up to 17.5 MHz mode (via configuration register)
   - VGA color video output (RGBI in 640x480 mode)
   - Write protection for the PET ROMs once copied to RAM
   - lower 32k RAM mappable from all of the 512k fast RAM
 - Improved Video output:
+  - based on 768x576@60Hz VGA video timing (i.e. including borders at 40/80 columns)
   - modifyable character set
   - 40/80 column display switchable
   - 25/50 rows display switch
   - multiple video pages mappable to $8000 video mem address
   - Mulitple colour modes (Colour-PET, C128 VDC-compatible, Multicolour)
   - Colour Hires (VDC-compatible, Multicolour)
+  - 16 colours out of a colour palette of 64 colours displayed simultaneously.
 - DAC audio output
   - DMA engine to play audio samples on stereo sound output
 - Built-in extra hardware:
   - USB host mode interface (for keyboard / mouse)
   - Real-Time-Clock (battery-buffered)
-  - Ethernet (via Breakout board)
+  - Ethernet/Wifi (via Breakout board)
   - SD-Card (via Breakout board)
 - CS/A bus interface
   - multiple options to use bus devices, e.g. in I/O window
@@ -68,10 +70,10 @@ as
 3. with the SPI boot they don't occupy valuable CPU address space.
 
 The video generation is done using time-sharing access to the video RAM.
-The VGA output is 640x480 at 60Hz. So there is a 40ns slot per pixel on the screen, 
-with a pixel clock of 25MHz.
+The VGA output is 768x576 at 60Hz. So there is a 28ns slot per pixel on the screen, 
+with a pixel clock of 35MHz.
 
-The system runs at 12.5MHz, so a byte of pixel output (i.e. eight pixels) has four
+The system runs at 17.5MHz, so a byte of pixel output (i.e. eight pixels) has four
 memory accesses to VRAM. Two of them are reserved for video access, one for fetching the
 character data (e.g. at $08xxx in the PET), and the second one to fetch the "character ROM"
 data, i.e. the pixel data for a character. This is also stored in VRAM, and is being loaded
@@ -80,18 +82,20 @@ there from the Flash Boot ROM by the initial boot loader.
 The FPGA reads the character data, stores it to fetch the character pixel data, and streams
 that out using its internal video shift register.
 
-For more detailled descriptions of the features and how to use them, pls see the subdirectory,
+For more detailled descriptions of the features and how to use them, pls see the 
+[FPGA repository](https://github.com/fachat/upet_fpga),
 as described in the next section.
 
 ## Building
 
-Here are four subdirectories:
+Here are three subdirectories:
 
-- [Board](Board/) that contains the board schematics and layout
-- [CPLD](CPLD/) contains the VHDL code to program the FPGA logic chip used, and describes the configuration options - including the [SPI](CPLD/SPI.md) and [DAC](CPLD/DAC.md) usage and the [Video](CPLD/VIDEO.md) feature and register description.
-- [ROM](ROM/) ROM contents to boot
+- [Board](Board/) That contains the board schematics and layout
 - [Demo](Demo/) Some demo programs
 - [tests](tests/) Some test programs
+
+- [FPGA code](https://github.com/fachat/upet_fpga) This separate repository contains the VHDL code to program the FPGA logic chip used, and describes the configuration options - including the SPI and DAC usage and the Video feature and register description.
+- [ROM](https://github.com/fachat/upet_roms) This separate repository contains the ROM contents to boot
 
 ### Board
 
@@ -100,10 +104,10 @@ Currently no gerbers are provided.
 
 ### FPGA
 
-The FPGA is a Xilinx Spartan 3E programmable logic chip. It runs on 3.3V, 
+The FPGA is a Xilinx Spartan 6 programmable logic chip. It runs on 3.3V, 
 so the bus interface has to convert between 3.3V and 5V. Compared to previous versions and the Micro-PET, also
 the RAM and CPU on this board run on 3.3V now.
-I programmed the FPGA in VHDL.
+The FPGA logic here is programmed in VHDL.
 
 The FPGA programming is actually stored in an SPI Flash Prom, so makes re-creating it even easier compared to 
 the previous versions that used a CPLD - the CPLD required a separate programmer, now a (serial) Flash programmer suffices.
@@ -116,15 +120,8 @@ The ROM contains images of all required ROM images for BASIC 1, 2, and 4, and co
 some that have been extended with wedges and colour-PET functionality.
 
 The updated editor ROMs are from [Steve's Editor ROM project](http://www.6502.org/users/sjgray/projects/editrom/index.html) and can handle C64 keyboards, has a DOS wedge included, and resets into the Micro-PET boot menu.
-For more details see the [ROM description](ROM/README.md)
 
-
-## Future Plans
-
-These are future expansions I want to look into. Not all may be possible to implement.
-
-- Look into using the CPU as part of an Apple II clone?
-- replace the 50MHz base clock with 70MHz and try to up the video to 768x576@60Hz
+For more details see the [ROM repository](https://github.com/fachat/upet_roms)
 
 ## Gallery
 
