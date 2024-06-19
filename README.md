@@ -90,6 +90,7 @@ as described in the next section.
 
 ## Version History
 
+- [Revision 1.3C](https://github.com/fachat/csa_ultracpu/tree/r1.3c): first working version using a Spartan 3E FPGA
 - [Revision 1.2B](https://github.com/fachat/csa_ultracpu/tree/csa_ultracpu_1.2b): Version with CPLD and external colour generation.
 
 ## Building
