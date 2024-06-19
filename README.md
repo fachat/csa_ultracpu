@@ -1,14 +1,16 @@
 # Ultra-CPU
 
+Note: this is a part of a larger set of repositories, with [upet_family[() as the main repository.
+
 This is the CPU board for a re-incarnation of the Commodore PET or other computer(s) from the later 1970s.
 
-It is build on a Eurocard board and has only parts that can still be obtained new in 2023.
+It is build on a Eurocard board and has only parts that can still be obtained new in 2024.
 It uses the [CS/A bus interface](http://www.6502.org/users/andre/csa/index.html) to use other I/O boards.
 
 As the memory mapping is programmable using the FPGA on the board, multiple types of computers can
 potentially re-created. I started with my favourite one, the Commodore PET.
 
-The reason this board is called Ultra-CPU is because it has colour over the [MicroPET](http://www.6502.org/users/andre/upet/index.html), and it can potentially be used to recreate not only the Commodore PET.
+The reason this board is called Ultra-CPU is because it can potentially be used to recreate not only the Commodore PET.
 The downside compared to the Micro-PET is, that it needs a separate I/O board to re-create a Commodore PET.
 This can be found [here on my CS/A page](http://www.6502.org/users/andre/csa/petio/index.html).
 
@@ -26,10 +28,10 @@ The board is built with a number of features:
   - 512k video RAM, plus 512k fast RAM, accessible using banks on the W65816 CPU
   - boot from an SPI Flash ROM
   - up to 17.5 MHz mode (via configuration register)
-  - VGA color video output (RGBI in 640x480 mode)
   - Write protection for the PET ROMs once copied to RAM
   - lower 32k RAM mappable from all of the 512k fast RAM
 - Improved Video output:
+  - VGA color video output (RGBI in 768x576 mode)
   - based on 768x576@60Hz VGA video timing (i.e. including borders at 40/80 columns)
   - modifyable character set
   - 40/80 column display switchable
@@ -85,6 +87,10 @@ that out using its internal video shift register.
 For more detailled descriptions of the features and how to use them, pls see the 
 [FPGA repository](https://github.com/fachat/upet_fpga),
 as described in the next section.
+
+## Version History
+
+- [Revision 1.2B](https://github.com/fachat/csa_ultracpu/tree/csa_ultracpu_1.2b): Version with CPLD and external colour generation.
 
 ## Building
 
