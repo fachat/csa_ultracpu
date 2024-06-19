@@ -53,6 +53,10 @@ The board is built with a number of features:
 
 ## Overview
 
+The system architecture is actually rather simple, as you can see in the following graphics.
+
+![Ultra-CPU System Architecture](images/ultracpu-arch.png)
+
 The main functionality is "hidden" inside the FPGA. It does:
 
 1. clock generation and management
