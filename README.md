@@ -1,6 +1,6 @@
 # Ultra-CPU
 
-Note: this is a part of a larger set of repositories, with [upet_family[() as the main repository.
+Note: this is a part of a larger set of repositories, with [upet_family](https://github.com/fachat/upet_family) as the main repository.
 
 This is the CPU board for a re-incarnation of the Commodore PET or other computer(s) from the later 1970s.
 
