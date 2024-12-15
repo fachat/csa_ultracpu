@@ -6517,7 +6517,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Value" "1.0u Cer"
+		(property "Value" "1u"
 			(at 136.144 157.099 0)
 			(effects
 				(font
