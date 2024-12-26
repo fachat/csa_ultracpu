@@ -10695,7 +10695,7 @@
 			)
 		)
 		(property "Footprint" "csa_ultracpu:C0805"
-			(at 0 0 360)
+			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "0e71e21d-5f28-4220-8e44-5449518dfae4")
@@ -10707,7 +10707,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 0 0 360)
+			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "c6f6a392-2729-4ae0-b011-cf870d832397")
@@ -10719,7 +10719,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 0 0 360)
+			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "262a1801-2cc5-4fa5-9e46-2e6cdec903dd")
