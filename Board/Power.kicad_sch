@@ -8692,75 +8692,6 @@
 		)
 	)
 	(symbol
-		(lib_id "csa_ultracpu-eagle-import:CPOL-EUE2.5-6")
-		(at 129.54 175.26 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "5cd06fb6-52d4-4731-8f32-c606cc78fea5")
-		(property "Reference" "C38"
-			(at 130.683 174.7774 0)
-			(effects
-				(font
-					(size 1.778 1.5113)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "22u"
-			(at 130.683 179.8574 0)
-			(effects
-				(font
-					(size 1.778 1.5113)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "csa_ultracpu:E2,5-6"
-			(at 129.54 175.26 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 129.54 175.26 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" ""
-			(at 129.54 175.26 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "+"
-			(uuid "33a4d538-676f-425e-94a6-7cd1cc024342")
-		)
-		(pin "-"
-			(uuid "70ec03a5-d055-40e6-b951-8f5524d55b0b")
-		)
-		(instances
-			(project ""
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/9a31233f-ca04-4c2c-b272-c5e144bd19b1"
-					(reference "C38")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "csa_ultracpu-eagle-import:C-EUC0603")
 		(at 132.08 78.74 0)
 		(unit 1)
@@ -10199,6 +10130,75 @@
 			(project ""
 				(path "/381336a5-a662-4c84-a650-90475fa59a97/9a31233f-ca04-4c2c-b272-c5e144bd19b1"
 					(reference "#GND037")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "csa_ultracpu-eagle-import:C-EUC0805")
+		(at 129.54 175.26 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "8f34a3bf-3c33-4265-9ee3-0bbf42440d28")
+		(property "Reference" "C38"
+			(at 131.064 174.879 0)
+			(effects
+				(font
+					(size 1.778 1.5113)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "22u"
+			(at 131.064 179.959 0)
+			(effects
+				(font
+					(size 1.778 1.5113)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "csa_ultracpu:C0805"
+			(at 129.54 175.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 129.54 175.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 129.54 175.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "dacd8275-b95c-4f49-8196-815ee205aa37")
+		)
+		(pin "2"
+			(uuid "d28861a3-5767-4d46-8af1-c0aa4665498b")
+		)
+		(instances
+			(project "csa_ultracpu"
+				(path "/381336a5-a662-4c84-a650-90475fa59a97/9a31233f-ca04-4c2c-b272-c5e144bd19b1"
+					(reference "C38")
 					(unit 1)
 				)
 			)
