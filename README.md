@@ -32,7 +32,7 @@ The board is built with a number of features:
   - lower 32k RAM mappable from all of the 512k fast RAM
 - Improved Video output:
   - VGA color video output (RGBI in 768x576 mode)
-  - based on 768x576@60Hz VGA video timing (i.e. including borders at 40/80 columns)
+  - based on 720x576@60Hz VGA video timing (i.e. including borders at 40/80 columns)
   - modifyable character set
   - 40/80 column display switchable
   - 25/50 rows display switch
@@ -76,10 +76,9 @@ as
 3. with the SPI boot they don't occupy valuable CPU address space.
 
 The video generation is done using time-sharing access to the video RAM.
-The VGA output is 768x576 at 60Hz. So there is a 28ns slot per pixel on the screen, 
-with a pixel clock of 35MHz.
+The VGA output is 720x576 at 50Hz. So there is a pixel clock of 27MHz.
 
-The system runs at 17.5MHz, so a byte of pixel output (i.e. eight pixels) has four
+The system runs at 13.5MHz, so a byte of pixel output (i.e. eight pixels) has four
 memory accesses to VRAM. Two of them are reserved for video access, one for fetching the
 character data (e.g. at $08xxx in the PET), and the second one to fetch the "character ROM"
 data, i.e. the pixel data for a character. This is also stored in VRAM, and is being loaded
@@ -94,8 +93,25 @@ as described in the next section.
 
 ## Version History
 
+- [Revision 2.1A](https://github.com/fachat/csa_ultracpu/tree/r2.1a): Version using a Spartan 6 FPGA
 - [Revision 1.3C](https://github.com/fachat/csa_ultracpu/tree/r1.3c): first working version using a Spartan 3E FPGA
 - [Revision 1.2B](https://github.com/fachat/csa_ultracpu/tree/csa_ultracpu_1.2b): Version with CPLD and external colour generation.
+
+## Known Issues
+
+The following issues have been identified:
+
+* Audio quality
+
+Below are the fixes for these. Note, these are NOT yet in the BOM.
+
+### Audio quality
+
+The DAC audio output is not linear with the given schematics. This can be fixed by
+
+* removing R30 and R32
+* replace C3 and C10 with a 22uF  electrolytic cap. Orient minus pole to the output connector
+
 
 ## Building
 
