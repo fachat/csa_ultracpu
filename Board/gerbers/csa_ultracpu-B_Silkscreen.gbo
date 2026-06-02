@@ -1,0 +1,21 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,8.0.7*%
+%TF.CreationDate,2024-12-14T19:25:05+01:00*%
+%TF.ProjectId,csa_ultracpu,6373615f-756c-4747-9261-6370752e6b69,rev?*%
+%TF.SameCoordinates,Original*%
+%TF.FileFunction,Legend,Bot*%
+%TF.FilePolarity,Positive*%
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 8.0.7) date 2024-12-14 19:25:05*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%ADD10C,0.203200*%
+G04 APERTURE END LIST*
+D10*
+%TO.C,U$7*%
+X136917350Y-58769300D02*
+X135647350Y-58769300D01*
+%TD*%
+M02*

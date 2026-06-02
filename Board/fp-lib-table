@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "csa_ultracpu")(type "KiCad")(uri "$(KIPRJMOD)/csa_ultracpu.pretty")(options "")(descr ""))
+)
