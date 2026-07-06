@@ -6881,7 +6881,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:TO92"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
 			(at 259.08 96.52 0)
 			(effects
 				(font
