@@ -4,9 +4,485 @@
 	(generator_version "9.0")
 	(uuid "381336a5-a662-4c84-a650-90475fa59a97")
 	(paper "A4")
-	(lib_symbols)
+	(lib_symbols
+		(symbol "csa_ultracpu-eagle-import:DOCFIELD"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "#FRAME"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Value" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "DOCUMENT FIELD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_locked" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "DOCFIELD_1_0"
+				(polyline
+					(pts
+						(xy 0 22.86) (xy 0 35.56)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 22.86) (xy 101.6 22.86)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 15.24) (xy 0 22.86)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 5.08) (xy 0 15.24)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 5.08) (xy 71.12 5.08)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 0) (xy 0 5.08)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 0) (xy 71.12 0)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 71.12 5.08) (xy 71.12 0)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 71.12 5.08) (xy 87.63 5.08)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 71.12 0) (xy 101.6 0)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 87.63 15.24) (xy 0 15.24)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 87.63 15.24) (xy 87.63 5.08)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 87.63 5.08) (xy 101.6 5.08)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 101.6 35.56) (xy 0 35.56)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 101.6 35.56) (xy 101.6 22.86)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 101.6 22.86) (xy 101.6 15.24)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 101.6 15.24) (xy 87.63 15.24)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 101.6 15.24) (xy 101.6 5.08)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 101.6 5.08) (xy 101.6 0)
+					)
+					(stroke
+						(width 0.1016)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(text "TITLE:"
+					(at 1.27 19.05 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "Document Number:"
+					(at 1.27 11.43 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "Date:"
+					(at 1.27 1.27 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "${CURRENT_DATE}"
+					(at 12.7 1.27 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "${PROJECTNAME}"
+					(at 17.78 19.05 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "Sheet:"
+					(at 72.39 1.27 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "${#}/${##}"
+					(at 86.36 1.27 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+				(text "REV:"
+					(at 88.9 11.43 0)
+					(effects
+						(font
+							(size 2.54 2.54)
+						)
+						(justify left bottom)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+	)
+	(text "CSA-ULTRACPU-V2.2A"
+		(exclude_from_sim no)
+		(at 194.31 172.72 0)
+		(effects
+			(font
+				(size 3.81 3.2385)
+			)
+			(justify left bottom)
+		)
+		(uuid "f5db8aa8-48b2-44e5-ab1a-7113812960d2")
+	)
+	(bus
+		(pts
+			(xy 287.02 38.735) (xy 33.655 38.735)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "14bc3993-e366-4aed-a933-8812feacc273")
+	)
+	(bus
+		(pts
+			(xy 33.655 38.735) (xy 33.655 199.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "187d1811-fd6f-470c-ab13-94dd582fb61a")
+	)
+	(bus
+		(pts
+			(xy 287.02 199.39) (xy 287.02 38.735)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b0c433a2-f735-4afc-bf00-20521e345f0a")
+	)
+	(bus
+		(pts
+			(xy 33.655 199.39) (xy 287.02 199.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b24fce25-58a3-4baa-bf07-cdd3d0f83e62")
+	)
+	(symbol
+		(lib_id "csa_ultracpu-eagle-import:DOCFIELD")
+		(at 185.42 199.39 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "0ea006c2-5683-4302-8c10-03f1a9a0a664")
+		(property "Reference" "#FRAME7"
+			(at 185.42 199.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "DOCFIELD"
+			(at 185.42 199.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" ""
+			(at 185.42 199.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 185.42 199.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 185.42 199.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(instances
+			(project "csa_ultracpu"
+				(path "/381336a5-a662-4c84-a650-90475fa59a97"
+					(reference "#FRAME7")
+					(unit 1)
+				)
+			)
+		)
+	)
 	(sheet
-		(at 228.6 25.4)
+		(at 189.23 102.87)
 		(size 12.7 3.81)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -22,7 +498,7 @@
 		)
 		(uuid "2002a839-3bb0-44ee-a1e7-391421f825e7")
 		(property "Sheetname" "USB"
-			(at 228.6 24.6884 0)
+			(at 189.23 102.1584 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -31,7 +507,7 @@
 			)
 		)
 		(property "Sheetfile" "USB.kicad_sch"
-			(at 228.6 29.7946 0)
+			(at 189.23 107.2646 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -48,7 +524,7 @@
 		)
 	)
 	(sheet
-		(at 177.8 25.4)
+		(at 138.43 102.87)
 		(size 12.7 3.81)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -64,7 +540,7 @@
 		)
 		(uuid "22134f76-601c-46ce-8356-a6a96880f540")
 		(property "Sheetname" "A/V Out"
-			(at 177.8 24.6884 0)
+			(at 138.43 102.1584 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -73,7 +549,7 @@
 			)
 		)
 		(property "Sheetfile" "A%2fV_Out.kicad_sch"
-			(at 177.8 29.7946 0)
+			(at 138.43 107.2646 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -90,7 +566,7 @@
 		)
 	)
 	(sheet
-		(at 25.4 25.4)
+		(at 85.09 77.47)
 		(size 12.7 3.81)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -106,7 +582,7 @@
 		)
 		(uuid "7a53c3a5-c5ea-4475-b6b5-344b9975c5d6")
 		(property "Sheetname" "BUS I/O"
-			(at 25.4 24.6884 0)
+			(at 85.09 76.7584 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -115,7 +591,7 @@
 			)
 		)
 		(property "Sheetfile" "BUS_I%2fO.kicad_sch"
-			(at 25.4 29.7946 0)
+			(at 85.09 81.8646 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -132,7 +608,7 @@
 		)
 	)
 	(sheet
-		(at 25.4 76.2)
+		(at 85.09 101.6)
 		(size 12.7 3.81)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -148,7 +624,7 @@
 		)
 		(uuid "975c7426-cbb2-4a67-bda9-e06ca3c81773")
 		(property "Sheetname" "Audio/Video"
-			(at 25.4 75.4884 0)
+			(at 85.09 100.8884 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -157,7 +633,7 @@
 			)
 		)
 		(property "Sheetfile" "Audio%2fVideo.kicad_sch"
-			(at 25.4 80.5946 0)
+			(at 85.09 105.9946 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -174,7 +650,7 @@
 		)
 	)
 	(sheet
-		(at 127 25.4)
+		(at 186.69 77.47)
 		(size 12.7 3.81)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -190,7 +666,7 @@
 		)
 		(uuid "9a31233f-ca04-4c2c-b272-c5e144bd19b1")
 		(property "Sheetname" "Power"
-			(at 127 24.6884 0)
+			(at 186.69 76.7584 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -199,7 +675,7 @@
 			)
 		)
 		(property "Sheetfile" "Power.kicad_sch"
-			(at 127 29.7946 0)
+			(at 186.69 81.8646 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -216,7 +692,7 @@
 		)
 	)
 	(sheet
-		(at 76.2 25.4)
+		(at 135.89 77.47)
 		(size 12.7 3.81)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -232,7 +708,7 @@
 		)
 		(uuid "eedf0d8e-348e-4413-8cbb-f9fc41eecd37")
 		(property "Sheetname" "CPU,RAM,ROM"
-			(at 76.2 24.6884 0)
+			(at 135.89 76.7584 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -241,7 +717,7 @@
 			)
 		)
 		(property "Sheetfile" "CPU,RAM,ROM.kicad_sch"
-			(at 76.2 29.7946 0)
+			(at 135.89 81.8646 0)
 			(effects
 				(font
 					(size 1.27 1.27)
