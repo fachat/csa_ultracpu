@@ -855,6 +855,14 @@
     [
       "975c7426-cbb2-4a67-bda9-e06ca3c81773",
       "Audio/Video"
+    ],
+    [
+      "8a7f2d04-651a-4dfc-92ea-f78d88eafd11",
+      "FPGA Support"
+    ],
+    [
+      "d606db90-8174-4413-b253-c6228a8a46d8",
+      "FPGA IO"
     ]
   ],
   "text_variables": {}

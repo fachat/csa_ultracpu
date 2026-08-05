@@ -2740,6 +2740,16 @@
 		)
 		(uuid "e1ac4a83-397e-4339-a5da-92a1ed720d83")
 	)
+	(text "TODO: default solder jumper to right settings!\n"
+		(exclude_from_sim no)
+		(at 71.12 166.37 0)
+		(effects
+			(font
+				(size 2.54 2.54)
+			)
+		)
+		(uuid "f21778d8-8bbc-4b74-bee5-c51c50d747dc")
+	)
 	(junction
 		(at 63.5 43.18)
 		(diameter 0)
