@@ -298,7 +298,13 @@
       "mpn": "",
       "sch_revision": ""
     },
-    "layer_pairs": [],
+    "layer_pairs": [
+      {
+        "bottomLayer": 6,
+        "enabled": true,
+        "topLayer": 0
+      }
+    ],
     "layer_presets": [],
     "viewports": []
   },
@@ -885,7 +891,7 @@
         "uuid": "381336a5-a662-4c84-a650-90475fa59a97"
       }
     ],
-    "used_designators": "#GND41,C52-53,C59-63,C72",
+    "used_designators": "#GND41,#GND47,C52-53,C59-63,C72",
     "variants": []
   },
   "sheets": [
