@@ -11620,7 +11620,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:0207_2V"
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 			(at 154.94 124.46 0)
 			(hide yes)
 			(show_name no)
@@ -11643,6 +11643,17 @@
 			)
 		)
 		(property "Description" ""
+			(at 154.94 124.46 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C23138"
 			(at 154.94 124.46 0)
 			(hide yes)
 			(show_name no)

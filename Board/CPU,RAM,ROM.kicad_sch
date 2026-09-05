@@ -5177,7 +5177,7 @@
 	)
 	(wire
 		(pts
-			(xy 171.45 186.69) (xy 158.75 186.69)
+			(xy 171.45 186.69) (xy 150.495 186.69)
 		)
 		(stroke
 			(width 0.1524)
@@ -7269,6 +7269,30 @@
 			)
 		)
 	)
+	(global_label "PHI2"
+		(shape bidirectional)
+		(at 150.495 186.69 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.2446 1.2446)
+			)
+			(justify right)
+		)
+		(uuid "1eadb0d3-f365-43a8-8448-e33af23d16d3")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 142.1543 186.69 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+	)
 	(global_label "A3"
 		(shape input)
 		(at 46.99 207.01 180)
@@ -8106,6 +8130,30 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+			)
+		)
+	)
+	(global_label "QCLK"
+		(shape bidirectional)
+		(at 208.28 57.15 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.778 1.778)
+			)
+			(justify left)
+		)
+		(uuid "81a11b1b-a76e-42ef-8420-c73bd44e61b8")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 220.8728 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 			)
 		)
 	)
@@ -8986,6 +9034,30 @@
 		(uuid "e8c05abb-48e6-4dc1-94ea-58a76f145913")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 228.6941 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+	)
+	(global_label "{slash}BE"
+		(shape bidirectional)
+		(at 303.53 151.13 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.2446 1.2446)
+			)
+			(justify left)
+		)
+		(uuid "e8c619e2-0d02-4037-94de-ac775d75032f")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 311.2188 151.13 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

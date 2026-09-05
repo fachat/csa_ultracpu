@@ -4524,7 +4524,7 @@
 			(on_board yes)
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "D"
+			(property "Reference" "D9"
 				(at 2.54 0.4826 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4535,7 +4535,7 @@
 					(justify left bottom)
 				)
 			)
-			(property "Value" ""
+			(property "Value" "1N4448"
 				(at 2.54 -2.3114 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4546,7 +4546,7 @@
 					(justify left bottom)
 				)
 			)
-			(property "Footprint" "csa_ultracpu:D-5"
+			(property "Footprint" "Diode_SMD:D_SOD-123"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4568,7 +4568,18 @@
 					)
 				)
 			)
-			(property "Description" "DIODE"
+			(property "Description" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "LCSC" "C2128"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4651,24 +4662,6 @@
 					)
 				)
 				(pin passive line
-					(at -2.54 0 0)
-					(length 2.54)
-					(name "A"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "A"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-				)
-				(pin passive line
 					(at 2.54 0 180)
 					(length 2.54)
 					(name "C"
@@ -4678,7 +4671,25 @@
 							)
 						)
 					)
-					(number "C"
+					(number "1"
+						(effects
+							(font
+								(size 0 0)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 0 0)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 0 0)
+							)
+						)
+					)
+					(number "2"
 						(effects
 							(font
 								(size 0 0)
@@ -13447,7 +13458,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:JP1"
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Horizontal"
 			(at 327.66 149.86 0)
 			(hide yes)
 			(show_name no)
@@ -15073,7 +15084,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:D-5"
+		(property "Footprint" "Diode_SMD:D_SOD-123"
 			(at 307.34 160.02 0)
 			(hide yes)
 			(show_name no)
@@ -15106,10 +15117,21 @@
 				)
 			)
 		)
-		(pin "A"
+		(property "LCSC" "C2128"
+			(at 307.34 160.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
 			(uuid "dc140262-fe3b-45a2-989c-cc080e220005")
 		)
-		(pin "C"
+		(pin "2"
 			(uuid "64e6c850-23ec-472b-8fa0-9c43ba9762dd")
 		)
 		(instances
