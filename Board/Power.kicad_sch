@@ -2862,7 +2862,7 @@
 		)
 		(uuid "c098b6b9-68e3-41ff-b970-9b7674cbda56")
 	)
-	(text "CSA-ULTRACPU-V2.2A"
+	(text "CSA-ULTRACPU-V3.0A"
 		(exclude_from_sim no)
 		(at 251.46 175.26 0)
 		(effects

@@ -2895,7 +2895,7 @@
 		)
 		(uuid "a4966cd8-0b30-4747-a4f4-04db1f8339ba")
 	)
-	(text "CSA-ULTRACPU-V2.2A"
+	(text "CSA-ULTRACPU-V3.0A"
 		(exclude_from_sim no)
 		(at 208.28 144.78 0)
 		(effects

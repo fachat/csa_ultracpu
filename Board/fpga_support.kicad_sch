@@ -6997,7 +6997,7 @@
 		)
 		(uuid "1084ae29-6d64-4d87-b6f7-dcabd1fdaef3")
 	)
-	(text "CSA-ULTRACPU-V2.2A"
+	(text "CSA-ULTRACPU-V3.0A"
 		(exclude_from_sim no)
 		(at 15.24 171.45 0)
 		(effects
@@ -7028,7 +7028,7 @@
 		)
 		(uuid "49e387a5-8fc2-47e0-861d-aa244b217051")
 	)
-	(text "CSA-ULTRACPU-V2.1A-20241207"
+	(text "CSA-ULTRACPU-V2.0A-20260905"
 		(exclude_from_sim no)
 		(at 15.24 194.31 0)
 		(effects

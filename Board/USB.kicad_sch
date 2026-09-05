@@ -4047,7 +4047,7 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "CSA-ULTRACPU-V2.2A"
+	(text "CSA-ULTRACPU-V3.0A"
 		(exclude_from_sim no)
 		(at 208.28 167.64 0)
 		(effects
