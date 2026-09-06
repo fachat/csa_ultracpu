@@ -4927,6 +4927,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C14663"
+			(at 54.61 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "0435643e-0700-4c66-a79d-845317861305")
 		)
@@ -4999,6 +5010,17 @@
 		)
 		(property "Description" ""
 			(at 54.61 41.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C14663"
+			(at 56.134 41.529 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5081,6 +5103,17 @@
 		)
 		(property "Description" ""
 			(at 40.64 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C14663"
+			(at 39.37 73.66 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5328,6 +5361,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C14663"
+			(at 47.244 41.529 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "651280e6-ef87-4f2d-be25-023dd29d4aec")
 		)
@@ -5401,6 +5445,17 @@
 		)
 		(property "Description" ""
 			(at 40.64 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C14663"
+			(at 39.37 81.28 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5563,6 +5618,17 @@
 		)
 		(property "Description" ""
 			(at 46.99 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C14663"
+			(at 54.61 77.47 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5899,6 +5965,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C14663"
+			(at 54.61 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "3790cd20-4bb5-4ff4-a3bd-bcb2eeb4d493")
 		)
@@ -6063,6 +6140,17 @@
 		)
 		(property "Description" "Polarized capacitor"
 			(at 115.57 118.11 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C16780"
+			(at 119.38 115.9509 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6649,6 +6737,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C14663"
+			(at 39.37 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "d03f9c59-8ff5-4dea-8121-e115bb61e22c")
 		)
@@ -6722,6 +6821,17 @@
 		)
 		(property "Description" ""
 			(at 46.99 71.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C14663"
+			(at 54.61 68.58 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7456,6 +7566,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C14663"
+			(at 39.37 64.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "613d3972-1ba2-4803-b69b-1d4f6f7ba2bd")
 		)
@@ -7529,6 +7650,17 @@
 		)
 		(property "Description" "Polarized capacitor"
 			(at 63.5 43.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C16780"
+			(at 67.31 41.0209 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

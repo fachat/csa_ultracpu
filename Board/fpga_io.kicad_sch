@@ -12106,6 +12106,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C169795"
+			(at 295.275 241.3 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "A2"
 			(uuid "ee28601c-935c-4e6c-b052-ec69b0c78823")
 		)
@@ -13136,6 +13147,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C6057"
+			(at 45.085 79.375 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "8b469900-c27b-4f7e-ac6f-5da8b3114de2")
 		)
@@ -13245,6 +13267,17 @@
 		)
 		(property "Description" ""
 			(at 217.805 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C6057"
+			(at 218.44 57.785 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13513,6 +13546,17 @@
 		)
 		(property "Description" "Spartan 6 LX 25 XC6SLX25-CSG324"
 			(at 121.92 151.13 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C169795"
+			(at 121.92 234.95 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

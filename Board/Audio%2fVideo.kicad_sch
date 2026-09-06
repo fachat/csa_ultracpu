@@ -4923,6 +4923,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C144363"
+			(at 217.17 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "6c7f6ffc-31bb-4ca3-9660-f91f544fc02b")
 		)
@@ -4989,7 +5000,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:C050-025X075"
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 273.05 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -5013,6 +5024,17 @@
 		)
 		(property "Description" ""
 			(at 273.05 59.69 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C15849"
+			(at 272.669 58.166 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5094,6 +5116,17 @@
 		)
 		(property "Description" ""
 			(at 328.93 64.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C145814"
+			(at 326.39 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5316,7 +5349,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:0204V"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 			(at 295.91 77.47 0)
 			(hide yes)
 			(show_name no)
@@ -5340,6 +5373,17 @@
 		)
 		(property "Description" ""
 			(at 295.91 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C23228"
+			(at 294.4114 81.28 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5397,7 +5441,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:0204V"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 			(at 288.29 77.47 0)
 			(hide yes)
 			(show_name no)
@@ -5421,6 +5465,17 @@
 		)
 		(property "Description" ""
 			(at 288.29 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C23228"
+			(at 286.7914 81.28 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5512,6 +5567,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C587036"
+			(at 241.3 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "533921db-744a-4623-a8ec-ab022206abde")
 		)
@@ -5563,7 +5629,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:0204V"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 			(at 227.33 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -5587,6 +5653,17 @@
 		)
 		(property "Description" ""
 			(at 227.33 59.69 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C22775"
+			(at 223.52 58.1914 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5644,7 +5721,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:C050-025X075"
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 273.05 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -5668,6 +5745,17 @@
 		)
 		(property "Description" ""
 			(at 273.05 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C15849"
+			(at 272.669 68.326 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5750,6 +5838,17 @@
 		)
 		(property "Description" "512K x 16 HIGH-SPEED CMOS STATIC RAM, 10ns, TSOP II-44"
 			(at 96.266 144.018 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C57407"
+			(at 96.1233 62.23 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6011,7 +6110,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "csa_ultracpu:0204V"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
 			(at 227.33 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -6035,6 +6134,17 @@
 		)
 		(property "Description" ""
 			(at 227.33 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C22775"
+			(at 223.52 68.3514 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

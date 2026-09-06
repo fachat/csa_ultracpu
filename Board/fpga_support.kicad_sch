@@ -9528,6 +9528,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C5661"
+			(at 219.075 99.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "10"
 			(uuid "d19e0add-5622-48a4-841e-eeda73e8745b")
 		)
@@ -9617,6 +9628,17 @@
 		)
 		(property "Description" ""
 			(at 210.82 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C5661"
+			(at 192.405 95.885 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9869,6 +9891,17 @@
 		)
 		(property "Description" "Spartan 6 LX 25 XC6SLX25-CSG324"
 			(at 236.22 71.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C169795"
+			(at 269.5575 69.8499 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10896,6 +10929,17 @@
 		)
 		(property "Description" "Spartan 6 LX 25 XC6SLX25-CSG324"
 			(at 60.96 110.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C169795"
+			(at 60.96 62.23 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12102,6 +12146,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C234182"
+			(at 149.86 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "02a28705-c24b-483a-9c38-19309661439b")
 		)
@@ -12261,6 +12316,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17414"
+			(at 161.0614 44.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "e2a43267-06a4-40a9-858c-382dcbf87ac9")
 		)
@@ -12336,6 +12402,17 @@
 		)
 		(property "Description" ""
 			(at 247.65 118.11 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C5661"
+			(at 229.235 106.045 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
