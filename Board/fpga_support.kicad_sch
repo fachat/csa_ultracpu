@@ -9568,7 +9568,7 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "43fd16c9-94e9-4f4a-9c98-611d365ff4f9")
+		(uuid "43fd16c9-94e9-4f4a-9c98-611d365ff4fa")
 		(property "Reference" "U$2"
 			(at 192.405 95.885 0)
 			(hide yes)
@@ -9627,25 +9627,25 @@
 			)
 		)
 		(pin "10"
-			(uuid "d19e0add-5622-48a4-841e-eeda73e8745b")
+			(uuid "d19e0add-5622-48a4-841e-eeda73e8745c")
 		)
 		(pin "1"
-			(uuid "8c263769-013c-4fae-aa05-8be600d51ffa")
+			(uuid "8c263769-013c-4fae-aa05-8be600d51ffb")
 		)
 		(pin "3"
-			(uuid "41ddb55d-4097-4112-b790-bf89f9d26526")
+			(uuid "41ddb55d-4097-4112-b790-bf89f9d26527")
 		)
 		(pin "5"
-			(uuid "9d43a997-3cd1-4c5c-88da-21888d9ed68b")
+			(uuid "9d43a997-3cd1-4c5c-88da-21888d9ed68c")
 		)
 		(pin "9"
-			(uuid "2b287146-ab88-4210-9209-6fe52bc7c0f7")
+			(uuid "2b287146-ab88-4210-9209-6fe52bc7c0f8")
 		)
 		(pin "2"
-			(uuid "9e942815-f2d6-4ac7-ac65-41bf50bbd3c9")
+			(uuid "9e942815-f2d6-4ac7-ac65-41bf50bbd3ca")
 		)
 		(pin "4"
-			(uuid "a1ed5c93-6daf-4d12-96d7-53bdbe9dbfcf")
+			(uuid "a1ed5c93-6daf-4d12-96d7-53bdbe9dbfd0")
 		)
 		(instances
 			(project "csa_ultracpu"

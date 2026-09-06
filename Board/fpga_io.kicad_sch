@@ -7146,16 +7146,6 @@
 	)
 	(wire
 		(pts
-			(xy 236.855 190.5) (xy 244.475 190.5)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "036cf7ef-ea5a-4bef-932a-3e5e89f3fb8e")
-	)
-	(wire
-		(pts
 			(xy 172.72 201.93) (xy 181.61 201.93)
 		)
 		(stroke
@@ -7233,6 +7223,16 @@
 			(type default)
 		)
 		(uuid "0cb31e83-4cf8-4c8a-8cf0-36210f287de7")
+	)
+	(wire
+		(pts
+			(xy 236.855 190.5) (xy 244.475 190.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0d3717b1-a7eb-4a82-934b-e0e8043d0f22")
 	)
 	(wire
 		(pts
@@ -7403,16 +7403,6 @@
 			(type default)
 		)
 		(uuid "2e6e7ac5-0b3a-4c28-88f1-95bf1f21ee0a")
-	)
-	(wire
-		(pts
-			(xy 236.855 167.64) (xy 244.475 167.64)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "301410ed-30c1-4215-8cdb-21397d7d3ad6")
 	)
 	(wire
 		(pts
@@ -8133,6 +8123,16 @@
 			(type default)
 		)
 		(uuid "8b0da65f-3b4a-4ede-b4bb-ad61196dee87")
+	)
+	(wire
+		(pts
+			(xy 236.855 167.64) (xy 244.475 167.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8b65bd3b-9aa7-4909-a226-001a1c6ec0ee")
 	)
 	(wire
 		(pts
@@ -9188,7 +9188,7 @@
 	)
 	(global_label "/RAMWE"
 		(shape bidirectional)
-		(at 236.855 190.5 180)
+		(at 236.855 167.64 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -9198,7 +9198,7 @@
 		)
 		(uuid "215470a1-f393-443e-bfdf-56eb0be8375e")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 225.2546 190.5 0)
+			(at 225.2546 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10388,7 +10388,7 @@
 	)
 	(global_label "RAMA9"
 		(shape bidirectional)
-		(at 236.855 167.64 180)
+		(at 236.855 190.5 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -10398,7 +10398,7 @@
 		)
 		(uuid "7851b10b-64b5-4da1-b291-b6400f0c97bd")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 226.8549 167.64 0)
+			(at 226.8549 190.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
