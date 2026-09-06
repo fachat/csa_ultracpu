@@ -1005,7 +1005,7 @@
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
 			(property "Reference" "U3"
-				(at 0.8733 25.4 0)
+				(at 3.81 21.59 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
@@ -1060,7 +1060,7 @@
 					)
 				)
 			)
-			(property "LCSC" "C2674166"
+			(property "LCSC" "C2674182"
 				(at 0.8733 25.4 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1083,7 +1083,7 @@
 						(type background)
 					)
 				)
-				(text "PI3HDX511D"
+				(text "PI3HDX511EZ"
 					(at -2.794 -22.86 900)
 					(effects
 						(font
@@ -1346,7 +1346,7 @@
 				(pin input line
 					(at -19.05 -44.45 0)
 					(length 2.54)
-					(name "TEST"
+					(name "ROUT_S0"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1660,6 +1660,195 @@
 						)
 					)
 					(number "32"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Jumper:SolderJumper_2_Bridged"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "JP"
+				(at 0 2.032 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "SolderJumper_2_Bridged"
+				(at 0 -2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 -6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Solder Jumper, 2-pole, closed/bridged"
+				(at 0 -5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "solder jumper SPST"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "SolderJumper*Bridged*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "SolderJumper_2_Bridged_0_1"
+				(rectangle
+					(start -0.508 0.508)
+					(end 0.508 -0.508)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy -0.254 1.016) (xy -0.254 -1.016)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -0.254 -1.016)
+					(mid -1.2656 0)
+					(end -0.254 1.016)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(arc
+					(start 0.254 1.016)
+					(mid 1.2656 0)
+					(end 0.254 -1.016)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.254 1.016) (xy 0.254 -1.016)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "SolderJumper_2_Bridged_1_1"
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 180)
+					(length 3.81)
+					(name "B"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2404,213 +2593,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "csa_ultracpu-eagle-import:JP1E"
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "JP"
-				(at -1.27 0 90)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.778 1.5113)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Value" ""
-				(at 5.715 0 90)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.778 1.5113)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Footprint" "csa_ultracpu:JP1"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "JUMPER"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_locked" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "JP1E_1_0"
-				(polyline
-					(pts
-						(xy -0.635 0.635) (xy -0.635 0)
-					)
-					(stroke
-						(width 0.4064)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -0.635 0) (xy 3.175 0)
-					)
-					(stroke
-						(width 0.4064)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 2.54) (xy 0 1.27)
-					)
-					(stroke
-						(width 0.4064)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 1.27)
-					)
-					(stroke
-						(width 0.1524)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 2.54) (xy 2.54 1.27)
-					)
-					(stroke
-						(width 0.4064)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 0) (xy 2.54 1.27)
-					)
-					(stroke
-						(width 0.1524)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 3.175 0.635) (xy -0.635 0.635)
-					)
-					(stroke
-						(width 0.4064)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 3.175 0) (xy 3.175 0.635)
-					)
-					(stroke
-						(width 0.4064)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at 0 -2.54 90)
-					(length 2.54)
-					(name "1"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 2.54 -2.54 90)
-					(length 2.54)
-					(name "2"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "csa_ultracpu-eagle-import:VCC"
 			(power global)
 			(exclude_from_sim no)
@@ -2917,6 +2899,18 @@
 		(uuid "f21778d8-8bbc-4b74-bee5-c51c50d747dc")
 	)
 	(junction
+		(at 184.15 130.81)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "07ee4449-e486-47ee-8af1-264d6ffd1e0a")
+	)
+	(junction
+		(at 181.61 130.81)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "21836bde-4802-4a8a-a511-59ca0cc418f3")
+	)
+	(junction
 		(at 63.5 36.83)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2963,6 +2957,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "bf878a61-82cc-44f2-b091-024cba6a63d3")
+	)
+	(junction
+		(at 179.07 130.81)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c0921a81-92f3-4d7a-8a70-d578b76c6836")
 	)
 	(junction
 		(at 57.15 48.26)
@@ -3037,6 +3037,16 @@
 			(type default)
 		)
 		(uuid "07372555-2de2-41c4-9113-c9385dfc5820")
+	)
+	(wire
+		(pts
+			(xy 34.29 91.44) (xy 62.23 91.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "07607bbf-b1c8-419e-b1bc-1210d6876c66")
 	)
 	(wire
 		(pts
@@ -3240,6 +3250,16 @@
 	)
 	(wire
 		(pts
+			(xy 176.53 50.8) (xy 181.61 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2d9d1016-0624-4a58-bc1b-fc0efbdcf6ce")
+	)
+	(wire
+		(pts
 			(xy 26.67 67.31) (xy 31.115 67.31)
 		)
 		(stroke
@@ -3430,6 +3450,16 @@
 	)
 	(wire
 		(pts
+			(xy 176.53 130.81) (xy 179.07 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "54a370f3-97a7-4e68-b6f4-bfcf3d3f0154")
+	)
+	(wire
+		(pts
 			(xy 45.72 59.69) (xy 63.5 59.69)
 		)
 		(stroke
@@ -3447,6 +3477,16 @@
 			(type default)
 		)
 		(uuid "563f888a-704c-425e-af0a-9bf53d1e506e")
+	)
+	(wire
+		(pts
+			(xy 62.23 135.89) (xy 72.39 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "56a7d62a-1895-42e5-af44-e337f90aa1b1")
 	)
 	(wire
 		(pts
@@ -3547,6 +3587,16 @@
 			(type default)
 		)
 		(uuid "6a7a026f-2c9d-403c-a21f-8531002a6068")
+	)
+	(wire
+		(pts
+			(xy 34.29 90.17) (xy 34.29 91.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6ae498fb-8a36-43a8-ae68-256aa0a69774")
 	)
 	(wire
 		(pts
@@ -3710,6 +3760,16 @@
 	)
 	(wire
 		(pts
+			(xy 179.07 130.81) (xy 181.61 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7f3faf90-11b4-42dc-bf9f-4f9e79ee0f41")
+	)
+	(wire
+		(pts
 			(xy 171.45 67.31) (xy 147.32 67.31)
 		)
 		(stroke
@@ -3717,6 +3777,16 @@
 			(type default)
 		)
 		(uuid "7fb73c42-f91e-410c-aea1-36427fe3444e")
+	)
+	(wire
+		(pts
+			(xy 162.56 50.8) (xy 166.37 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "814832b2-ae71-4722-adc9-0c808c0c2008")
 	)
 	(wire
 		(pts
@@ -3767,6 +3837,16 @@
 			(type default)
 		)
 		(uuid "8984a3db-c39a-4c81-a666-1f58b845eb79")
+	)
+	(wire
+		(pts
+			(xy 181.61 113.03) (xy 181.61 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8a9e4f41-f4ae-4bfe-bdcf-4e1c9a1e4fb9")
 	)
 	(wire
 		(pts
@@ -3830,13 +3910,13 @@
 	)
 	(wire
 		(pts
-			(xy 176.53 120.65) (xy 176.53 113.03)
+			(xy 29.21 90.17) (xy 34.29 90.17)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "94c99870-d315-4689-bf55-290e908abc9b")
+		(uuid "94ded02a-5f1e-4e08-b73e-6a27572d5a44")
 	)
 	(wire
 		(pts
@@ -3847,26 +3927,6 @@
 			(type default)
 		)
 		(uuid "97dac644-dad2-4739-b078-e7689098f8aa")
-	)
-	(wire
-		(pts
-			(xy 162.56 50.8) (xy 175.26 50.8)
-		)
-		(stroke
-			(width 0.1524)
-			(type solid)
-		)
-		(uuid "9934d6ca-6942-434d-895d-74c478ea2e27")
-	)
-	(wire
-		(pts
-			(xy 151.13 123.19) (xy 179.07 123.19)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9a04a3db-bbeb-47d1-b17f-dc102914064a")
 	)
 	(wire
 		(pts
@@ -3900,16 +3960,6 @@
 	)
 	(wire
 		(pts
-			(xy 177.8 50.8) (xy 181.61 50.8)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a013f07d-df29-4caa-b6d0-af3221a53beb")
-	)
-	(wire
-		(pts
 			(xy 30.48 82.55) (xy 30.48 87.63)
 		)
 		(stroke
@@ -3940,7 +3990,7 @@
 	)
 	(wire
 		(pts
-			(xy 179.07 113.03) (xy 179.07 123.19)
+			(xy 179.07 113.03) (xy 179.07 130.81)
 		)
 		(stroke
 			(width 0)
@@ -3987,16 +4037,6 @@
 			(type default)
 		)
 		(uuid "b2ec8b9e-5036-443a-b64c-4a11418d2769")
-	)
-	(wire
-		(pts
-			(xy 151.13 125.73) (xy 181.61 125.73)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b4407aba-c5e8-488c-a8dd-6d4132297fa8")
 	)
 	(wire
 		(pts
@@ -4060,6 +4100,26 @@
 	)
 	(wire
 		(pts
+			(xy 176.53 113.03) (xy 176.53 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c167e664-e092-47cc-9472-02fa05ce08da")
+	)
+	(wire
+		(pts
+			(xy 48.26 135.89) (xy 54.61 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c26b555b-760c-4c85-b7a0-60588c6421c8")
+	)
+	(wire
+		(pts
 			(xy 26.67 72.39) (xy 35.56 72.39)
 		)
 		(stroke
@@ -4100,16 +4160,6 @@
 	)
 	(wire
 		(pts
-			(xy 48.26 135.89) (xy 72.39 135.89)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "cadc16a8-8af4-4865-ae60-118f2bcf69f3")
-	)
-	(wire
-		(pts
 			(xy 186.69 130.81) (xy 186.69 137.16)
 		)
 		(stroke
@@ -4117,6 +4167,16 @@
 			(type default)
 		)
 		(uuid "cb07b9f9-6050-4ef6-8977-558ad23d4f66")
+	)
+	(wire
+		(pts
+			(xy 181.61 130.81) (xy 184.15 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cbef960f-2d3f-4c5e-b175-08a2a411ea0a")
 	)
 	(wire
 		(pts
@@ -4197,36 +4257,6 @@
 			(type default)
 		)
 		(uuid "ddea6136-ef5d-4f5e-a20a-413e511eeb1c")
-	)
-	(wire
-		(pts
-			(xy 181.61 125.73) (xy 181.61 113.03)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ddfa6a17-138b-4324-8f8f-9997b275194d")
-	)
-	(wire
-		(pts
-			(xy 151.13 128.27) (xy 184.15 128.27)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "deaf71cc-1125-4578-b742-79d9aee8076b")
-	)
-	(wire
-		(pts
-			(xy 151.13 120.65) (xy 176.53 120.65)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "df0278fe-33b9-476a-903b-9ce0124b7805")
 	)
 	(wire
 		(pts
@@ -4320,7 +4350,7 @@
 	)
 	(wire
 		(pts
-			(xy 184.15 128.27) (xy 184.15 113.03)
+			(xy 184.15 113.03) (xy 184.15 130.81)
 		)
 		(stroke
 			(width 0)
@@ -4477,6 +4507,16 @@
 			(type default)
 		)
 		(uuid "fbe120b9-521d-4156-a178-63cedfbfa85b")
+	)
+	(wire
+		(pts
+			(xy 184.15 130.81) (xy 186.69 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fc13abda-c4b6-48b2-86bb-2c53d186d7bb")
 	)
 	(wire
 		(pts
@@ -4737,6 +4777,30 @@
 		(uuid "d2fa93dc-f643-402a-abb0-0be15876978f")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 13.3433 82.55 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+	)
+	(global_label "HPD_SRC"
+		(shape bidirectional)
+		(at 29.21 90.17 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "d43956f8-ca36-481f-8950-181e0e3f3d23")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 16.5259 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5280,88 +5344,6 @@
 		)
 	)
 	(symbol
-		(lib_id "csa_ultracpu-eagle-import:JP1E")
-		(at 175.26 48.26 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "2eca331d-6321-4ac2-b927-70b0b9460775")
-		(property "Reference" "JP14"
-			(at 173.99 48.26 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.778 1.5113)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "JP1E"
-			(at 180.975 48.26 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.778 1.5113)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "csa_ultracpu:JP1"
-			(at 175.26 48.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 175.26 48.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 175.26 48.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "555504a0-b9c0-431d-a2b6-6a9ec2cd379b")
-		)
-		(pin "2"
-			(uuid "6c5ecd04-0f87-466d-a10a-8f4c76cd6a92")
-		)
-		(instances
-			(project "csa_ultracpu"
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
-					(reference "JP14")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "csa_ultracpu-eagle-import:C-EUC0603")
 		(at 40.64 83.82 90)
 		(unit 1)
@@ -5438,6 +5420,86 @@
 			(project "csa_ultracpu"
 				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
 					(reference "C62")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Jumper:SolderJumper_2_Bridged")
+		(at 171.45 50.8 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "34e99c38-f5eb-42e3-a94e-3aa84f0552f7")
+		(property "Reference" "JP4"
+			(at 171.45 44.45 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SolderJumper_2_Bridged"
+			(at 171.45 46.99 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
+			(at 171.45 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 171.45 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Solder Jumper, 2-pole, closed/bridged"
+			(at 171.45 55.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "8190ff0e-0ed4-4b53-833c-a980bd0afc95")
+		)
+		(pin "1"
+			(uuid "9c8cbb21-556a-4442-ae7a-e1381c2dbf57")
+		)
+		(instances
+			(project "csa_ultracpu"
+				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
+					(reference "JP4")
 					(unit 1)
 				)
 			)
@@ -5772,160 +5834,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:Conn_01x01_Pin")
-		(at 57.15 91.44 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "56a14308-697c-4984-9a0a-d815c1826c19")
-		(property "Reference" "HPD1"
-			(at 54.61 91.44 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Conn_01x01_Pin"
-			(at 57.785 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical"
-			(at 57.15 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 57.15 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated"
-			(at 57.15 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "b0e52715-5067-4b44-ac04-d6d45259ef51")
-		)
-		(instances
-			(project "csa_ultracpu"
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
-					(reference "HPD1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:Conn_01x01_Pin")
-		(at 146.05 120.65 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "57f2e867-ef78-4904-b5c7-1317919a4d23")
-		(property "Reference" "D2S1"
-			(at 143.51 120.65 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Conn_01x01_Pin"
-			(at 146.685 118.11 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical"
-			(at 146.05 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 146.05 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated"
-			(at 146.05 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "438a2508-77bb-4071-8db2-b5baef3fe6a5")
-		)
-		(instances
-			(project "csa_ultracpu"
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
-					(reference "D2S1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "csa_ultracpu-eagle-import:C-EUC0603")
 		(at 46.99 87.63 90)
 		(unit 1)
@@ -6098,160 +6006,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:Conn_01x01_Pin")
-		(at 146.05 128.27 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "62ebef05-40f0-467b-97c0-b81e536132fc")
-		(property "Reference" "CKS1"
-			(at 143.51 128.27 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Conn_01x01_Pin"
-			(at 146.685 125.73 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical"
-			(at 146.05 128.27 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 146.05 128.27 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated"
-			(at 146.05 128.27 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "9e0b6616-5d2e-4676-9b27-14149613651c")
-		)
-		(instances
-			(project "csa_ultracpu"
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
-					(reference "CKS1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:Conn_01x01_Pin")
-		(at 146.05 123.19 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "729f2ee7-ccf8-4ccf-b4f9-558d80819587")
-		(property "Reference" "D1S1"
-			(at 143.51 123.19 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Conn_01x01_Pin"
-			(at 146.685 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical"
-			(at 146.05 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 146.05 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated"
-			(at 146.05 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "3f8fb130-0915-4597-b1de-8906e5ddf249")
-		)
-		(instances
-			(project "csa_ultracpu"
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
-					(reference "D1S1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:C_Polarized")
 		(at 115.57 118.11 0)
 		(unit 1)
@@ -6400,7 +6154,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C2674166"
+		(property "LCSC" "C2674182"
 			(at 92.3133 46.99 0)
 			(hide yes)
 			(show_name no)
@@ -6667,83 +6421,6 @@
 			(project "csa_ultracpu"
 				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
 					(reference "#V02")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:Conn_01x01_Pin")
-		(at 146.05 125.73 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "8da17e44-623d-4325-a973-c151cdc22a6c")
-		(property "Reference" "D0S1"
-			(at 143.51 125.73 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Conn_01x01_Pin"
-			(at 146.685 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical"
-			(at 146.05 125.73 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 146.05 125.73 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated"
-			(at 146.05 125.73 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6525292d-5b33-4465-8c6c-fdc78d183ca8")
-		)
-		(instances
-			(project "csa_ultracpu"
-				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
-					(reference "D0S1")
 					(unit 1)
 				)
 			)
@@ -7627,6 +7304,86 @@
 			(project "csa_ultracpu"
 				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
 					(reference "#PWR02")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Jumper:SolderJumper_2_Open")
+		(at 58.42 135.89 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e16f4144-1a90-4599-8b87-b08561fd53b8")
+		(property "Reference" "JP19"
+			(at 58.42 129.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SolderJumper_2_Open"
+			(at 58.42 132.08 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
+			(at 58.42 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 58.42 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Solder Jumper, 2-pole, open"
+			(at 58.42 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ae74f77a-c247-4ac1-916f-72e5cdc4b313")
+		)
+		(pin "2"
+			(uuid "99761ed7-a031-440c-8e5a-e0cd6f125473")
+		)
+		(instances
+			(project "csa_ultracpu"
+				(path "/381336a5-a662-4c84-a650-90475fa59a97/22134f76-601c-46ce-8356-a6a96880f540"
+					(reference "JP19")
 					(unit 1)
 				)
 			)

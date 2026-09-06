@@ -6118,7 +6118,7 @@
 		)
 		(uuid "96aa0805-5f0d-4094-b830-b5eff6cd2dce")
 	)
-	(text "V1.1A:\n- 3.3V/5V level converter\nV1.2A:\n- use 74LVC06 instead of HCT\n- voltage conversion for GRAPHIC\nV1.2B:\n- pullup for GRAPHIC\nV1.3C:\n- jumper for 3.3V on Bus\nV2.0A:\n- remove 16MHz bus signal/oscillator\nV2.1A:\n- fix Kicad import wiring bug (where FA16,17,18 were connected)\nV3.0A:\n- move Graphics and PET_VSYNC handling to this page\n- use new FA12-FA15 on bus out"
+	(text "V2.0A:\n- remove 16MHz bus signal/oscillator\nV2.1A:\n- fix Kicad import wiring bug (where FA16,17,18 were connected)\nV3.0A:\n- move Graphics and PET_VSYNC handling to this page\n- use new FA12-FA15 on bus out"
 		(exclude_from_sim no)
 		(at 231.14 323.85 0)
 		(effects
