@@ -12682,7 +12682,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Package_QFP:LQFP-32_5x5mm_P0.5mm"
+		(property "Footprint" "Package_DFN_QFN:VQFN-32-1EP_5x5mm_P0.5mm_EP3.15x3.15mm"
 			(at 117.475 177.165 0)
 			(hide yes)
 			(show_name no)
@@ -12715,7 +12715,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C2651881"
+		(property "LCSC" "C1870151"
 			(at 102.235 154.305 0)
 			(hide yes)
 			(show_name no)
