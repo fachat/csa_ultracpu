@@ -2948,7 +2948,6 @@
 				(pins "1")
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start 1.016 -1.27)
@@ -3883,7 +3882,7 @@
 				(pins "1")
 			)
 		)
-		(attr through_hole exclude_from_pos_files exclude_from_bom)
+		(attr through_hole)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -0.745 -0.735)
@@ -4145,7 +4144,7 @@
 			)
 		)
 		(zone_connect 1)
-		(attr exclude_from_pos_files exclude_from_bom allow_soldermask_bridges)
+		(attr exclude_from_bom allow_soldermask_bridges)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_rect
 			(start -0.15 -0.75)
@@ -6753,7 +6752,6 @@
 				(pins "2_5" "2_4" "1_1" "1_2" "1_3" "2_2" "1_5" "1_4" "2_1" "2_3")
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -8.255 -12.446)
@@ -7074,7 +7072,7 @@
 				)
 			)
 		)
-		(path "/7a53c3a5-c5ea-4475-b6b5-344b9975c5d6/83b6d980-e8de-4d46-b2f7-382b7afa1ac6")
+		(path "/7a53c3a5-c5ea-4475-b6b5-344b9975c5d6/bf1798be-671b-48e2-a8be-61ea4b9e62be")
 		(sheetname "/BUS I/O/")
 		(sheetfile "BUS_I%2fO.kicad_sch")
 		(units
@@ -18866,7 +18864,6 @@
 				(pins)
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -22573,7 +22570,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C5661"
+		(property "LCSC" "C5665"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -24064,7 +24061,7 @@
 			)
 		)
 		(zone_connect 1)
-		(attr exclude_from_pos_files exclude_from_bom allow_soldermask_bridges)
+		(attr exclude_from_bom allow_soldermask_bridges)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_rect
 			(start -0.15 -0.75)
@@ -33051,7 +33048,7 @@
 			)
 		)
 		(zone_connect 1)
-		(attr exclude_from_pos_files exclude_from_bom allow_soldermask_bridges)
+		(attr exclude_from_bom allow_soldermask_bridges)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_rect
 			(start -0.15 -0.75)
@@ -33535,7 +33532,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/2002a839-3bb0-44ee-a1e7-391421f825e7/f225e0d3-4fa3-4d86-80bb-fa8035f91f5b")
+		(path "/2002a839-3bb0-44ee-a1e7-391421f825e7/9680c74a-a097-400a-abdc-92e459b9dadf")
 		(sheetname "/USB/")
 		(sheetfile "USB.kicad_sch")
 		(units
@@ -36367,7 +36364,6 @@
 				(pins "1")
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start 1.016 -1.27)
@@ -41967,7 +41963,6 @@
 				(pins "1")
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start 1.016 -1.27)
@@ -42423,7 +42418,7 @@
 			)
 		)
 		(zone_connect 1)
-		(attr exclude_from_pos_files exclude_from_bom allow_soldermask_bridges)
+		(attr exclude_from_bom allow_soldermask_bridges)
 		(net_tie_pad_groups "1, 2")
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_poly
@@ -42710,7 +42705,6 @@
 				(pins "1")
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -1.27 -1.016)
@@ -42906,7 +42900,6 @@
 				(pins)
 			)
 		)
-		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -43922,7 +43915,7 @@
 				(pins "1")
 			)
 		)
-		(attr through_hole exclude_from_pos_files exclude_from_bom)
+		(attr through_hole)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -0.745 -0.735)
@@ -50039,7 +50032,7 @@
 			)
 		)
 		(zone_connect 1)
-		(attr exclude_from_pos_files exclude_from_bom allow_soldermask_bridges)
+		(attr exclude_from_bom allow_soldermask_bridges)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_rect
 			(start -0.15 -0.75)
@@ -55174,7 +55167,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C2128"
+		(property "LCSC" "C81598"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -88938,12 +88931,12 @@
 		(uuid "36e36c16-fd9f-40c5-9467-772813ff6acd")
 	)
 	(segment
-		(start 216.3064 102.4128)
-		(end 205.6384 102.4128)
+		(start 217.8762 103.9826)
+		(end 216.3064 102.4128)
 		(width 0.2)
 		(layer "B.Cu")
 		(net "GRAPHIC5V")
-		(uuid "01da863d-1a0a-4e3b-94ef-a5529a741ae4")
+		(uuid "2077d07d-22b7-44d5-8c71-3453d8135f27")
 	)
 	(segment
 		(start 152.690612 109.4232)
@@ -88954,20 +88947,12 @@
 		(uuid "265ab0c9-c00b-4507-9121-f27e6aae914f")
 	)
 	(segment
-		(start 218.3842 103.9826)
-		(end 216.5604 102.1588)
+		(start 216.3064 102.4128)
+		(end 205.6384 102.4128)
 		(width 0.2)
 		(layer "B.Cu")
 		(net "GRAPHIC5V")
-		(uuid "3bd08a52-d1ac-4733-83f0-6bd7aeae64d4")
-	)
-	(segment
-		(start 205.6384 102.4128)
-		(end 201.7776 106.2736)
-		(width 0.2)
-		(layer "B.Cu")
-		(net "GRAPHIC5V")
-		(uuid "3bdf0733-4b1d-460e-9d9e-a824e20afcea")
+		(uuid "2a7d7e68-f881-4094-b7e5-e2759dbd3af5")
 	)
 	(segment
 		(start 133.096 108.5596)
@@ -88976,14 +88961,6 @@
 		(layer "B.Cu")
 		(net "GRAPHIC5V")
 		(uuid "4857698c-5688-4f78-8767-79d0710d9104")
-	)
-	(segment
-		(start 224.3166 103.9826)
-		(end 218.3842 103.9826)
-		(width 0.2)
-		(layer "B.Cu")
-		(net "GRAPHIC5V")
-		(uuid "492baee3-a81d-4588-ae28-a16ec20ad67b")
 	)
 	(segment
 		(start 127.6048 103.0684)
@@ -89034,14 +89011,6 @@
 		(uuid "775f350a-61a6-4b9e-8416-57f0fdff7ef5")
 	)
 	(segment
-		(start 216.5604 102.1588)
-		(end 216.3064 102.4128)
-		(width 0.2)
-		(layer "B.Cu")
-		(net "GRAPHIC5V")
-		(uuid "80fb4494-42c3-489d-aa06-dce96cb3ecf8")
-	)
-	(segment
 		(start 183.008229 110.0254)
 		(end 183.366147 110.383318)
 		(width 0.2)
@@ -89066,6 +89035,14 @@
 		(uuid "ac5b353d-91ec-4153-a7d5-eaa499d33f53")
 	)
 	(segment
+		(start 205.6384 102.4128)
+		(end 201.7776 106.2736)
+		(width 0.2)
+		(layer "B.Cu")
+		(net "GRAPHIC5V")
+		(uuid "bb46c92f-f10f-432c-9341-10c7c0c39234")
+	)
+	(segment
 		(start 139.8524 109.4232)
 		(end 152.690612 109.4232)
 		(width 0.2)
@@ -89088,6 +89065,14 @@
 		(layer "B.Cu")
 		(net "GRAPHIC5V")
 		(uuid "c4825516-0899-4bbf-a5dc-3cda65a91c81")
+	)
+	(segment
+		(start 224.3166 103.9826)
+		(end 217.8762 103.9826)
+		(width 0.2)
+		(layer "B.Cu")
+		(net "GRAPHIC5V")
+		(uuid "c6354bd8-cef4-4b55-a329-0197e5038fae")
 	)
 	(segment
 		(start 138.9888 108.5596)
